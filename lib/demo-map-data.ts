@@ -66,7 +66,7 @@ export const INNER_NODES: DemoNode[] = [
   { id: "i-forever", label: "A priest forever", kind: "comment", x: 652, y: 538 },
   { id: "i-tithe", label: "Abraham gave him a tenth", kind: "comment", x: 580, y: 572 },
   { id: "i-greater", label: "Greater than Levi", kind: "comment", x: 648, y: 570 },
-  { id: "i-mynote", label: "My take: the silence is intentional", kind: "note", x: 612, y: 590 },
+  { id: "i-mynote", label: "My take: the silence is intentional", kind: "note", x: 584, y: 508 },
 ];
 
 export const INNER_LINKS: DemoLink[] = [

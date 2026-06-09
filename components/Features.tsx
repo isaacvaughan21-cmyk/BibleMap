@@ -1,4 +1,6 @@
-/** Feature grid (2x2) — gold icon, serif H3, ink-soft body. */
+import Reveal from "@/components/Reveal";
+
+/** Feature grid (2x2) — gold icon, serif H3, ink-soft body, hover lift. */
 
 type Feature = {
   icon: React.ReactNode;
@@ -73,19 +75,25 @@ export default function Features() {
       <div className="dot-grid absolute inset-0" aria-hidden="true" />
 
       <div className="relative mx-auto max-w-content">
-        <h2 className="font-serif text-2xl text-ink md:text-xl">
-          What makes Hodos different.
-        </h2>
+        <Reveal>
+          <h2 className="font-serif text-2xl text-ink md:text-xl">
+            What makes Hodos different.
+          </h2>
+        </Reveal>
 
-        <div className="mt-16 grid gap-px overflow-hidden rounded-lg border border-rule bg-rule sm:grid-cols-2">
-          {features.map((f) => (
-            <div key={f.title} className="bg-parchment-2 p-8 md:p-10">
-              {f.icon}
-              <h3 className="mt-5 font-serif text-lg text-ink">{f.title}</h3>
-              <p className="mt-3 font-sans text-base leading-relaxed text-ink-soft">
-                {f.body}
-              </p>
-            </div>
+        <div className="mt-16 grid gap-5 sm:grid-cols-2">
+          {features.map((f, i) => (
+            <Reveal key={f.title} delay={0.1 + i * 0.1}>
+              <div className="group h-full rounded-xl border border-rule bg-parchment p-8 transition-all duration-300 hover:-translate-y-1 hover:border-gold/40 hover:shadow-lg hover:shadow-ink/5 md:p-10">
+                <span className="inline-block transition-transform duration-300 group-hover:scale-110">
+                  {f.icon}
+                </span>
+                <h3 className="mt-5 font-serif text-lg text-ink">{f.title}</h3>
+                <p className="mt-3 font-sans text-base leading-relaxed text-ink-soft">
+                  {f.body}
+                </p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </div>

@@ -16,9 +16,21 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="shrink-0 rounded-full bg-gold px-6 py-3 font-sans text-sm font-medium text-parchment transition-colors hover:bg-ink disabled:opacity-60"
+      className="group shrink-0 rounded-full bg-gold px-6 py-3 font-sans text-sm font-medium text-parchment shadow-md shadow-gold/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-ink hover:shadow-lg hover:shadow-ink/15 disabled:opacity-60"
     >
-      {pending ? "Joining…" : "Join the Waitlist →"}
+      {pending ? (
+        "Joining…"
+      ) : (
+        <>
+          Join the Waitlist{" "}
+          <span
+            aria-hidden="true"
+            className="inline-block transition-transform duration-300 group-hover:translate-x-1"
+          >
+            →
+          </span>
+        </>
+      )}
     </button>
   );
 }

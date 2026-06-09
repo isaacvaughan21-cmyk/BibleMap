@@ -57,6 +57,64 @@
     background-color: var(--gold);
     opacity: 0.5;
   }
+
+  /* Ambient float for mind-map bubbles (SVG-safe). Amplitude/duration are
+     tunable per node via --float-amp / --float-dur. */
+  .floaty {
+    animation: floaty var(--float-dur, 5.5s) ease-in-out infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  /* Soft breathing glow (focus node halo, hero aura). */
+  .pulse-glow {
+    animation: pulse-glow 3.8s ease-in-out infinite;
+  }
+
+  /* Scroll cue — a thin falling line under the hero. */
+  .scroll-cue::after {
+    content: "";
+    display: block;
+    width: 1px;
+    height: 36px;
+    margin: 0 auto;
+    background: linear-gradient(to bottom, var(--gold), transparent);
+    animation: cue-fall 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  }
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(calc(var(--float-amp, 3px) * -1));
+  }
+  50% {
+    transform: translateY(var(--float-amp, 3px));
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes cue-fall {
+  0% {
+    transform: translateY(-8px) scaleY(0.4);
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(14px) scaleY(1);
+    opacity: 0;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

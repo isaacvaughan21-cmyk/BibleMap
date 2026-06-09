@@ -28,9 +28,13 @@ export default function Nav() {
         {/* Right: join link */}
         <Link
           href="#cta"
-          className="font-sans text-xs tracking-eyebrow text-gold transition-colors hover:text-ink"
+          className="group relative font-sans text-xs tracking-eyebrow text-gold transition-colors hover:text-ink"
         >
           JOIN WAITLIST
+          <span
+            aria-hidden="true"
+            className="absolute -bottom-1 left-0 h-px w-0 bg-ink transition-all duration-300 group-hover:w-full"
+          />
         </Link>
       </nav>
     </header>
