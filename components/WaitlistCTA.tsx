@@ -16,7 +16,22 @@ export default function WaitlistCTA() {
           explore Scripture this way.
         </p>
 
-        <div className="mt-12">
+        <div className="mx-auto mt-8 max-w-md rounded-xl border border-gold/40 bg-gold-soft/10 px-6 py-5">
+          <p className="font-sans text-2xs tracking-eyebrow text-gold">
+            EARLY ACCESS
+          </p>
+          <p className="mt-2 font-sans text-base leading-relaxed text-ink-soft">
+            The first <span className="font-semibold text-ink">10</span> to join
+            get <span className="font-semibold text-ink">early beta access</span>{" "}
+            — and a{" "}
+            <span className="font-semibold text-ink">
+              free lifetime subscription
+            </span>
+            .
+          </p>
+        </div>
+
+        <div className="mt-10">
           <WaitlistForm />
         </div>
       </div>
