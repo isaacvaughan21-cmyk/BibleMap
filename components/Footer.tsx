@@ -1,4 +1,4 @@
-/** Footer — wordmark + Greek, copyright, single email link. */
+/** Footer — wordmark + Greek, copyright. */
 export default function Footer() {
   const year = new Date().getFullYear();
   return (
@@ -14,13 +14,6 @@ export default function Footer() {
         <p className="font-sans text-2xs text-ink-muted">
           © {year} Hodos. All rights reserved.
         </p>
-
-        <a
-          href="mailto:hello@hodos.app"
-          className="font-sans text-xs text-gold transition-colors hover:text-ink"
-        >
-          hello@hodos.app
-        </a>
       </div>
     </footer>
   );
