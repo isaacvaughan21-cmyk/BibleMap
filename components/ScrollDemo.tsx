@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import {
   motion,
   useMotionTemplate,
@@ -28,31 +28,19 @@ import {
  * verses + comments zooms into the focus bubble, which cross-fades into a whole
  * new map nested inside it — demoing the endlessly scrollable canvas.
  *
- * Scoped to >=768px. On mobile a static outer map is shown instead.
+ * The scroll-zoom is the signature feature, so it plays on every screen size
+ * (mobile included). We intentionally do not gate on prefers-reduced-motion —
+ * the zoom is gentle and spring-eased.
  */
 
 const VIEWBOX = 1000;
 
 export default function ScrollDemo() {
-  // The scroll-zoom is the signature feature, so it plays on any desktop-width
-  // screen. Mobile (<768px) gets the clean static map. (We intentionally do not
-  // gate on prefers-reduced-motion here — the zoom is gentle and spring-eased.)
-  const [enabled, setEnabled] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const update = () => setEnabled(mq.matches);
-    update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
-  }, []);
-
-  if (!enabled) return <StaticDemo />;
   return <AnimatedDemo />;
 }
 
 /* ------------------------------------------------------------------ */
-/* Animated (desktop, motion-OK)                                      */
+/* Scroll-driven zoom                                                 */
 /* ------------------------------------------------------------------ */
 function AnimatedDemo() {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -119,8 +107,8 @@ function AnimatedDemo() {
         </div>
       </div>
 
-      {/* Pinned zoom stage */}
-      <div ref={wrapRef} className="relative h-[400vh]">
+      {/* Pinned zoom stage — slightly shorter runway on mobile */}
+      <div ref={wrapRef} className="relative h-[300vh] md:h-[400vh]">
         <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
           <div className="dot-grid absolute inset-0" aria-hidden="true" />
 
@@ -183,45 +171,6 @@ function AnimatedDemo() {
               <span className="text-ink-muted">It never runs out.</span>
             </p>
           </motion.div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Static fallback (mobile + reduced motion)                          */
-/* ------------------------------------------------------------------ */
-function StaticDemo() {
-  return (
-    <section
-      id="demo"
-      className="relative overflow-hidden bg-parchment px-gutter py-rhythm md:px-gutter-lg"
-    >
-      <div className="dot-grid absolute inset-0" aria-hidden="true" />
-      <div className="relative mx-auto max-w-content text-center">
-        <p className="font-sans text-2xs tracking-eyebrow text-gold">
-          THE CANVAS
-        </p>
-        <h2 className="mt-4 font-serif text-2xl text-ink">
-          One question. A map without edges.
-        </h2>
-        <p className="mx-auto mt-4 max-w-md font-sans text-base text-ink-soft">
-          Every question, verse, and note lives on one canvas — and any bubble
-          opens into a whole map of its own.
-        </p>
-
-        <div className="relative mx-auto mt-12 aspect-square max-w-md">
-          <svg
-            className="h-full w-full"
-            viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}
-            aria-hidden="true"
-          >
-            <Links nodes={OUTER_NODES} links={OUTER_LINKS} strokeScale={1} />
-            {OUTER_NODES.map((n) => (
-              <Bubble key={n.id} node={n} fontUnits={20} />
-            ))}
-          </svg>
         </div>
       </div>
     </section>
