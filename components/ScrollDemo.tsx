@@ -61,22 +61,25 @@ function AnimatedDemo() {
     offset: ["start start", "end end"],
   });
 
-  // Light smoothing so the zoom glides rather than tracking scroll 1:1.
+  // Smoothing so the zoom glides rather than tracking scroll 1:1. Overdamped
+  // (no overshoot) for a calm, floaty feel.
   const p = useSpring(scrollYProgress, {
-    stiffness: 90,
-    damping: 26,
-    mass: 0.5,
+    stiffness: 60,
+    damping: 24,
+    mass: 0.55,
   });
 
-  // Camera: pan from map center to the focus bubble while scaling up. We drive
-  // the SVG *viewBox* (not a <g> transform) — it's the robust way to zoom an
-  // SVG and avoids framer's SVG-transform quirks. Smaller viewBox = zoomed in.
-  const cx = useTransform(p, [0, 1], [500, FOCUS.x]);
-  const cy = useTransform(p, [0, 1], [500, FOCUS.y]);
-  const scale = useTransform(p, [0, 1], [1, PEAK_SCALE]);
+  // Camera stays centered on the focus bubble and only zooms — pure zoom (no
+  // pan) reads much smoother. We drive the SVG *viewBox* (not a <g> transform):
+  // framer can't apply a transform string to an SVG <g>. Smaller viewBox = in.
+  //
+  // The zoom is GEOMETRIC (scale = PEAK^p), i.e. a constant multiplicative
+  // zoom rate. A linear scale would make the dive visibly accelerate; geometric
+  // feels like falling at a steady speed.
+  const scale = useTransform(p, (v) => Math.pow(PEAK_SCALE, v));
   const size = useTransform(scale, (s) => VIEWBOX / s);
-  const minX = useTransform([cx, size], ([x, w]: number[]) => x - w / 2);
-  const minY = useTransform([cy, size], ([y, h]: number[]) => y - h / 2);
+  const minX = useTransform(size, (w) => FOCUS.x - w / 2);
+  const minY = useTransform(size, (h) => FOCUS.y - h / 2);
   const viewBox = useMotionTemplate`${minX} ${minY} ${size} ${size}`;
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -84,93 +87,103 @@ function AnimatedDemo() {
     svgRef.current?.setAttribute("viewBox", v);
   });
 
-  // Cross-fade the two depths.
-  const outerOpacity = useTransform(p, [0, 0.4, 0.62], [1, 1, 0]);
-  const innerOpacity = useTransform(p, [0.42, 0.66, 1], [0, 1, 1]);
+  // Cross-fade the two depths as the focus bubble fills the screen.
+  const outerOpacity = useTransform(p, [0, 0.5, 0.7], [1, 1, 0]);
+  const innerOpacity = useTransform(p, [0.55, 0.78, 1], [0, 1, 1]);
 
-  // "Opening" pulse ring on the focus bubble mid-zoom. Animate the radius
+  // "Opening" pulse ring on the focus bubble as we enter it. Animate the radius
   // (not a transform) to avoid SVG transform-origin pitfalls.
-  const ringOpacity = useTransform(p, [0.28, 0.45, 0.6], [0, 0.9, 0]);
-  const ringR = useTransform(p, [0.28, 0.6], [26, 92]);
+  const ringOpacity = useTransform(p, [0.32, 0.5, 0.66], [0, 0.9, 0]);
+  const ringR = useTransform(p, [0.32, 0.66], [26, 110]);
 
   // UI overlays.
-  const hintOpacity = useTransform(p, [0, 0.08], [1, 0]);
-  const endOpacity = useTransform(p, [0.82, 0.96], [0, 1]);
+  const hintOpacity = useTransform(p, [0, 0.12], [1, 0]);
+  const endOpacity = useTransform(p, [0.84, 0.97], [0, 1]);
 
   return (
-    <section id="demo" ref={wrapRef} className="relative h-[320vh]">
-      <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden bg-parchment">
+    <section id="demo" className="relative bg-parchment">
+      {/* Intro — normal flow, scrolls away before the zoom pins */}
+      <div className="relative px-gutter pt-rhythm md:px-gutter-lg md:pt-rhythm-lg">
         <div className="dot-grid absolute inset-0" aria-hidden="true" />
-
-        {/* Section label */}
-        <div className="pointer-events-none absolute left-0 right-0 top-24 z-10 text-center">
+        <div className="relative mx-auto max-w-content text-center">
           <p className="font-sans text-2xs tracking-eyebrow text-gold">
             THE CANVAS
           </p>
-          <p className="mt-3 font-serif text-lg text-ink md:text-xl">
+          <h2 className="mt-4 font-serif text-2xl text-ink md:text-xl">
             One question. A map without edges.
+          </h2>
+          <p className="mx-auto mt-4 max-w-md font-sans text-base text-ink-soft">
+            Every question, verse, and note lives on one canvas — and any bubble
+            opens into a whole map of its own.
           </p>
         </div>
+      </div>
 
-        <svg
-          ref={svgRef}
-          className="h-full w-full"
-          viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}
-          preserveAspectRatio="xMidYMid slice"
-          aria-hidden="true"
-        >
-          {/* Outer depth */}
-          <motion.g style={{ opacity: outerOpacity }}>
-            <Links nodes={OUTER_NODES} links={OUTER_LINKS} strokeScale={1} />
-            {/* opening pulse around the focus bubble */}
-            <motion.circle
-              cx={FOCUS.x}
-              cy={FOCUS.y}
-              r={ringR}
-              fill="none"
-              stroke="var(--gold)"
-              strokeWidth={1}
-              style={{ opacity: ringOpacity }}
-            />
-            {OUTER_NODES.map((n) => (
-              <Bubble key={n.id} node={n} fontUnits={15} />
-            ))}
-          </motion.g>
+      {/* Pinned zoom stage */}
+      <div ref={wrapRef} className="relative h-[400vh]">
+        <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
+          <div className="dot-grid absolute inset-0" aria-hidden="true" />
 
-          {/* Inner depth (nested inside the focus bubble) */}
-          <motion.g style={{ opacity: innerOpacity }}>
-            <Links
-              nodes={INNER_NODES}
-              links={INNER_LINKS}
-              strokeScale={PEAK_SCALE}
-            />
-            {INNER_NODES.map((n) => (
-              <Bubble key={n.id} node={n} fontUnits={15 / PEAK_SCALE} />
-            ))}
-          </motion.g>
-        </svg>
+          <svg
+            ref={svgRef}
+            className="h-full w-full"
+            viewBox={`${FOCUS.x - VIEWBOX / 2} ${FOCUS.y - VIEWBOX / 2} ${VIEWBOX} ${VIEWBOX}`}
+            preserveAspectRatio="xMidYMid slice"
+            aria-hidden="true"
+          >
+            {/* Outer depth */}
+            <motion.g style={{ opacity: outerOpacity }}>
+              <Links nodes={OUTER_NODES} links={OUTER_LINKS} strokeScale={1} />
+              {/* opening pulse around the focus bubble */}
+              <motion.circle
+                cx={FOCUS.x}
+                cy={FOCUS.y}
+                r={ringR}
+                fill="none"
+                stroke="var(--gold)"
+                strokeWidth={1}
+                style={{ opacity: ringOpacity }}
+              />
+              {OUTER_NODES.map((n) => (
+                <Bubble key={n.id} node={n} fontUnits={15} />
+              ))}
+            </motion.g>
 
-        {/* Scroll hint */}
-        <motion.div
-          style={{ opacity: hintOpacity }}
-          className="pointer-events-none absolute bottom-12 left-0 right-0 z-10 text-center"
-        >
-          <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
-            SCROLL TO ZOOM IN
-          </p>
-          <span className="mx-auto mt-2 block h-6 w-px bg-gold/50" />
-        </motion.div>
+            {/* Inner depth (nested inside the focus bubble) */}
+            <motion.g style={{ opacity: innerOpacity }}>
+              <Links
+                nodes={INNER_NODES}
+                links={INNER_LINKS}
+                strokeScale={PEAK_SCALE}
+              />
+              {INNER_NODES.map((n) => (
+                <Bubble key={n.id} node={n} fontUnits={15 / PEAK_SCALE} />
+              ))}
+            </motion.g>
+          </svg>
 
-        {/* End caption — revealed once we're deep in */}
-        <motion.div
-          style={{ opacity: endOpacity }}
-          className="pointer-events-none absolute bottom-12 left-0 right-0 z-10 text-center"
-        >
-          <p className="mx-auto max-w-md px-gutter font-sans text-sm text-ink-soft">
-            Open any bubble and there&rsquo;s a whole map inside.{" "}
-            <span className="text-ink-muted">It never runs out.</span>
-          </p>
-        </motion.div>
+          {/* Scroll hint */}
+          <motion.div
+            style={{ opacity: hintOpacity }}
+            className="pointer-events-none absolute bottom-12 left-0 right-0 z-10 text-center"
+          >
+            <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
+              SCROLL TO ZOOM IN
+            </p>
+            <span className="mx-auto mt-2 block h-6 w-px bg-gold/50" />
+          </motion.div>
+
+          {/* End caption — revealed once we're deep in */}
+          <motion.div
+            style={{ opacity: endOpacity }}
+            className="pointer-events-none absolute bottom-12 left-0 right-0 z-10 text-center"
+          >
+            <p className="mx-auto max-w-md px-gutter font-sans text-sm text-ink-soft">
+              Open any bubble and there&rsquo;s a whole map inside.{" "}
+              <span className="text-ink-muted">It never runs out.</span>
+            </p>
+          </motion.div>
+        </div>
       </div>
     </section>
   );
