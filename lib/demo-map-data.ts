@@ -39,7 +39,7 @@ export const OUTER_NODES: DemoNode[] = [
   { id: "noline", label: "No genealogy — eternal?", kind: "comment", x: 772, y: 540 },
   { id: "bread", label: "Bread & wine → communion?", kind: "comment", x: 372, y: 672 },
   { id: "heb7", label: "Hebrews 7:1–3", kind: "verse", x: 612, y: 548, focus: true },
-  { id: "type", label: "A type of Christ", kind: "comment", x: 540, y: 700 },
+  { id: "type", label: "Christ — our high priest", kind: "comment", x: 588, y: 712 },
 ];
 
 export const OUTER_LINKS: DemoLink[] = [
