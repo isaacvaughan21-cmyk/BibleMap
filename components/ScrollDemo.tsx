@@ -4,11 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import {
   motion,
   useMotionTemplate,
-  useReducedMotion,
+  useMotionValueEvent,
   useScroll,
   useSpring,
   useTransform,
-  type MotionValue,
 } from "framer-motion";
 import {
   FOCUS,
@@ -29,23 +28,24 @@ import {
  * verses + comments zooms into the focus bubble, which cross-fades into a whole
  * new map nested inside it — demoing the endlessly scrollable canvas.
  *
- * Scoped to >=768px + motion-OK. Otherwise a static outer map is shown.
+ * Scoped to >=768px. On mobile a static outer map is shown instead.
  */
 
 const VIEWBOX = 1000;
 
 export default function ScrollDemo() {
-  const prefersReduced = useReducedMotion();
+  // The scroll-zoom is the signature feature, so it plays on any desktop-width
+  // screen. Mobile (<768px) gets the clean static map. (We intentionally do not
+  // gate on prefers-reduced-motion here — the zoom is gentle and spring-eased.)
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => {
-    if (prefersReduced) return;
     const mq = window.matchMedia("(min-width: 768px)");
     const update = () => setEnabled(mq.matches);
     update();
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
-  }, [prefersReduced]);
+  }, []);
 
   if (!enabled) return <StaticDemo />;
   return <AnimatedDemo />;
@@ -68,16 +68,21 @@ function AnimatedDemo() {
     mass: 0.5,
   });
 
-  // Camera: pan from map center to the focus bubble while scaling up.
+  // Camera: pan from map center to the focus bubble while scaling up. We drive
+  // the SVG *viewBox* (not a <g> transform) — it's the robust way to zoom an
+  // SVG and avoids framer's SVG-transform quirks. Smaller viewBox = zoomed in.
   const cx = useTransform(p, [0, 1], [500, FOCUS.x]);
   const cy = useTransform(p, [0, 1], [500, FOCUS.y]);
   const scale = useTransform(p, [0, 1], [1, PEAK_SCALE]);
+  const size = useTransform(scale, (s) => VIEWBOX / s);
+  const minX = useTransform([cx, size], ([x, w]: number[]) => x - w / 2);
+  const minY = useTransform([cy, size], ([y, h]: number[]) => y - h / 2);
+  const viewBox = useMotionTemplate`${minX} ${minY} ${size} ${size}`;
 
-  // translate(center) scale(s) translate(-camera)
-  const half = VIEWBOX / 2;
-  const negCx = useTransform(cx, (v) => -v);
-  const negCy = useTransform(cy, (v) => -v);
-  const transform = useMotionTemplate`translate(${half}px, ${half}px) scale(${scale}) translate(${negCx}px, ${negCy}px)`;
+  const svgRef = useRef<SVGSVGElement>(null);
+  useMotionValueEvent(viewBox, "change", (v) => {
+    svgRef.current?.setAttribute("viewBox", v);
+  });
 
   // Cross-fade the two depths.
   const outerOpacity = useTransform(p, [0, 0.4, 0.62], [1, 1, 0]);
@@ -108,41 +113,40 @@ function AnimatedDemo() {
         </div>
 
         <svg
+          ref={svgRef}
           className="h-full w-full"
           viewBox={`0 0 ${VIEWBOX} ${VIEWBOX}`}
           preserveAspectRatio="xMidYMid slice"
           aria-hidden="true"
         >
-          <motion.g style={{ transform, willChange: "transform" }}>
-            {/* Outer depth */}
-            <motion.g style={{ opacity: outerOpacity }}>
-              <Links nodes={OUTER_NODES} links={OUTER_LINKS} strokeScale={1} />
-              {/* opening pulse around the focus bubble */}
-              <motion.circle
-                cx={FOCUS.x}
-                cy={FOCUS.y}
-                r={ringR}
-                fill="none"
-                stroke="var(--gold)"
-                strokeWidth={1}
-                style={{ opacity: ringOpacity }}
-              />
-              {OUTER_NODES.map((n) => (
-                <Bubble key={n.id} node={n} fontUnits={15} />
-              ))}
-            </motion.g>
+          {/* Outer depth */}
+          <motion.g style={{ opacity: outerOpacity }}>
+            <Links nodes={OUTER_NODES} links={OUTER_LINKS} strokeScale={1} />
+            {/* opening pulse around the focus bubble */}
+            <motion.circle
+              cx={FOCUS.x}
+              cy={FOCUS.y}
+              r={ringR}
+              fill="none"
+              stroke="var(--gold)"
+              strokeWidth={1}
+              style={{ opacity: ringOpacity }}
+            />
+            {OUTER_NODES.map((n) => (
+              <Bubble key={n.id} node={n} fontUnits={15} />
+            ))}
+          </motion.g>
 
-            {/* Inner depth (nested inside the focus bubble) */}
-            <motion.g style={{ opacity: innerOpacity }}>
-              <Links
-                nodes={INNER_NODES}
-                links={INNER_LINKS}
-                strokeScale={PEAK_SCALE}
-              />
-              {INNER_NODES.map((n) => (
-                <Bubble key={n.id} node={n} fontUnits={15 / PEAK_SCALE} />
-              ))}
-            </motion.g>
+          {/* Inner depth (nested inside the focus bubble) */}
+          <motion.g style={{ opacity: innerOpacity }}>
+            <Links
+              nodes={INNER_NODES}
+              links={INNER_LINKS}
+              strokeScale={PEAK_SCALE}
+            />
+            {INNER_NODES.map((n) => (
+              <Bubble key={n.id} node={n} fontUnits={15 / PEAK_SCALE} />
+            ))}
           </motion.g>
         </svg>
 
