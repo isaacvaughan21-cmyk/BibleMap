@@ -1,6 +1,7 @@
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
 import Problem from "@/components/Problem";
+import ScrollDemo from "@/components/ScrollDemo";
 import HowItWorks from "@/components/HowItWorks";
 import Features from "@/components/Features";
 import WaitlistCTA from "@/components/WaitlistCTA";
@@ -13,6 +14,7 @@ export default function Home() {
       <main>
         <Hero />
         <Problem />
+        <ScrollDemo />
         <HowItWorks />
         <Features />
         <WaitlistCTA />

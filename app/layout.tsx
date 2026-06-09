@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import MindMapCanvas from "@/components/MindMapCanvas";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -68,9 +67,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body className="font-sans antialiased">
-        {/* Global fixed mind-map canvas behind all content */}
-        <MindMapCanvas />
-
         {children}
 
         {/* JSON-LD structured data */}
