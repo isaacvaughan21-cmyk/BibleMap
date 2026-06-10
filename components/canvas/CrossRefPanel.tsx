@@ -9,9 +9,12 @@ import {
   parseRef,
 } from "@/lib/bible";
 import { formatCrossRef, getCrossRefs, type CrossRef } from "@/lib/crossrefs";
-import { useCanvasStore } from "@/lib/store/canvas-store";
+import { setCrossRefDrag, useCanvasStore } from "@/lib/store/canvas-store";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import type { VerseNodeType } from "@/lib/types";
+
+/** dataTransfer marker so the canvas can tell a verse drag from a file drag. */
+export const CROSSREF_DRAG_TYPE = "application/x-hodos-crossref";
 
 /**
  * Contextual cross-reference panel — fills the study rail when a verse
@@ -96,6 +99,7 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
                 key={key}
                 crossRef={r}
                 added={addedIds.has(key)}
+                sourceId={node.id}
                 onAdd={async () => {
                   const text = await getPassageText(r.target, r.targetEnd);
                   const newId = addVerseWithCrossRef(node.id, key, text);
@@ -110,6 +114,7 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
                     });
                   }, 90);
                 }}
+                onMarkAdded={() => setAddedIds((s) => new Set(s).add(key))}
               />
             );
           })}
@@ -162,15 +167,20 @@ function PanelShell({
 function CrossRefRow({
   crossRef,
   added,
+  sourceId,
   onAdd,
+  onMarkAdded,
 }: {
   crossRef: CrossRef;
   added: boolean;
+  sourceId: string;
   onAdd: () => Promise<void>;
+  onMarkAdded: () => void;
 }) {
   const [preview, setPreview] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [adding, setAdding] = useState(false);
+  const key = formatCrossRef(crossRef);
 
   useEffect(() => {
     let cancelled = false;
@@ -184,10 +194,28 @@ function CrossRefRow({
   }, []);
 
   return (
-    <li className="group rounded-xl border border-transparent px-2 py-2 transition-colors hover:border-rule hover:bg-parchment">
+    <li
+      draggable={!added}
+      onDragStart={(e) => {
+        if (added) return;
+        e.dataTransfer.setData(CROSSREF_DRAG_TYPE, key);
+        e.dataTransfer.effectAllowed = "copy";
+        // Stash the full passage (resolved by drop time); avoids serializing.
+        setCrossRefDrag({
+          sourceId,
+          verseRef: key,
+          text: getPassageText(crossRef.target, crossRef.targetEnd),
+        });
+        // Mark added optimistically — the drop creates the bubble.
+        onMarkAdded();
+      }}
+      className={`group rounded-xl border border-transparent px-2 py-2 transition-colors hover:border-rule hover:bg-parchment ${
+        added ? "" : "cursor-grab active:cursor-grabbing"
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
         <p className="font-mono text-2xs uppercase tracking-[0.14em] text-gold">
-          {formatCrossRef(crossRef)}
+          {key}
         </p>
         <button
           type="button"
@@ -216,6 +244,11 @@ function CrossRefRow({
           (preview ?? "…")
         )}
       </p>
+      {!added && (
+        <p className="mt-1 font-sans text-[10px] text-ink-muted/60 opacity-0 transition-opacity group-hover:opacity-100">
+          Drag onto the canvas to place it anywhere
+        </p>
+      )}
     </li>
   );
 }

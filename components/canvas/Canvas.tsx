@@ -16,8 +16,9 @@ import { useShallow } from "zustand/react/shallow";
 import "@xyflow/react/dist/style.css";
 
 import { track } from "@/lib/analytics";
-import { useCanvasStore } from "@/lib/store/canvas-store";
+import { takeCrossRefDrag, useCanvasStore } from "@/lib/store/canvas-store";
 import * as repo from "@/lib/db/repo";
+import { CROSSREF_DRAG_TYPE } from "./CrossRefPanel";
 import type { HodosExport } from "@/lib/db/repo";
 import { downloadExport, parseImport } from "@/lib/map-io";
 import { useCanvasShortcuts } from "@/lib/shortcuts";
@@ -126,7 +127,9 @@ function CanvasInner() {
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [importPending, setImportPending] = useState<HodosExport | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [verseDragActive, setVerseDragActive] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
+  const addVerseWithCrossRef = useCanvasStore((s) => s.addVerseWithCrossRef);
 
   useEffect(() => {
     load();
@@ -296,17 +299,44 @@ function CanvasInner() {
       ref={wrapperRef}
       className="relative h-dvh w-full overflow-hidden bg-parchment"
       onDragOver={(e) => {
-        if (e.dataTransfer.types.includes("Files")) {
+        if (e.dataTransfer.types.includes(CROSSREF_DRAG_TYPE)) {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "copy";
+          setVerseDragActive(true);
+        } else if (e.dataTransfer.types.includes("Files")) {
           e.preventDefault();
           setDragActive(true);
         }
       }}
       onDragLeave={(e) => {
-        if (e.target === e.currentTarget) setDragActive(false);
+        if (e.target === e.currentTarget) {
+          setDragActive(false);
+          setVerseDragActive(false);
+        }
       }}
       onDrop={(e) => {
         e.preventDefault();
         setDragActive(false);
+        setVerseDragActive(false);
+        // A cross-reference dragged out of the study panel
+        if (e.dataTransfer.types.includes(CROSSREF_DRAG_TYPE)) {
+          const payload = takeCrossRefDrag();
+          if (!payload) return;
+          const pos = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+          payload.text
+            .then((text) =>
+              addVerseWithCrossRef(
+                payload.sourceId,
+                payload.verseRef,
+                text,
+                pos,
+              ),
+            )
+            .catch(() => {
+              setToast({ text: "Couldn't place that verse — try again." });
+            });
+          return;
+        }
         const file = e.dataTransfer.files?.[0];
         if (file) handleImportFile(file);
       }}
@@ -443,6 +473,11 @@ function CanvasInner() {
           onReplace={() => finishImport("replace")}
           onCancel={() => setImportPending(null)}
         />
+      )}
+
+      {/* Drag-a-verse affordance — quieter than the import dropzone */}
+      {verseDragActive && (
+        <div className="pointer-events-none absolute inset-3 z-50 rounded-2xl border-2 border-dashed border-gold/60" />
       )}
 
       {/* Drag-to-import affordance */}

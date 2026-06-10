@@ -51,11 +51,16 @@ export interface CanvasStore {
   /** Node whose verse is being chosen in the picker, if any. */
   versePickerNodeId: string | null;
   setVersePicker(id: string | null): void;
-  /** Create a verse bubble offset from `sourceId`, joined by a crossref edge. */
+  /**
+   * Create a verse bubble joined to `sourceId` by a crossref edge. With an
+   * explicit position (a drag-drop), it lands there; otherwise it's offset
+   * to the right of the source.
+   */
   addVerseWithCrossRef(
     sourceId: string,
     verseRef: string,
     verseText: string,
+    position?: { x: number; y: number },
   ): string;
   /** Rebuild IndexedDB from the last-good localStorage snapshot. */
   recoverFromSnapshot(): Promise<boolean>;
@@ -96,6 +101,24 @@ const updatedAtById = new Map<string, number>();
 /** Recency for command-palette ranking. */
 export function getNodeRecency(id: string): number {
   return updatedAtById.get(id) ?? 0;
+}
+
+/**
+ * Drag-and-drop payload for a cross-reference dragged out of the study panel.
+ * Module-scoped (not store state) so setting it never re-renders the canvas.
+ */
+let crossRefDragPayload: {
+  sourceId: string;
+  verseRef: string;
+  text: Promise<string>;
+} | null = null;
+export function setCrossRefDrag(p: typeof crossRefDragPayload) {
+  crossRefDragPayload = p;
+}
+export function takeCrossRefDrag() {
+  const p = crossRefDragPayload;
+  crossRefDragPayload = null;
+  return p;
 }
 
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
@@ -522,17 +545,19 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       set({ versePickerNodeId: id });
     },
 
-    addVerseWithCrossRef(sourceId, verseRef, verseText) {
+    addVerseWithCrossRef(sourceId, verseRef, verseText, explicitPosition) {
       const source = get().nodes.find((n) => n.id === sourceId);
       const siblings = get().edges.filter(
         (e) => e.source === sourceId && e.type === "crossref",
       ).length;
-      const position = source
-        ? {
-            x: source.position.x + 380,
-            y: source.position.y + siblings * 150 - 40,
-          }
-        : { x: 0, y: 0 };
+      const position =
+        explicitPosition ??
+        (source
+          ? {
+              x: source.position.x + 380,
+              y: source.position.y + siblings * 150 - 40,
+            }
+          : { x: 0, y: 0 });
 
       const nodeId = uuidv7();
       createdAtById.set(nodeId, Date.now());
