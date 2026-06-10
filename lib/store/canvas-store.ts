@@ -100,6 +100,17 @@ export interface CanvasStore {
   goToMap(index: number): Promise<void>;
   /** Up one level. */
   goUp(): Promise<void>;
+  /**
+   * A requested navigation, picked up by the canvas to play the zoom
+   * transition before performing the actual map switch.
+   */
+  pendingNav:
+    | { kind: "open"; id: string }
+    | { kind: "goto"; index: number }
+    | null;
+  requestOpen(id: string): void;
+  requestGoTo(index: number): void;
+  clearPendingNav(): void;
 }
 
 export const DEFAULT_MAP_NAME = "Untitled map";
@@ -419,6 +430,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     currentMapId: ROOT_MAP_ID,
     mapPath: [{ id: ROOT_MAP_ID, label: DEFAULT_MAP_NAME }],
     childMapIds: new Set<string>(),
+    pendingNav: null,
 
     load() {
       if (loadPromise) return loadPromise;
@@ -863,6 +875,19 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
 
     async goUp() {
       await get().goToMap(get().mapPath.length - 2);
+    },
+
+    requestOpen(id) {
+      if (ephemeralMode || get().pendingNav) return;
+      set({ pendingNav: { kind: "open", id } });
+    },
+    requestGoTo(index) {
+      if (ephemeralMode || get().pendingNav) return;
+      if (index === get().mapPath.length - 1) return; // already here
+      set({ pendingNav: { kind: "goto", index } });
+    },
+    clearPendingNav() {
+      set({ pendingNav: null });
     },
   };
 });

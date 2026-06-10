@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { NodeProps } from "@xyflow/react";
 import type { VerseNodeType } from "@/lib/types";
 import NodeHandles from "./NodeHandles";
+import NodeOpenButton from "./NodeOpenButton";
 import { floatStyle } from "./float";
 
 const TRUNCATE_AT = 240;
@@ -59,6 +60,7 @@ export default function VerseNode({
             )}
           </p>
         )}
+        <NodeOpenButton id={id} />
         <NodeHandles />
       </div>
     </div>

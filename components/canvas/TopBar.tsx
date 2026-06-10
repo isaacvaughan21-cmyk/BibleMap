@@ -37,8 +37,8 @@ export default function TopBar({
           </span>
         </Link>
 
-        {/* Center: map name — click to rename */}
-        <MapName />
+        {/* Center: map name at root, breadcrumb trail when nested */}
+        <MapTitle />
 
         {/* Right: save state, palette, zoom, feedback, rail toggle */}
         <div className="flex items-center gap-3">
@@ -226,6 +226,69 @@ function MenuButton({
     >
       {children}
     </button>
+  );
+}
+
+/** Root shows the editable map name; deeper levels show the breadcrumb. */
+function MapTitle() {
+  const depth = useCanvasStore((s) => s.mapPath.length);
+  return depth > 1 ? <Breadcrumb /> : <MapName />;
+}
+
+/** Breadcrumb trail of opened bubbles — click a crumb to zoom back out. */
+function Breadcrumb() {
+  const mapPath = useCanvasStore((s) => s.mapPath);
+  const requestGoTo = useCanvasStore((s) => s.requestGoTo);
+  const last = mapPath.length - 1;
+
+  return (
+    <nav
+      aria-label="Map breadcrumb"
+      className="absolute left-1/2 hidden max-w-[52%] -translate-x-1/2 items-center gap-1.5 sm:flex"
+    >
+      <button
+        type="button"
+        onClick={() => requestGoTo(last - 1)}
+        aria-label="Back one level"
+        className="mr-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-rule text-ink-muted transition-colors hover:border-gold hover:text-gold"
+      >
+        <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true">
+          <path
+            d="M7.5 2.5 4 6l3.5 3.5"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {mapPath.map((crumb, i) => (
+        <span key={crumb.id} className="flex min-w-0 items-center gap-1.5">
+          {i > 0 && (
+            <span aria-hidden="true" className="shrink-0 text-gold/50">
+              ›
+            </span>
+          )}
+          {i === last ? (
+            <span
+              aria-current="page"
+              className="max-w-[16ch] truncate font-serif text-sm italic text-ink"
+            >
+              {crumb.label}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => requestGoTo(i)}
+              className="max-w-[14ch] truncate font-serif text-sm italic text-ink-muted transition-colors hover:text-gold"
+            >
+              {crumb.label}
+            </button>
+          )}
+        </span>
+      ))}
+    </nav>
   );
 }
 

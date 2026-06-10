@@ -194,6 +194,24 @@
   opacity: 1;
 }
 
+/* "Open into its own map" button — revealed on node hover/selection,
+   always lit when the bubble holds a sub-map. */
+.react-flow__node .node-open {
+  opacity: 0;
+  transition:
+    opacity 0.18s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+.react-flow__node:hover .node-open,
+.react-flow__node.selected .node-open,
+.react-flow__node .node-open.node-open--has {
+  opacity: 1;
+}
+.perf-mode .node-open {
+  display: none;
+}
+
 /* Node wrapper cursors */
 .react-flow__node {
   cursor: grab;

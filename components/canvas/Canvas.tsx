@@ -22,6 +22,7 @@ import { CROSSREF_DRAG_TYPE } from "./CrossRefPanel";
 import type { HodosExport } from "@/lib/db/repo";
 import { downloadExport, parseImport } from "@/lib/map-io";
 import { useCanvasShortcuts } from "@/lib/shortcuts";
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import type { EdgeKind, NodeKind } from "@/lib/types";
 import TopBar from "./TopBar";
 import RightRail from "./RightRail";
@@ -593,7 +594,67 @@ function FlowSurface(props: {
   setEditing: (id: string | null) => void;
   onOpenVersePicker: (id: string) => void;
 }) {
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, setCenter, getInternalNode, fitView } =
+    useReactFlow();
+  const reduced = usePrefersReducedMotion();
+
+  // ---- Nested-map zoom transition ----
+  const pendingNav = useCanvasStore((s) => s.pendingNav);
+  const openNodeStore = useCanvasStore((s) => s.openNode);
+  const goToMapStore = useCanvasStore((s) => s.goToMap);
+  const clearPendingNav = useCanvasStore((s) => s.clearPendingNav);
+  const [veil, setVeil] = useState(false);
+  const running = useRef(false);
+
+  useEffect(() => {
+    if (!pendingNav || running.current) return;
+    running.current = true;
+    const nav = pendingNav;
+    const wait = (ms: number) =>
+      new Promise((r) => setTimeout(r, reduced ? 0 : ms));
+    const frame = () =>
+      new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    (async () => {
+      if (nav.kind === "open") {
+        // Dive toward the bubble while the veil rises.
+        const n = getInternalNode(nav.id);
+        if (n) {
+          const w = n.measured?.width ?? 200;
+          const h = n.measured?.height ?? 60;
+          const { x, y } = n.internals.positionAbsolute;
+          setCenter(x + w / 2, y + h / 2, {
+            zoom: 2.6,
+            duration: reduced ? 0 : 380,
+          });
+        }
+        setVeil(true);
+        await wait(320);
+        await openNodeStore(nav.id);
+      } else {
+        setVeil(true);
+        await wait(280);
+        await goToMapStore(nav.index);
+      }
+      // Emerge: frame the new map under the veil, then lift it.
+      await frame();
+      fitView({ duration: 0, padding: 0.35, maxZoom: 1 });
+      await frame();
+      setVeil(false);
+      await wait(380);
+      running.current = false;
+      clearPendingNav();
+    })();
+  }, [
+    pendingNav,
+    reduced,
+    getInternalNode,
+    setCenter,
+    fitView,
+    openNodeStore,
+    goToMapStore,
+    clearPendingNav,
+  ]);
 
   /** Double-click on empty canvas → create picker at the cursor. */
   const onDoubleClick = useCallback(
@@ -664,7 +725,7 @@ function FlowSurface(props: {
   );
 
   return (
-    <div className="h-full w-full" onDoubleClick={onDoubleClick}>
+    <div className="relative h-full w-full" onDoubleClick={onDoubleClick}>
       <ReactFlow
         nodes={props.nodes}
         edges={props.edges}
@@ -727,6 +788,13 @@ function FlowSurface(props: {
       <div
         aria-hidden="true"
         className="canvas-vignette pointer-events-none absolute inset-0"
+      />
+      {/* Parchment veil for the zoom-into-a-bubble transition */}
+      <div
+        aria-hidden="true"
+        className={`pointer-events-none absolute inset-0 z-40 bg-parchment transition-opacity ${
+          veil ? "opacity-100 duration-300" : "opacity-0 duration-500"
+        }`}
       />
     </div>
   );

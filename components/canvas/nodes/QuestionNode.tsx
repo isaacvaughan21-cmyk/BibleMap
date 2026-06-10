@@ -3,6 +3,7 @@ import type { QuestionNodeType } from "@/lib/types";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
+import NodeOpenButton from "./NodeOpenButton";
 import { floatStyle } from "./float";
 
 /** A question bubble — the seed of a study. Gold ?-glyph + serif text. */
@@ -42,6 +43,7 @@ export default function QuestionNode({
             )}
           </p>
         )}
+        <NodeOpenButton id={id} />
         <NodeHandles />
       </div>
     </div>
