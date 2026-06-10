@@ -1,6 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import type { HodosExport } from "@/lib/db/repo";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /** Confirm dialog for importing a .hodos.json — merge or replace. */
 export default function ImportDialog({
@@ -14,6 +16,8 @@ export default function ImportDialog({
   onReplace: () => void;
   onCancel: () => void;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, true);
   const liveNodes = data.nodes.filter((n) => !n.deletedAt).length;
   const liveEdges = data.edges.filter((e) => !e.deletedAt).length;
 
@@ -32,10 +36,18 @@ export default function ImportDialog({
         tabIndex={-1}
       />
 
-      <div className="relative mx-auto mt-[22vh] w-[min(420px,calc(100%-2rem))] animate-fade-up rounded-2xl border border-rule bg-parchment px-6 py-5 text-center shadow-2xl shadow-ink/20">
+      <div
+        ref={panelRef}
+        className="relative mx-auto mt-[22vh] w-[min(420px,calc(100%-2rem))] animate-fade-up rounded-2xl border border-rule bg-parchment px-6 py-5 text-center shadow-2xl shadow-ink/20"
+      >
         <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
           IMPORT MAP
         </p>
+        {data.name && (
+          <p className="mt-2 font-serif text-sm italic text-ink-muted">
+            &ldquo;{data.name}&rdquo;
+          </p>
+        )}
         <p className="mt-3 font-serif text-md text-ink">
           {liveNodes} bubble{liveNodes === 1 ? "" : "s"}, {liveEdges} connection
           {liveEdges === 1 ? "" : "s"}

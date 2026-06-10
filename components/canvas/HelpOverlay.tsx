@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SHORTCUTS } from "@/lib/shortcuts";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /** "?" overlay — every keyboard shortcut, platform-aware. */
 export default function HelpOverlay({
@@ -12,6 +13,8 @@ export default function HelpOverlay({
   onClose: () => void;
 }) {
   const [isMac, setIsMac] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, open);
   useEffect(() => {
     setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
   }, []);
@@ -42,7 +45,10 @@ export default function HelpOverlay({
         tabIndex={-1}
       />
 
-      <div className="relative mx-auto mt-[14vh] w-[min(440px,calc(100%-2rem))] animate-fade-up rounded-2xl border border-rule bg-parchment px-6 py-5 shadow-2xl shadow-ink/20">
+      <div
+        ref={panelRef}
+        className="relative mx-auto mt-[14vh] w-[min(440px,calc(100%-2rem))] animate-fade-up rounded-2xl border border-rule bg-parchment px-6 py-5 shadow-2xl shadow-ink/20"
+      >
         <div className="flex items-center justify-between border-b border-rule/70 pb-3">
           <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
             KEYBOARD SHORTCUTS

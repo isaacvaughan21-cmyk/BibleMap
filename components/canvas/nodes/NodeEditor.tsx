@@ -80,7 +80,7 @@ export default function NodeEditor({
         }
       }}
       aria-label="Edit bubble text"
-      className={`nodrag nowheel block resize-none overflow-hidden bg-transparent placeholder:text-ink-muted/50 focus:outline-none ${className}`}
+      className={`nodrag nowheel block resize-none overflow-hidden bg-transparent placeholder:text-ink-muted/70 focus:outline-none ${className}`}
     />
   );
 }

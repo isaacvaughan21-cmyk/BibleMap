@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { fuzzyScore } from "@/lib/fuzzy";
 import { getNodeRecency, useCanvasStore } from "@/lib/store/canvas-store";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import type { HodosNode, NodeKind } from "@/lib/types";
 
@@ -46,6 +47,8 @@ export default function CommandPalette({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, open);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const nodes = useCanvasStore((s) => s.nodes);
@@ -160,7 +163,10 @@ export default function CommandPalette({
         tabIndex={-1}
       />
 
-      <div className="relative mx-auto mt-[14vh] w-[min(560px,calc(100%-2rem))] animate-fade-up overflow-hidden rounded-2xl border border-rule bg-parchment shadow-2xl shadow-ink/20">
+      <div
+        ref={panelRef}
+        className="relative mx-auto mt-[14vh] w-[min(560px,calc(100%-2rem))] animate-fade-up overflow-hidden rounded-2xl border border-rule bg-parchment shadow-2xl shadow-ink/20"
+      >
         <div className="flex items-center gap-3 border-b border-rule/70 px-5 py-4">
           <svg
             width="14"

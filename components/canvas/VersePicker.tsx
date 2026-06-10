@@ -10,6 +10,7 @@ import {
   type ParsedRef,
 } from "@/lib/bible";
 import { useCanvasStore } from "@/lib/store/canvas-store";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 /**
  * Verse picker — book grid → chapter grid → verse list, with a free-text
@@ -25,6 +26,8 @@ export default function VersePicker({
 }) {
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(panelRef, true);
   const [query, setQuery] = useState("");
   const [book, setBook] = useState<BibleBook | null>(null);
   const [chapter, setChapter] = useState<number | null>(null);
@@ -92,7 +95,10 @@ export default function VersePicker({
         tabIndex={-1}
       />
 
-      <div className="relative mx-auto mt-[12vh] w-[min(560px,calc(100%-2rem))] animate-fade-up overflow-hidden rounded-2xl border border-rule bg-parchment shadow-2xl shadow-ink/20">
+      <div
+        ref={panelRef}
+        className="relative mx-auto mt-[12vh] w-[min(560px,calc(100%-2rem))] animate-fade-up overflow-hidden rounded-2xl border border-rule bg-parchment shadow-2xl shadow-ink/20"
+      >
         {/* Free-text reference */}
         <div className="flex items-center gap-3 border-b border-rule/70 px-5 py-4">
           <span
