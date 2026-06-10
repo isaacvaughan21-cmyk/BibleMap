@@ -1,5 +1,5 @@
 import { uuidv7 } from "@/lib/uuid";
-import type { DbEdge, DbNode } from "./schema";
+import { ROOT_MAP_ID, type DbEdge, type DbNode } from "./schema";
 
 /**
  * First-visit onboarding map — the 3-bubble Melchizedek arc from the
@@ -10,7 +10,7 @@ import type { DbEdge, DbNode } from "./schema";
  */
 export function buildSeed(): { nodes: DbNode[]; edges: DbEdge[] } {
   const now = Date.now();
-  const stamp = { createdAt: now, updatedAt: now };
+  const stamp = { createdAt: now, updatedAt: now, mapId: ROOT_MAP_ID };
 
   const question: DbNode = {
     id: uuidv7(),

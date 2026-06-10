@@ -1,8 +1,23 @@
-import { db, type DbEdge, type DbNode } from "./schema";
+import { db, ROOT_MAP_ID, type DbEdge, type DbNode } from "./schema";
 
-/** CRUD over the locked schema. All deletes are soft (deletedAt). */
+/** CRUD over the schema. All deletes are soft (deletedAt). Scoped per map. */
 
-export async function loadLive(): Promise<{
+/** Live nodes + edges for a single map. */
+export async function loadLive(
+  mapId: string = ROOT_MAP_ID,
+): Promise<{ nodes: DbNode[]; edges: DbEdge[] }> {
+  const [nodes, edges] = await Promise.all([
+    db.nodes.where("mapId").equals(mapId).toArray(),
+    db.edges.where("mapId").equals(mapId).toArray(),
+  ]);
+  return {
+    nodes: nodes.filter((n) => !n.deletedAt),
+    edges: edges.filter((e) => !e.deletedAt),
+  };
+}
+
+/** Live nodes + edges across every map — for export and snapshots. */
+export async function loadAll(): Promise<{
   nodes: DbNode[];
   edges: DbEdge[];
 }> {
@@ -14,6 +29,18 @@ export async function loadLive(): Promise<{
     nodes: nodes.filter((n) => !n.deletedAt),
     edges: edges.filter((e) => !e.deletedAt),
   };
+}
+
+/**
+ * Of the given bubble ids, which already contain a non-empty child map?
+ * A child map's id equals the parent bubble's id.
+ */
+export async function childMapIds(nodeIds: string[]): Promise<Set<string>> {
+  if (!nodeIds.length) return new Set();
+  const rows = await db.nodes.where("mapId").anyOf(nodeIds).toArray();
+  const out = new Set<string>();
+  for (const r of rows) if (!r.deletedAt) out.add(r.mapId);
+  return out;
 }
 
 export const upsertNodes = (rows: DbNode[]) => db.nodes.bulkPut(rows);
@@ -42,9 +69,9 @@ export async function getMeta<T = unknown>(
 export const setMeta = (key: string, value: unknown) =>
   db.meta.put({ key, value });
 
-/** Full live dataset, for export and snapshots. */
+/** Full live dataset across all maps, for export and snapshots. */
 export async function exportData() {
-  const { nodes, edges } = await loadLive();
+  const { nodes, edges } = await loadAll();
   const name = await getMeta<string>("mapName");
   return {
     version: 1 as const,

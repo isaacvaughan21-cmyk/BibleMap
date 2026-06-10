@@ -8,7 +8,7 @@ import {
 } from "@xyflow/react";
 import { track } from "@/lib/analytics";
 import * as repo from "@/lib/db/repo";
-import { db, type DbEdge, type DbNode } from "@/lib/db/schema";
+import { db, ROOT_MAP_ID, type DbEdge, type DbNode } from "@/lib/db/schema";
 import { buildSeed } from "@/lib/db/seed";
 import { parseImport } from "@/lib/map-io";
 import { uuidv7 } from "@/lib/uuid";
@@ -26,6 +26,9 @@ import type {
  */
 
 export type SaveState = "idle" | "saving" | "saved";
+
+/** A rung in the breadcrumb trail of opened bubbles. */
+export type MapCrumb = { id: string; label: string };
 
 export interface CanvasStore {
   nodes: HodosNode[];
@@ -83,6 +86,20 @@ export interface CanvasStore {
   dismissHints(): void;
   /** Clone a bubble (offset, selected). Returns the new id, or null. */
   duplicateNode(id: string): string | null;
+
+  /* ---- Nested maps ---- */
+  /** The map currently on screen (ROOT_MAP_ID at the top level). */
+  currentMapId: string;
+  /** Breadcrumb trail from the root to the current map. */
+  mapPath: MapCrumb[];
+  /** Ids of bubbles on the current map that already contain a child map. */
+  childMapIds: Set<string>;
+  /** Dive into a bubble's child map (seeding it on first open). */
+  openNode(id: string): Promise<void>;
+  /** Jump to a breadcrumb level (0 = root). */
+  goToMap(index: number): Promise<void>;
+  /** Up one level. */
+  goUp(): Promise<void>;
 }
 
 export const DEFAULT_MAP_NAME = "Untitled map";
@@ -124,6 +141,13 @@ export function takeCrossRefDrag() {
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
 let loadPromise: Promise<void> | null = null;
+
+/**
+ * The map dirty rows belong to. Mirrors the store's currentMapId so the
+ * module-level toDbNode/toDbEdge can stamp mapId without reaching into state.
+ * Navigation flushes before switching, so dirty rows are always this map's.
+ */
+let activeMapId: string = ROOT_MAP_ID;
 
 /**
  * `/app?synthetic=300&edges=500` loads an in-memory stress map for perf work.
@@ -183,11 +207,14 @@ function buildSynthetic(nodeCount: number, edgeCount: number) {
 
 export const SNAPSHOT_KEY = "hodos.snapshot";
 
+const mapIdById = new Map<string, string>();
+
 function toDbNode(n: HodosNode, now: number): DbNode {
   const isVerse = n.type === "verse";
   const data = n.data as VerseNodeData & { content?: string };
   return {
     id: n.id,
+    mapId: mapIdById.get(n.id) ?? activeMapId,
     type: n.type as NodeKind,
     content: isVerse ? "" : (data.content ?? ""),
     verseRef: isVerse ? data.verseRef : undefined,
@@ -201,12 +228,26 @@ function toDbNode(n: HodosNode, now: number): DbNode {
 function toDbEdge(e: HodosEdge, now: number): DbEdge {
   return {
     id: e.id,
+    mapId: mapIdById.get(e.id) ?? activeMapId,
     source: e.source,
     target: e.target,
     kind: (e.type ?? "manual") as EdgeKind,
     createdAt: createdAtById.get(e.id) ?? now,
     updatedAt: now,
   };
+}
+
+/** Remember per-record provenance so flushes always stamp the right map. */
+function registerLoaded(nodes: DbNode[], edges: DbEdge[]) {
+  nodes.forEach((n) => {
+    createdAtById.set(n.id, n.createdAt);
+    updatedAtById.set(n.id, n.updatedAt);
+    mapIdById.set(n.id, n.mapId);
+  });
+  edges.forEach((e) => {
+    createdAtById.set(e.id, e.createdAt);
+    mapIdById.set(e.id, e.mapId);
+  });
 }
 
 function fromDbNode(r: DbNode): HodosNode {
@@ -230,22 +271,31 @@ function fromDbEdge(r: DbEdge): HodosEdge {
   return { id: r.id, source: r.source, target: r.target, type: r.kind };
 }
 
-/** Last-good copy in localStorage — recovery path if IndexedDB corrupts. */
-function writeSnapshot(nodes: HodosNode[], edges: HodosEdge[]) {
+/** Last-good copy of the WHOLE tree in localStorage — corruption recovery. */
+async function writeSnapshot() {
   try {
-    const now = Date.now();
-    localStorage.setItem(
-      SNAPSHOT_KEY,
-      JSON.stringify({
-        version: 1,
-        exportedAt: new Date().toISOString(),
-        nodes: nodes.map((n) => toDbNode(n, now)),
-        edges: edges.map((e) => toDbEdge(e, now)),
-      }),
-    );
+    const data = await repo.exportData();
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(data));
   } catch {
     // quota or privacy mode — snapshot is best-effort
   }
+}
+
+/** Breadcrumb / anchor label for a bubble. */
+function labelFor(node: HodosNode): string {
+  const text =
+    node.type === "verse"
+      ? node.data.verseRef || node.data.verseText
+      : node.data.content;
+  const trimmed = (text || "").trim();
+  if (!trimmed) {
+    return node.type === "verse"
+      ? "Untitled verse"
+      : node.type === "question"
+        ? "Untitled question"
+        : "Untitled note";
+  }
+  return trimmed.length > 40 ? `${trimmed.slice(0, 40)}…` : trimmed;
 }
 
 export const useCanvasStore = create<CanvasStore>()((set, get) => {
@@ -280,7 +330,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         delNodes.length ? repo.softDeleteNodes(delNodes) : null,
         delEdges.length ? repo.softDeleteEdges(delEdges) : null,
       ]);
-      writeSnapshot(get().nodes, get().edges);
+      await writeSnapshot();
       set({ saveState: "saved" });
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
@@ -295,7 +345,47 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
   function markNodeDirty(id: string) {
     dirtyNodeIds.add(id);
     updatedAtById.set(id, Date.now());
+    mapIdById.set(id, activeMapId);
     scheduleFlush();
+  }
+
+  /** Force a synchronous flush — used before navigating between maps. */
+  async function flushPending() {
+    if (flushTimer) {
+      clearTimeout(flushTimer);
+      flushTimer = null;
+    }
+    await flush();
+  }
+
+  /** Recompute which on-screen bubbles already hold a child map. */
+  async function refreshChildMapIds() {
+    try {
+      const ids = await repo.childMapIds(get().nodes.map((n) => n.id));
+      set({ childMapIds: ids });
+    } catch {
+      set({ childMapIds: new Set() });
+    }
+  }
+
+  /** Swap the visible map after a flush. */
+  function applyMap(
+    mapId: string,
+    path: MapCrumb[],
+    nodes: DbNode[],
+    edges: DbEdge[],
+  ) {
+    activeMapId = mapId;
+    registerLoaded(nodes, edges);
+    set({
+      currentMapId: mapId,
+      mapPath: path,
+      nodes: nodes.map(fromDbNode),
+      edges: edges.map(fromDbEdge),
+      editingNodeId: null,
+      lastDeletion: null,
+      versePickerNodeId: null,
+    });
   }
 
   /** Group node + edge removals from one gesture into a single restorable unit. */
@@ -326,6 +416,9 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     mapName: DEFAULT_MAP_NAME,
     lastDeletion: null,
     hintsDismissed: true, // assume dismissed until load() learns otherwise
+    currentMapId: ROOT_MAP_ID,
+    mapPath: [{ id: ROOT_MAP_ID, label: DEFAULT_MAP_NAME }],
+    childMapIds: new Set<string>(),
 
     load() {
       if (loadPromise) return loadPromise;
@@ -349,12 +442,13 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         }
 
         try {
-          const savedName = await repo.getMeta<string>("mapName");
-          if (savedName) set({ mapName: savedName });
+          const savedName =
+            (await repo.getMeta<string>("mapName")) ?? DEFAULT_MAP_NAME;
           set({
+            mapName: savedName,
             hintsDismissed: !!(await repo.getMeta<boolean>("hintsDismissed")),
           });
-          let { nodes, edges } = await repo.loadLive();
+          let { nodes, edges } = await repo.loadLive(ROOT_MAP_ID);
           if (nodes.length === 0 && !(await repo.getMeta("seeded"))) {
             const seed = buildSeed();
             await repo.upsertNodes(seed.nodes);
@@ -363,17 +457,17 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
             nodes = seed.nodes;
             edges = seed.edges;
           }
-          nodes.forEach((n) => {
-            createdAtById.set(n.id, n.createdAt);
-            updatedAtById.set(n.id, n.updatedAt);
-          });
-          edges.forEach((e) => createdAtById.set(e.id, e.createdAt));
+          activeMapId = ROOT_MAP_ID;
+          registerLoaded(nodes, edges);
           set({
+            currentMapId: ROOT_MAP_ID,
+            mapPath: [{ id: ROOT_MAP_ID, label: savedName }],
             nodes: nodes.map(fromDbNode),
             edges: edges.map(fromDbEdge),
             loaded: true,
             loadError: null,
           });
+          await refreshChildMapIds();
           track("map_size", { nodes: nodes.length, edges: edges.length });
         } catch (err) {
           console.error("hodos: failed to open local database", err);
@@ -616,7 +710,11 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
 
     setMapName(name) {
       const trimmed = name.trim().slice(0, 120) || DEFAULT_MAP_NAME;
-      set({ mapName: trimmed });
+      // The root crumb mirrors the map name.
+      const path = get().mapPath.map((c, i) =>
+        i === 0 ? { ...c, label: trimmed } : c,
+      );
+      set({ mapName: trimmed, mapPath: path });
       if (!ephemeralMode) void repo.setMeta("mapName", trimmed);
     },
 
@@ -683,20 +781,88 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       scheduleFlush();
     },
 
-    /** Re-read everything from Dexie (used after import). */
+    /** Re-read everything from Dexie (used after import) — back to the root. */
     async reloadFromDb() {
-      const { nodes, edges } = await repo.loadLive();
-      nodes.forEach((n) => {
-        createdAtById.set(n.id, n.createdAt);
-        updatedAtById.set(n.id, n.updatedAt);
-      });
-      edges.forEach((e) => createdAtById.set(e.id, e.createdAt));
-      set({
-        nodes: nodes.map(fromDbNode),
-        edges: edges.map(fromDbEdge),
-        editingNodeId: null,
-      });
-      writeSnapshot(get().nodes, get().edges);
+      const savedName =
+        (await repo.getMeta<string>("mapName")) ?? get().mapName;
+      const { nodes, edges } = await repo.loadLive(ROOT_MAP_ID);
+      applyMap(
+        ROOT_MAP_ID,
+        [{ id: ROOT_MAP_ID, label: savedName }],
+        nodes,
+        edges,
+      );
+      set({ mapName: savedName });
+      await refreshChildMapIds();
+      await writeSnapshot();
+    },
+
+    /* ---------------- Nested-map navigation ---------------- */
+
+    async openNode(id) {
+      if (ephemeralMode) return; // synthetic stress maps don't nest
+      const node = get().nodes.find((n) => n.id === id);
+      if (!node) return;
+      await flushPending();
+
+      const childMapId = id;
+      let { nodes, edges } = await repo.loadLive(childMapId);
+
+      // First open ever → seed the child map with an anchor mirroring the
+      // bubble you came from, so it's "isolated" at the center of its world.
+      const openedBefore = await repo.getMeta<boolean>(`opened:${childMapId}`);
+      if (nodes.length === 0 && !openedBefore) {
+        const now = Date.now();
+        const anchorBase = {
+          id: uuidv7(),
+          mapId: childMapId,
+          position: { x: 0, y: 0 },
+          createdAt: now,
+          updatedAt: now,
+        };
+        const anchor: DbNode =
+          node.type === "verse"
+            ? {
+                ...anchorBase,
+                type: "verse",
+                content: "",
+                verseRef: node.data.verseRef,
+                verseText: node.data.verseText,
+              }
+            : {
+                ...anchorBase,
+                type: node.type,
+                content: node.data.content,
+              };
+        await repo.upsertNodes([anchor]);
+        nodes = [anchor];
+      }
+      if (!openedBefore) await repo.setMeta(`opened:${childMapId}`, true);
+
+      applyMap(
+        childMapId,
+        [...get().mapPath, { id: childMapId, label: labelFor(node) }],
+        nodes,
+        edges,
+      );
+      await refreshChildMapIds();
+      track("bubble_opened", { type: node.type as string });
+    },
+
+    async goToMap(index) {
+      const path = get().mapPath;
+      if (index < 0 || index >= path.length || index === path.length - 1)
+        return;
+      if (ephemeralMode) return;
+      await flushPending();
+      const target = path[index];
+      const { nodes, edges } = await repo.loadLive(target.id);
+      applyMap(target.id, path.slice(0, index + 1), nodes, edges);
+      await refreshChildMapIds();
+    },
+
+    async goUp() {
+      await get().goToMap(get().mapPath.length - 2);
     },
   };
 });

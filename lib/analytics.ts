@@ -15,6 +15,7 @@ declare global {
 
 export type AnalyticsEvent =
   | "bubble_created"
+  | "bubble_opened"
   | "edge_drawn"
   | "crossref_added"
   | "session_minutes"

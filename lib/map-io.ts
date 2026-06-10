@@ -1,12 +1,16 @@
 import { z } from "zod";
 import type { HodosExport } from "@/lib/db/repo";
+import { ROOT_MAP_ID } from "@/lib/db/schema";
 
 /** Export / import of .hodos.json files. */
 
 const positionSchema = z.object({ x: z.number(), y: z.number() });
 
+// mapId is optional for backward-compatibility — pre-nesting exports default
+// every row to the root map.
 const nodeSchema = z.object({
   id: z.string().min(1),
+  mapId: z.string().default(ROOT_MAP_ID),
   type: z.enum(["question", "verse", "note"]),
   content: z.string().default(""),
   verseRef: z.string().optional(),
@@ -19,6 +23,7 @@ const nodeSchema = z.object({
 
 const edgeSchema = z.object({
   id: z.string().min(1),
+  mapId: z.string().default(ROOT_MAP_ID),
   source: z.string().min(1),
   target: z.string().min(1),
   kind: z.enum(["manual", "crossref"]),
