@@ -41,6 +41,7 @@ export function parseImport(text: string): HodosExport {
   const ids = new Set(parsed.nodes.map((n) => n.id));
   return {
     ...parsed,
+    name: parsed.name,
     edges: parsed.edges.filter((e) => ids.has(e.source) && ids.has(e.target)),
   };
 }
