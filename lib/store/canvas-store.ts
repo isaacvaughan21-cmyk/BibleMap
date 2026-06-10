@@ -46,6 +46,15 @@ export interface CanvasStore {
   selectAll(): void;
   selectOnly(id: string): void;
   reloadFromDb(): Promise<void>;
+  /** Node whose verse is being chosen in the picker, if any. */
+  versePickerNodeId: string | null;
+  setVersePicker(id: string | null): void;
+  /** Create a verse bubble offset from `sourceId`, joined by a crossref edge. */
+  addVerseWithCrossRef(
+    sourceId: string,
+    verseRef: string,
+    verseText: string,
+  ): string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -191,6 +200,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     loadError: null,
     editingNodeId: null,
     saveState: "idle",
+    versePickerNodeId: null,
 
     load() {
       if (loadPromise) return loadPromise;
@@ -370,6 +380,45 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
               : n,
         ),
       });
+    },
+
+    setVersePicker(id) {
+      set({ versePickerNodeId: id });
+    },
+
+    addVerseWithCrossRef(sourceId, verseRef, verseText) {
+      const source = get().nodes.find((n) => n.id === sourceId);
+      const siblings = get().edges.filter(
+        (e) => e.source === sourceId && e.type === "crossref",
+      ).length;
+      const position = source
+        ? {
+            x: source.position.x + 380,
+            y: source.position.y + siblings * 150 - 40,
+          }
+        : { x: 0, y: 0 };
+
+      const nodeId = uuidv7();
+      createdAtById.set(nodeId, Date.now());
+      const node: HodosNode = {
+        id: nodeId,
+        type: "verse",
+        position,
+        data: { verseRef, verseText },
+      };
+      const edge: HodosEdge = {
+        id: uuidv7(),
+        source: sourceId,
+        target: nodeId,
+        type: "crossref",
+      };
+      createdAtById.set(edge.id, Date.now());
+      set({ nodes: [...get().nodes, node], edges: [...get().edges, edge] });
+      dirtyNodeIds.add(nodeId);
+      updatedAtById.set(nodeId, Date.now());
+      dirtyEdgeIds.add(edge.id);
+      scheduleFlush();
+      return nodeId;
     },
 
     /** Re-read everything from Dexie (used after import). */

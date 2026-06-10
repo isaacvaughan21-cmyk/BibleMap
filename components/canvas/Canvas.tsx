@@ -31,11 +31,13 @@ import EmptyState from "./EmptyState";
 import FeedbackWidget from "./FeedbackWidget";
 import HelpOverlay from "./HelpOverlay";
 import ImportDialog from "./ImportDialog";
+import VersePicker from "./VersePicker";
 import QuestionNode from "./nodes/QuestionNode";
 import VerseNode from "./nodes/VerseNode";
 import NoteNode from "./nodes/NoteNode";
 import ManualEdge from "./edges/ManualEdge";
 import CrossRefEdge from "./edges/CrossRefEdge";
+import type { VerseNodeType } from "@/lib/types";
 
 const nodeTypes = {
   question: QuestionNode,
@@ -103,6 +105,8 @@ function CanvasInner() {
     })),
   );
   const reloadFromDb = useCanvasStore((s) => s.reloadFromDb);
+  const versePickerNodeId = useCanvasStore((s) => s.versePickerNodeId);
+  const setVersePicker = useCanvasStore((s) => s.setVersePicker);
   const [railOpen, setRailOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -128,6 +132,18 @@ function CanvasInner() {
     const t = setTimeout(() => setToast(null), 3500);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // The cross-ref panel is contextual: selecting a verse bubble (with a
+  // reference) surfaces the study rail.
+  const selectedVerse =
+    (nodes.filter((n) => n.selected && n.type === "verse")[0] as
+      | VerseNodeType
+      | undefined) ?? null;
+  const selectedVerseKey =
+    selectedVerse && selectedVerse.data.verseRef ? selectedVerse.id : null;
+  useEffect(() => {
+    if (selectedVerseKey) setRailOpen(true);
+  }, [selectedVerseKey]);
 
   const handleExport = useCallback(async () => {
     downloadExport(await repo.exportData());
@@ -231,7 +247,7 @@ function CanvasInner() {
         onImportFile={handleImportFile}
         onHelp={() => setHelpOpen(true)}
       />
-      <RightRail open={railOpen} />
+      <RightRail open={railOpen} selectedVerse={selectedVerse} />
       <CanvasControls railOpen={railOpen} />
       <FeedbackWidget
         open={feedbackOpen}
@@ -254,6 +270,7 @@ function CanvasInner() {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             setEditing={setEditing}
+            onOpenVersePicker={setVersePicker}
           />
         )}
         {loaded && nodes.length === 0 && <EmptyState />}
@@ -268,6 +285,10 @@ function CanvasInner() {
           }}
           onChangeEdgeKind={(id, kind) => {
             changeEdgeKind(id, kind);
+            closeMenu();
+          }}
+          onPickVerse={(id) => {
+            setVersePicker(id);
             closeMenu();
           }}
           onDelete={(target) => {
@@ -294,10 +315,22 @@ function CanvasInner() {
           x={picker.x}
           y={picker.y}
           onPick={(type) => {
-            createNode(type, { x: picker.fx, y: picker.fy });
+            const id = createNode(type, { x: picker.fx, y: picker.fy });
+            if (type === "verse") {
+              // Verses are chosen, not typed — straight into the picker.
+              setEditing(null);
+              setVersePicker(id);
+            }
             setPicker(null);
           }}
           onClose={() => setPicker(null)}
+        />
+      )}
+
+      {versePickerNodeId && (
+        <VersePicker
+          nodeId={versePickerNodeId}
+          onClose={() => setVersePicker(null)}
         />
       )}
 
@@ -351,6 +384,7 @@ function FlowSurface(props: {
   onPaneClick: () => void;
   onOpenPicker: (p: PickerState) => void;
   setEditing: (id: string | null) => void;
+  onOpenVersePicker: (id: string) => void;
 }) {
   const { screenToFlowPosition } = useReactFlow();
 
@@ -371,10 +405,20 @@ function FlowSurface(props: {
     [screenToFlowPosition, props],
   );
 
-  /** Click a bubble → edit it inline (shift-click stays multi-select). */
+  /**
+   * Click a bubble → edit it inline (shift-click stays multi-select).
+   * Verse bubbles are scripture: an empty one opens the verse picker, and a
+   * filled one just selects (its text is never hand-edited).
+   */
   const onNodeClick = useCallback(
     (e: React.MouseEvent, node: Node) => {
       if (e.shiftKey) return;
+      if (node.type === "verse") {
+        if (!(node.data as { verseRef?: string }).verseRef) {
+          props.onOpenVersePicker(node.id);
+        }
+        return;
+      }
       props.setEditing(node.id);
     },
     [props],

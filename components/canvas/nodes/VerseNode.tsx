@@ -1,18 +1,27 @@
+"use client";
+
+import { useState } from "react";
 import type { NodeProps } from "@xyflow/react";
 import type { VerseNodeType } from "@/lib/types";
-import { useCanvasStore } from "@/lib/store/canvas-store";
 import NodeHandles from "./NodeHandles";
-import NodeEditor from "./NodeEditor";
 
-/** A scripture bubble — gold left border, mono reference, serif verse text. */
+const TRUNCATE_AT = 240;
+
+/**
+ * A scripture bubble — gold left border, mono reference, serif verse text.
+ * Clicking an empty verse bubble opens the verse picker (wired in Canvas).
+ * Long passages truncate at 240 chars with an expand affordance.
+ */
 export default function VerseNode({
-  id,
   data,
   selected,
 }: NodeProps<VerseNodeType>) {
-  const editing = useCanvasStore((s) => s.editingNodeId) === id;
-  const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-  const setEditing = useCanvasStore((s) => s.setEditing);
+  const [expanded, setExpanded] = useState(false);
+  const isLong = data.verseText.length > TRUNCATE_AT;
+  const shown =
+    isLong && !expanded
+      ? `${data.verseText.slice(0, TRUNCATE_AT).trimEnd()}…`
+      : data.verseText;
 
   return (
     <div
@@ -20,29 +29,31 @@ export default function VerseNode({
         selected ? "bubble-selected border-gold" : "border-rule"
       }`}
     >
-      {editing ? (
-        <NodeEditor
-          value={data.verseRef}
-          placeholder="e.g. John 3:16"
-          singleLine
-          className="w-full font-mono text-2xs font-medium uppercase tracking-[0.14em] text-gold"
-          onCommit={(v) => {
-            updateNodeData(id, { verseRef: v });
-            setEditing(null);
-          }}
-        />
-      ) : (
-        <p
-          className={`font-mono text-2xs font-medium uppercase tracking-[0.14em] ${
-            data.verseRef ? "text-gold" : "text-gold/50"
-          }`}
-        >
-          {data.verseRef || "Add reference"}
-        </p>
-      )}
+      <p
+        className={`font-mono text-2xs font-medium uppercase tracking-[0.14em] ${
+          data.verseRef ? "text-gold" : "text-gold/50"
+        }`}
+      >
+        {data.verseRef || "Choose a verse…"}
+      </p>
       {data.verseText && (
         <p className="mt-1.5 font-serif text-sm leading-relaxed text-ink-soft">
-          {data.verseText}
+          {shown}
+          {isLong && (
+            <>
+              {" "}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpanded((x) => !x);
+                }}
+                className="nodrag font-sans text-2xs tracking-wide text-gold transition-colors hover:text-ink"
+              >
+                {expanded ? "collapse" : "expand"}
+              </button>
+            </>
+          )}
         </p>
       )}
       <NodeHandles />

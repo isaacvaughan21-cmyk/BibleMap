@@ -18,12 +18,14 @@ export default function ContextMenu({
   target,
   onChangeNodeType,
   onChangeEdgeKind,
+  onPickVerse,
   onDelete,
   onClose,
 }: {
   target: MenuTarget;
   onChangeNodeType: (id: string, type: NodeKind) => void;
   onChangeEdgeKind: (id: string, kind: EdgeKind) => void;
+  onPickVerse: (id: string) => void;
   onDelete: (target: MenuTarget) => void;
   onClose: () => void;
 }) {
@@ -68,6 +70,12 @@ export default function ContextMenu({
         <p className="px-4 pb-1 pt-1.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
           {eyebrow.toUpperCase()}
         </p>
+
+        {target.kind === "node" && target.nodeType === "verse" && (
+          <MenuItem onClick={() => onPickVerse(target.id)}>
+            Choose verse…
+          </MenuItem>
+        )}
 
         {target.kind === "node" &&
           (Object.keys(NODE_LABELS) as NodeKind[])

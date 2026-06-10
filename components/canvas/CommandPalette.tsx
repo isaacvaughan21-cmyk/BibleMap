@@ -51,6 +51,8 @@ export default function CommandPalette({
   const nodes = useCanvasStore((s) => s.nodes);
   const createNode = useCanvasStore((s) => s.createNode);
   const selectOnly = useCanvasStore((s) => s.selectOnly);
+  const setEditing = useCanvasStore((s) => s.setEditing);
+  const setVersePicker = useCanvasStore((s) => s.setVersePicker);
   const { setCenter, screenToFlowPosition, getInternalNode } = useReactFlow();
   const reducedMotion = usePrefersReducedMotion();
 
@@ -107,7 +109,12 @@ export default function CommandPalette({
         x: window.innerWidth / 2,
         y: window.innerHeight / 2,
       });
-      createNode(item.type, center);
+      const id = createNode(item.type, center);
+      if (item.type === "verse") {
+        // Verses are chosen via the picker, not typed.
+        setEditing(null);
+        setVersePicker(id);
+      }
     } else {
       const internal = getInternalNode(item.node.id);
       const w = internal?.measured?.width ?? 200;
