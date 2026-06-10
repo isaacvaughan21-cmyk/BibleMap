@@ -16,6 +16,10 @@ import { useShallow } from "zustand/react/shallow";
 import "@xyflow/react/dist/style.css";
 
 import { useCanvasStore } from "@/lib/store/canvas-store";
+import * as repo from "@/lib/db/repo";
+import type { HodosExport } from "@/lib/db/repo";
+import { downloadExport, parseImport } from "@/lib/map-io";
+import { useCanvasShortcuts } from "@/lib/shortcuts";
 import type { EdgeKind, NodeKind } from "@/lib/types";
 import TopBar from "./TopBar";
 import RightRail from "./RightRail";
@@ -24,6 +28,9 @@ import CommandPalette from "./CommandPalette";
 import ContextMenu, { type MenuTarget } from "./ContextMenu";
 import CreatePicker from "./CreatePicker";
 import EmptyState from "./EmptyState";
+import FeedbackWidget from "./FeedbackWidget";
+import HelpOverlay from "./HelpOverlay";
+import ImportDialog from "./ImportDialog";
 import QuestionNode from "./nodes/QuestionNode";
 import VerseNode from "./nodes/VerseNode";
 import NoteNode from "./nodes/NoteNode";
@@ -95,26 +102,56 @@ function CanvasInner() {
       load: s.load,
     })),
   );
+  const reloadFromDb = useCanvasStore((s) => s.reloadFromDb);
   const [railOpen, setRailOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [menu, setMenu] = useState<MenuTarget | null>(null);
   const [picker, setPicker] = useState<PickerState | null>(null);
+  const [importPending, setImportPending] = useState<HodosExport | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // Cmd-K (mac) / Ctrl-K (win) toggles the command palette.
+  useCanvasShortcuts({
+    onPalette: () => setPaletteOpen((o) => !o),
+    onToggleRail: () => setRailOpen((o) => !o),
+    onHelp: () => setHelpOpen(true),
+  });
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        setPaletteOpen((o) => !o);
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const handleExport = useCallback(async () => {
+    downloadExport(await repo.exportData());
   }, []);
+
+  const handleImportFile = useCallback(async (file: File) => {
+    try {
+      setImportPending(parseImport(await file.text()));
+    } catch {
+      setToast("That file doesn't look like a Hodos map (.hodos.json).");
+    }
+  }, []);
+
+  const finishImport = useCallback(
+    async (mode: "merge" | "replace") => {
+      if (!importPending) return;
+      if (mode === "merge") await repo.importMerge(importPending);
+      else await repo.importReplace(importPending);
+      await reloadFromDb();
+      setImportPending(null);
+      setToast(mode === "merge" ? "Map merged." : "Map replaced.");
+    },
+    [importPending, reloadFromDb],
+  );
 
   /** Clamp a popover inside the canvas viewport. */
   const clampToViewport = useCallback((e: React.MouseEvent | MouseEvent) => {
@@ -168,15 +205,39 @@ function CanvasInner() {
     <div
       ref={wrapperRef}
       className="relative h-dvh w-full overflow-hidden bg-parchment"
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes("Files")) {
+          e.preventDefault();
+          setDragActive(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        if (e.target === e.currentTarget) setDragActive(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragActive(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file) handleImportFile(file);
+      }}
     >
       {/* Chrome first in DOM — tab order: top bar → rail → controls → canvas */}
       <TopBar
         railOpen={railOpen}
         onToggleRail={() => setRailOpen((o) => !o)}
         onOpenPalette={() => setPaletteOpen(true)}
+        onFeedback={() => setFeedbackOpen((o) => !o)}
+        onExport={handleExport}
+        onImportFile={handleImportFile}
+        onHelp={() => setHelpOpen(true)}
       />
       <RightRail open={railOpen} />
       <CanvasControls railOpen={railOpen} />
+      <FeedbackWidget
+        open={feedbackOpen}
+        onOpenChange={setFeedbackOpen}
+        railOpen={railOpen}
+      />
 
       <main className="absolute inset-0" aria-label="Map canvas">
         {loaded && (
@@ -244,6 +305,34 @@ function CanvasInner() {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
       />
+      <HelpOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      {importPending && (
+        <ImportDialog
+          data={importPending}
+          onMerge={() => finishImport("merge")}
+          onReplace={() => finishImport("replace")}
+          onCancel={() => setImportPending(null)}
+        />
+      )}
+
+      {/* Drag-to-import affordance */}
+      {dragActive && (
+        <div className="pointer-events-none absolute inset-3 z-50 flex items-center justify-center rounded-2xl border-2 border-dashed border-gold bg-parchment/70 backdrop-blur-[2px]">
+          <p className="font-serif text-md italic text-ink-soft">
+            Drop a{" "}
+            <span className="font-mono not-italic text-gold">.hodos.json</span>{" "}
+            to import
+          </p>
+        </div>
+      )}
+
+      {/* Quiet toast */}
+      {toast && (
+        <div className="absolute bottom-6 left-1/2 z-50 -translate-x-1/2 animate-fade-up rounded-full border border-rule bg-parchment px-5 py-2 font-sans text-xs text-ink-soft shadow-lg shadow-ink/10">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

@@ -17,3 +17,21 @@ export const waitlistSchema = z.object({
 });
 
 export type WaitlistInput = z.infer<typeof waitlistSchema>;
+
+export const feedbackSchema = z.object({
+  message: z
+    .string()
+    .trim()
+    .min(3, "Say a little more — at least a few words.")
+    .max(2000, "Keep it under 2,000 characters."),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .max(254)
+    .regex(emailRegex, "Enter a valid email address.")
+    .optional()
+    .or(z.literal("")),
+});
+
+export type FeedbackInput = z.infer<typeof feedbackSchema>;

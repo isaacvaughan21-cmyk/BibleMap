@@ -43,6 +43,9 @@ export interface CanvasStore {
   changeNodeType(id: string, to: NodeKind): void;
   changeEdgeKind(id: string, kind: EdgeKind): void;
   replaceAll(nodes: HodosNode[], edges: HodosEdge[]): void;
+  selectAll(): void;
+  selectOnly(id: string): void;
+  reloadFromDb(): Promise<void>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -54,6 +57,12 @@ const dirtyEdgeIds = new Set<string>();
 const deletedNodeIds = new Set<string>();
 const deletedEdgeIds = new Set<string>();
 const createdAtById = new Map<string, number>();
+const updatedAtById = new Map<string, number>();
+
+/** Recency for command-palette ranking. */
+export function getNodeRecency(id: string): number {
+  return updatedAtById.get(id) ?? 0;
+}
 
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
@@ -171,6 +180,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
 
   function markNodeDirty(id: string) {
     dirtyNodeIds.add(id);
+    updatedAtById.set(id, Date.now());
     scheduleFlush();
   }
 
@@ -195,7 +205,10 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
             nodes = seed.nodes;
             edges = seed.edges;
           }
-          nodes.forEach((n) => createdAtById.set(n.id, n.createdAt));
+          nodes.forEach((n) => {
+            createdAtById.set(n.id, n.createdAt);
+            updatedAtById.set(n.id, n.updatedAt);
+          });
           edges.forEach((e) => createdAtById.set(e.id, e.createdAt));
           set({
             nodes: nodes.map(fromDbNode),
@@ -334,6 +347,45 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       nodes.forEach((n) => createdAtById.set(n.id, now));
       edges.forEach((e) => createdAtById.set(e.id, now));
       set({ nodes, edges, editingNodeId: null });
+    },
+
+    selectAll() {
+      set({
+        nodes: get().nodes.map((n) =>
+          n.selected ? n : { ...n, selected: true },
+        ),
+        edges: get().edges.map((e) =>
+          e.selected ? e : { ...e, selected: true },
+        ),
+      });
+    },
+
+    selectOnly(id) {
+      set({
+        nodes: get().nodes.map((n) =>
+          n.id === id
+            ? { ...n, selected: true }
+            : n.selected
+              ? { ...n, selected: false }
+              : n,
+        ),
+      });
+    },
+
+    /** Re-read everything from Dexie (used after import). */
+    async reloadFromDb() {
+      const { nodes, edges } = await repo.loadLive();
+      nodes.forEach((n) => {
+        createdAtById.set(n.id, n.createdAt);
+        updatedAtById.set(n.id, n.updatedAt);
+      });
+      edges.forEach((e) => createdAtById.set(e.id, e.createdAt));
+      set({
+        nodes: nodes.map(fromDbNode),
+        edges: edges.map(fromDbEdge),
+        editingNodeId: null,
+      });
+      writeSnapshot(get().nodes, get().edges);
     },
   };
 });

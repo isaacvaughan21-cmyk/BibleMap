@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import { useCanvasStore } from "@/lib/store/canvas-store";
@@ -10,6 +10,10 @@ type TopBarProps = {
   railOpen: boolean;
   onToggleRail: () => void;
   onOpenPalette: () => void;
+  onFeedback: () => void;
+  onExport: () => void;
+  onImportFile: (file: File) => void;
+  onHelp: () => void;
 };
 
 /** Fixed, translucent canvas top bar — same chrome language as the landing nav. */
@@ -17,6 +21,10 @@ export default function TopBar({
   railOpen,
   onToggleRail,
   onOpenPalette,
+  onFeedback,
+  onExport,
+  onImportFile,
+  onHelp,
 }: TopBarProps) {
   return (
     <header className="absolute inset-x-0 top-0 z-40 border-b border-rule/60 bg-parchment/70 backdrop-blur-md">
@@ -47,8 +55,9 @@ export default function TopBar({
 
           <button
             type="button"
+            onClick={onFeedback}
             className="group relative hidden font-sans text-2xs tracking-eyebrow text-gold transition-colors hover:text-ink md:block"
-            aria-label="Send feedback (arrives in a later milestone)"
+            aria-label="Send feedback"
           >
             SEND FEEDBACK
             <span
@@ -99,9 +108,129 @@ export default function TopBar({
               />
             </svg>
           </button>
+
+          <OverflowMenu
+            onExport={onExport}
+            onImportFile={onImportFile}
+            onHelp={onHelp}
+          />
         </div>
       </div>
     </header>
+  );
+}
+
+/** "…" menu — export, import, shortcuts. */
+function OverflowMenu({
+  onExport,
+  onImportFile,
+  onHelp,
+}: {
+  onExport: () => void;
+  onImportFile: (file: File) => void;
+  onHelp: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        aria-label="More options"
+        className={`flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
+          open
+            ? "border-gold text-gold"
+            : "border-rule text-ink-muted hover:border-gold hover:text-gold"
+        }`}
+      >
+        <svg width="12" height="3" viewBox="0 0 12 3" aria-hidden="true">
+          <circle cx="1.5" cy="1.5" r="1.2" fill="currentColor" />
+          <circle cx="6" cy="1.5" r="1.2" fill="currentColor" />
+          <circle cx="10.5" cy="1.5" r="1.2" fill="currentColor" />
+        </svg>
+      </button>
+
+      {open && (
+        <>
+          <div
+            className="fixed inset-0 z-40"
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
+          <div
+            role="menu"
+            aria-label="Map options"
+            className="absolute right-0 top-10 z-50 w-52 animate-fade-up rounded-xl border border-rule bg-parchment py-1.5 shadow-xl shadow-ink/10"
+          >
+            <MenuButton
+              onClick={() => {
+                onExport();
+                setOpen(false);
+              }}
+            >
+              Export map (.hodos.json)
+            </MenuButton>
+            <MenuButton onClick={() => fileRef.current?.click()}>
+              Import map…
+            </MenuButton>
+            <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
+            <MenuButton
+              onClick={() => {
+                onHelp();
+                setOpen(false);
+              }}
+            >
+              Keyboard shortcuts
+            </MenuButton>
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".json,application/json"
+            className="hidden"
+            aria-hidden="true"
+            tabIndex={-1}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onImportFile(file);
+              e.target.value = "";
+              setOpen(false);
+            }}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+function MenuButton({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className="block w-full px-4 py-2 text-left font-sans text-xs text-ink-soft transition-colors hover:bg-parchment-2 hover:text-ink focus-visible:bg-parchment-2"
+    >
+      {children}
+    </button>
   );
 }
 
