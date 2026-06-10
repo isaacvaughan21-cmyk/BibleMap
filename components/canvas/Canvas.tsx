@@ -96,6 +96,7 @@ function CanvasInner() {
     setEditing,
     changeNodeType,
     changeEdgeKind,
+    duplicateNode,
     load,
   } = useCanvasStore(
     useShallow((s) => ({
@@ -110,6 +111,7 @@ function CanvasInner() {
       setEditing: s.setEditing,
       changeNodeType: s.changeNodeType,
       changeEdgeKind: s.changeEdgeKind,
+      duplicateNode: s.duplicateNode,
       load: s.load,
     })),
   );
@@ -260,6 +262,17 @@ function CanvasInner() {
     [clampToViewport],
   );
 
+  /** Right-click a multi-selection → bulk actions. */
+  const onSelectionContextMenu = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      const count = nodes.filter((n) => n.selected).length;
+      if (count < 2) return;
+      setMenu({ kind: "selection", count, ...clampToViewport(e) });
+    },
+    [nodes, clampToViewport],
+  );
+
   /** Right-click on empty canvas → create picker, right where you clicked. */
   const { screenToFlowPosition } = useReactFlow();
   const onPaneContextMenu = useCallback(
@@ -324,6 +337,7 @@ function CanvasInner() {
             onNodeContextMenu={onNodeContextMenu}
             onEdgeContextMenu={onEdgeContextMenu}
             onPaneContextMenu={onPaneContextMenu}
+            onSelectionContextMenu={onSelectionContextMenu}
             onPaneClick={closeOverlays}
             onOpenPicker={setPicker}
             nodes={nodes}
@@ -355,8 +369,26 @@ function CanvasInner() {
             setVersePicker(id);
             closeMenu();
           }}
+          onDuplicate={(id) => {
+            duplicateNode(id);
+            closeMenu();
+          }}
           onDelete={(target) => {
-            if (target.kind === "node") {
+            if (target.kind === "selection") {
+              const ids = new Set(
+                nodes.filter((n) => n.selected).map((n) => n.id),
+              );
+              onNodesChange(
+                [...ids].map((id) => ({ type: "remove" as const, id })),
+              );
+              onEdgesChange(
+                edges
+                  .filter(
+                    (e) => ids.has(e.source) || ids.has(e.target) || e.selected,
+                  )
+                  .map((e) => ({ type: "remove" as const, id: e.id })),
+              );
+            } else if (target.kind === "node") {
               onNodesChange([{ type: "remove", id: target.id }]);
               onEdgesChange(
                 edges
@@ -520,6 +552,7 @@ function FlowSurface(props: {
   onNodeContextMenu: (e: React.MouseEvent, node: Node) => void;
   onEdgeContextMenu: (e: React.MouseEvent, edge: Edge) => void;
   onPaneContextMenu: (e: React.MouseEvent | MouseEvent) => void;
+  onSelectionContextMenu: (e: React.MouseEvent) => void;
   onPaneClick: () => void;
   onOpenPicker: (p: PickerState) => void;
   setEditing: (id: string | null) => void;
@@ -627,6 +660,7 @@ function FlowSurface(props: {
         onNodeContextMenu={props.onNodeContextMenu}
         onEdgeContextMenu={props.onEdgeContextMenu}
         onPaneContextMenu={props.onPaneContextMenu}
+        onSelectionContextMenu={props.onSelectionContextMenu}
         onPaneClick={props.onPaneClick}
         onMoveStart={props.onPaneClick}
         attributionPosition="bottom-left"

@@ -5,7 +5,8 @@ import type { EdgeKind, NodeKind } from "@/lib/types";
 
 export type MenuTarget =
   | { kind: "node"; id: string; nodeType: NodeKind; x: number; y: number }
-  | { kind: "edge"; id: string; edgeKind: EdgeKind; x: number; y: number };
+  | { kind: "edge"; id: string; edgeKind: EdgeKind; x: number; y: number }
+  | { kind: "selection"; count: number; x: number; y: number };
 
 const NODE_LABELS: Record<NodeKind, string> = {
   question: "Question",
@@ -19,6 +20,7 @@ export default function ContextMenu({
   onChangeNodeType,
   onChangeEdgeKind,
   onPickVerse,
+  onDuplicate,
   onDelete,
   onClose,
 }: {
@@ -26,6 +28,7 @@ export default function ContextMenu({
   onChangeNodeType: (id: string, type: NodeKind) => void;
   onChangeEdgeKind: (id: string, kind: EdgeKind) => void;
   onPickVerse: (id: string) => void;
+  onDuplicate: (id: string) => void;
   onDelete: (target: MenuTarget) => void;
   onClose: () => void;
 }) {
@@ -43,9 +46,11 @@ export default function ContextMenu({
   const eyebrow =
     target.kind === "node"
       ? NODE_LABELS[target.nodeType]
-      : target.edgeKind === "crossref"
-        ? "Cross-reference"
-        : "Link";
+      : target.kind === "selection"
+        ? `${target.count} bubbles`
+        : target.edgeKind === "crossref"
+          ? "Cross-reference"
+          : "Link";
 
   return (
     <>
@@ -86,6 +91,10 @@ export default function ContextMenu({
               </MenuItem>
             ))}
 
+        {target.kind === "node" && (
+          <MenuItem onClick={() => onDuplicate(target.id)}>Duplicate</MenuItem>
+        )}
+
         {target.kind === "edge" && (
           <MenuItem
             onClick={() =>
@@ -103,7 +112,11 @@ export default function ContextMenu({
 
         <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
 
-        <MenuItem onClick={() => onDelete(target)}>Delete</MenuItem>
+        <MenuItem onClick={() => onDelete(target)}>
+          {target.kind === "selection"
+            ? `Delete ${target.count} bubbles`
+            : "Delete"}
+        </MenuItem>
       </div>
     </>
   );

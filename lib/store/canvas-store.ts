@@ -76,6 +76,8 @@ export interface CanvasStore {
   /** First-run hint bar — shown until dismissed once. */
   hintsDismissed: boolean;
   dismissHints(): void;
+  /** Clone a bubble (offset, selected). Returns the new id, or null. */
+  duplicateNode(id: string): string | null;
 }
 
 export const DEFAULT_MAP_NAME = "Untitled map";
@@ -596,6 +598,31 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     dismissHints() {
       set({ hintsDismissed: true });
       if (!ephemeralMode) void repo.setMeta("hintsDismissed", true);
+    },
+
+    duplicateNode(id) {
+      const src = get().nodes.find((n) => n.id === id);
+      if (!src) return null;
+      const newId = uuidv7();
+      createdAtById.set(newId, Date.now());
+      const clone = {
+        ...src,
+        id: newId,
+        position: { x: src.position.x + 28, y: src.position.y + 28 },
+        selected: true,
+        data: { ...src.data },
+      } as HodosNode;
+      set({
+        nodes: [
+          ...get().nodes.map((n) =>
+            n.selected ? { ...n, selected: false } : n,
+          ),
+          clone,
+        ],
+      });
+      markNodeDirty(newId);
+      track("bubble_created", { type: src.type as string, via: "duplicate" });
+      return newId;
     },
 
     restoreLastDeletion() {
