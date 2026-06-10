@@ -560,6 +560,7 @@ function FlowSurface(props: {
         onNodeClick={onNodeClick}
         onConnectEnd={onConnectEnd}
         onlyRenderVisibleElements={props.nodes.length > 150}
+        className={props.nodes.length > 150 ? "perf-mode" : undefined}
         onNodeContextMenu={props.onNodeContextMenu}
         onEdgeContextMenu={props.onEdgeContextMenu}
         onPaneContextMenu={props.onPaneContextMenu}
@@ -574,19 +575,27 @@ function FlowSurface(props: {
           color="var(--rule)"
           style={{ opacity: 0.55 }}
         />
-        <MiniMap
-          position="bottom-right"
-          pannable
-          zoomable
-          ariaLabel="Map overview"
-          bgColor="var(--parchment-2)"
-          maskColor="color-mix(in srgb, var(--parchment) 78%, transparent)"
-          nodeColor={minimapNodeColor}
-          nodeStrokeColor="var(--rule)"
-          nodeBorderRadius={8}
-          className={props.railOpen ? "rail-open" : ""}
-        />
+        {/* An overview map only earns its place once there's a map to overview */}
+        {props.nodes.length >= 3 && (
+          <MiniMap
+            position="bottom-right"
+            pannable
+            zoomable
+            ariaLabel="Map overview"
+            bgColor="var(--parchment-2)"
+            maskColor="color-mix(in srgb, var(--parchment) 78%, transparent)"
+            nodeColor={minimapNodeColor}
+            nodeStrokeColor="var(--rule)"
+            nodeBorderRadius={8}
+            className={props.railOpen ? "rail-open" : ""}
+          />
+        )}
       </ReactFlow>
+      {/* Soft vignette — eye settles toward the center, same as the landing */}
+      <div
+        aria-hidden="true"
+        className="canvas-vignette pointer-events-none absolute inset-0"
+      />
     </div>
   );
 }

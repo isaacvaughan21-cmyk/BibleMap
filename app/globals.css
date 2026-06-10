@@ -93,10 +93,21 @@
     box-shadow: 0 1px 3px color-mix(in srgb, var(--ink) 7%, transparent);
     transition:
       box-shadow 0.2s ease,
-      border-color 0.2s ease;
+      border-color 0.2s ease,
+      transform 0.2s ease;
   }
   .bubble:hover {
     box-shadow: 0 3px 10px color-mix(in srgb, var(--ink) 10%, transparent);
+    transform: translateY(-1px);
+  }
+
+  /* Soft vignette over the canvas — same depth cue as the landing demo. */
+  .canvas-vignette {
+    background: radial-gradient(
+      ellipse at center,
+      transparent 55%,
+      var(--parchment-2) 125%
+    );
   }
   .bubble-selected {
     box-shadow:
@@ -173,6 +184,31 @@
   cursor: grabbing;
 }
 
+/* Entrance motion — bubbles settle in, edges fade in, echoing the landing's
+   "thought into existence" feel. Disabled in perf mode (large virtualized
+   maps re-mount nodes while panning) and under prefers-reduced-motion. */
+@keyframes bubble-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes edge-in {
+  from {
+    opacity: 0;
+  }
+}
+.react-flow:not(.perf-mode) .bubble {
+  animation: bubble-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.react-flow:not(.perf-mode) .react-flow__edge {
+  animation: edge-in 0.5s ease-out;
+}
+
 /* Drag-select rectangle */
 .react-flow .react-flow__selection,
 .react-flow__container.react-flow__selectionpane .react-flow__selection {
@@ -186,6 +222,11 @@
   background: color-mix(in srgb, var(--gold) 6%, transparent);
   border: 1px dashed var(--gold-soft);
   border-radius: 8px;
+}
+
+/* Panels (minimap, attribution) sit above the vignette overlay */
+.react-flow__panel {
+  z-index: 10;
 }
 
 /* Minimap — parchment card above the control cluster */
