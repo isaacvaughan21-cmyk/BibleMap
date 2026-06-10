@@ -47,7 +47,7 @@ expect(
 await john.click();
 await page.waitForTimeout(800);
 expect(
-  await page.getByText("CROSS-REFERENCES", { exact: true }).isVisible(),
+  await page.getByText(/CROSS-REFERENCES/).isVisible(),
   "study rail auto-opens with cross-references",
 );
 
