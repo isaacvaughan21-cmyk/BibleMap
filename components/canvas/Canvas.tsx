@@ -66,6 +66,11 @@ function minimapNodeColor(node: Node): string {
 const MENU_WIDTH = 192;
 const MENU_HEIGHT = 180;
 
+type ToastState = {
+  text: string;
+  action?: { label: string; run: () => void };
+} | null;
+
 export default function Canvas() {
   return (
     <ReactFlowProvider>
@@ -118,7 +123,7 @@ function CanvasInner() {
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [importPending, setImportPending] = useState<HodosExport | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
     load();
@@ -144,9 +149,36 @@ function CanvasInner() {
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3500);
+    const t = setTimeout(() => setToast(null), toast.action ? 7000 : 3500);
     return () => clearTimeout(t);
   }, [toast]);
+
+  // Every deletion gets a one-shot "Restore" — never lose a thought to a slip.
+  const lastDeletion = useCanvasStore((s) => s.lastDeletion);
+  const restoreLastDeletion = useCanvasStore((s) => s.restoreLastDeletion);
+  useEffect(() => {
+    if (!lastDeletion) return;
+    const n = lastDeletion.nodes.length;
+    const e = lastDeletion.edges.length;
+    const text =
+      n > 0
+        ? n === 1
+          ? "Bubble deleted"
+          : `${n} bubbles deleted`
+        : e === 1
+          ? "Connection deleted"
+          : `${e} connections deleted`;
+    setToast({
+      text,
+      action: {
+        label: "Restore",
+        run: () => {
+          restoreLastDeletion();
+          setToast({ text: "Restored." });
+        },
+      },
+    });
+  }, [lastDeletion, restoreLastDeletion]);
 
   // The cross-ref panel is contextual: selecting a verse bubble (with a
   // reference) surfaces the study rail.
@@ -168,7 +200,9 @@ function CanvasInner() {
     try {
       setImportPending(parseImport(await file.text()));
     } catch {
-      setToast("That file doesn't look like a Hodos map (.hodos.json).");
+      setToast({
+        text: "That file doesn't look like a Hodos map (.hodos.json).",
+      });
     }
   }, []);
 
@@ -183,7 +217,7 @@ function CanvasInner() {
       }
       await reloadFromDb();
       setImportPending(null);
-      setToast(mode === "merge" ? "Map merged." : "Map replaced.");
+      setToast({ text: mode === "merge" ? "Map merged." : "Map replaced." });
     },
     [importPending, reloadFromDb, setMapName],
   );
@@ -382,8 +416,23 @@ function CanvasInner() {
 
       {/* Quiet toast */}
       {toast && (
-        <div className="absolute bottom-6 left-1/2 z-50 -translate-x-1/2 animate-fade-up rounded-full border border-rule bg-parchment px-5 py-2 font-sans text-xs text-ink-soft shadow-lg shadow-ink/10">
-          {toast}
+        <div
+          role="status"
+          className="absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 animate-fade-up rounded-full border border-rule bg-parchment px-5 py-2 font-sans text-xs text-ink-soft shadow-lg shadow-ink/10"
+        >
+          {toast.text}
+          {toast.action && (
+            <>
+              <span aria-hidden="true" className="h-3 w-px bg-rule" />
+              <button
+                type="button"
+                onClick={toast.action.run}
+                className="font-medium text-gold transition-colors hover:text-ink"
+              >
+                {toast.action.label}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

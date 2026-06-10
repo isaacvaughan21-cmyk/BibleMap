@@ -63,6 +63,16 @@ export interface CanvasStore {
   startFresh(): Promise<void>;
   mapName: string;
   setMapName(name: string): void;
+  /**
+   * The most recent deletion (coalesced across one gesture) — powers the
+   * one-shot "Restore" toast. Not an undo stack.
+   */
+  lastDeletion: {
+    nodes: HodosNode[];
+    edges: HodosEdge[];
+    at: number;
+  } | null;
+  restoreLastDeletion(): void;
 }
 
 export const DEFAULT_MAP_NAME = "Untitled map";
@@ -260,6 +270,23 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     scheduleFlush();
   }
 
+  /** Group node + edge removals from one gesture into a single restorable unit. */
+  function recordDeletion(nodes: HodosNode[], edges: HodosEdge[]) {
+    const prev = get().lastDeletion;
+    const now = Date.now();
+    if (prev && now - prev.at < 400) {
+      set({
+        lastDeletion: {
+          nodes: [...prev.nodes, ...nodes],
+          edges: [...prev.edges, ...edges],
+          at: prev.at,
+        },
+      });
+    } else {
+      set({ lastDeletion: { nodes, edges, at: now } });
+    }
+  }
+
   return {
     nodes: [],
     edges: [],
@@ -269,6 +296,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     saveState: "idle",
     versePickerNodeId: null,
     mapName: DEFAULT_MAP_NAME,
+    lastDeletion: null,
 
     load() {
       if (loadPromise) return loadPromise;
@@ -336,6 +364,9 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       const moved = changes
         .filter((c) => c.type === "position")
         .map((c) => c.id);
+      const removedNodes = removed.length
+        ? get().nodes.filter((n) => removed.includes(n.id))
+        : [];
       set({ nodes: applyNodeChanges(changes, get().nodes) });
       for (const id of removed) {
         deletedNodeIds.add(id);
@@ -343,6 +374,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         if (get().editingNodeId === id) set({ editingNodeId: null });
       }
       moved.forEach((id) => dirtyNodeIds.add(id));
+      if (removedNodes.length) recordDeletion(removedNodes, []);
       if (removed.length || moved.length) scheduleFlush();
     },
 
@@ -350,11 +382,15 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       const removed = changes
         .filter((c) => c.type === "remove")
         .map((c) => c.id);
+      const removedEdges = removed.length
+        ? get().edges.filter((e) => removed.includes(e.id))
+        : [];
       set({ edges: applyEdgeChanges(changes, get().edges) });
       for (const id of removed) {
         deletedEdgeIds.add(id);
         dirtyEdgeIds.delete(id);
       }
+      if (removedEdges.length) recordDeletion([], removedEdges);
       if (removed.length) scheduleFlush();
     },
 
@@ -548,6 +584,39 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       const trimmed = name.trim().slice(0, 120) || DEFAULT_MAP_NAME;
       set({ mapName: trimmed });
       if (!ephemeralMode) void repo.setMeta("mapName", trimmed);
+    },
+
+    restoreLastDeletion() {
+      const del = get().lastDeletion;
+      if (!del) return;
+      const nodeIds = new Set(get().nodes.map((n) => n.id));
+      const edgeIds = new Set(get().edges.map((e) => e.id));
+      const nodes = del.nodes
+        .filter((n) => !nodeIds.has(n.id))
+        .map((n) => ({ ...n, selected: false }) as HodosNode);
+      const stillThere = new Set([...nodeIds, ...nodes.map((n) => n.id)]);
+      const edges = del.edges.filter(
+        (e) =>
+          !edgeIds.has(e.id) &&
+          stillThere.has(e.source) &&
+          stillThere.has(e.target),
+      );
+      set({
+        nodes: [...get().nodes, ...nodes],
+        edges: [...get().edges, ...edges],
+        lastDeletion: null,
+      });
+      // Re-upserting without deletedAt resurrects the soft-deleted rows.
+      nodes.forEach((n) => {
+        deletedNodeIds.delete(n.id);
+        dirtyNodeIds.add(n.id);
+        updatedAtById.set(n.id, Date.now());
+      });
+      edges.forEach((e) => {
+        deletedEdgeIds.delete(e.id);
+        dirtyEdgeIds.add(e.id);
+      });
+      scheduleFlush();
     },
 
     /** Re-read everything from Dexie (used after import). */
