@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useReactFlow, useViewport } from "@xyflow/react";
+import { useCanvasStore } from "@/lib/store/canvas-store";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
 type TopBarProps = {
@@ -36,8 +37,9 @@ export default function TopBar({
           Untitled map
         </p>
 
-        {/* Right: palette, zoom, feedback, rail toggle */}
+        {/* Right: save state, palette, zoom, feedback, rail toggle */}
         <div className="flex items-center gap-3">
+          <SaveBadge />
           <PaletteButton onOpen={onOpenPalette} />
           <ZoomBadge />
 
@@ -100,6 +102,38 @@ export default function TopBar({
         </div>
       </div>
     </header>
+  );
+}
+
+/** Subtle auto-save indicator — "Saving…" then a gold "Saved" that fades. */
+function SaveBadge() {
+  const saveState = useCanvasStore((s) => s.saveState);
+  return (
+    <span
+      aria-live="polite"
+      className={`flex items-center gap-1 font-sans text-2xs transition-opacity duration-500 ${
+        saveState === "idle" ? "opacity-0" : "opacity-100"
+      } ${saveState === "saved" ? "text-gold" : "text-ink-muted"}`}
+    >
+      {saveState === "saved" && (
+        <svg
+          width="9"
+          height="9"
+          viewBox="0 0 10 10"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M1.5 5.5L4 8L8.5 2"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+      {saveState === "saving" ? "Saving…" : "Saved"}
+    </span>
   );
 }
 

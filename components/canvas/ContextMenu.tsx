@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-
-export type NodeKind = "question" | "verse" | "note";
-export type EdgeKind = "manual" | "crossref";
+import type { EdgeKind, NodeKind } from "@/lib/types";
 
 export type MenuTarget =
   | { kind: "node"; id: string; nodeType: NodeKind; x: number; y: number }

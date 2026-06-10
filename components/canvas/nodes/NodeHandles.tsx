@@ -8,9 +8,10 @@ const SIDES = [
 ] as const;
 
 /**
- * A source + target handle on each side of a node. Hidden until the node is
+ * A source + target handle on each side of a node, hidden until the node is
  * hovered or selected (see .react-flow__handle overrides in globals.css).
- * Connecting is disabled until the editing milestone.
+ * Edges route via floating geometry (lib/edge-routing.ts), so handle ids are
+ * never persisted — these exist for the connect gesture.
  */
 export default function NodeHandles() {
   return (
@@ -21,14 +22,12 @@ export default function NodeHandles() {
           type="source"
           position={position}
           id={`s-${id}`}
-          isConnectable={false}
         />,
         <Handle
           key={`t-${id}`}
           type="target"
           position={position}
           id={`t-${id}`}
-          isConnectable={false}
         />,
       ])}
     </>
