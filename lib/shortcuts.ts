@@ -12,7 +12,8 @@ import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ["mod", "K"], label: "Command palette" },
-  { keys: ["2×click"], label: "Create a bubble" },
+  { keys: ["2×click"], label: "Create a bubble (on the canvas)" },
+  { keys: ["2×click"], label: "Open a bubble into its own map" },
   { keys: ["⌫"], label: "Delete selection" },
   { keys: ["mod", "A"], label: "Select all" },
   { keys: ["mod", "/"], label: "Toggle study panel" },

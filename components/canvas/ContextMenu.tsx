@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useCanvasStore } from "@/lib/store/canvas-store";
 import type { EdgeKind, NodeKind } from "@/lib/types";
 
 export type MenuTarget =
@@ -33,6 +34,10 @@ export default function ContextMenu({
   onClose: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const requestOpen = useCanvasStore((s) => s.requestOpen);
+  const hasChildMap = useCanvasStore((s) =>
+    target.kind === "node" ? s.childMapIds.has(target.id) : false,
+  );
 
   useEffect(() => {
     menuRef.current?.querySelector("button")?.focus();
@@ -75,6 +80,17 @@ export default function ContextMenu({
         <p className="px-4 pb-1 pt-1.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
           {eyebrow.toUpperCase()}
         </p>
+
+        {target.kind === "node" && (
+          <MenuItem
+            onClick={() => {
+              requestOpen(target.id);
+              onClose();
+            }}
+          >
+            {hasChildMap ? "Enter its map" : "Open into its own map"}
+          </MenuItem>
+        )}
 
         {target.kind === "node" && target.nodeType === "verse" && (
           <MenuItem onClick={() => onPickVerse(target.id)}>

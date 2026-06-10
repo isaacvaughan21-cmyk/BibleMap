@@ -599,11 +599,16 @@ function FlowSurface(props: {
   const reduced = usePrefersReducedMotion();
 
   // ---- Nested-map zoom transition ----
+  // Opening: the camera plunges INTO the bubble, a parchment veil rises as
+  // you pass through its skin, a gold ring blooms (the landing's signature),
+  // and the inner world grows from a point to fill the screen.
+  // Going up: the inverse — this world shrinks away, the parent settles in.
   const pendingNav = useCanvasStore((s) => s.pendingNav);
   const openNodeStore = useCanvasStore((s) => s.openNode);
   const goToMapStore = useCanvasStore((s) => s.goToMap);
   const clearPendingNav = useCanvasStore((s) => s.clearPendingNav);
   const [veil, setVeil] = useState(false);
+  const [ring, setRing] = useState(0);
   const running = useRef(false);
 
   useEffect(() => {
@@ -617,31 +622,52 @@ function FlowSurface(props: {
 
     (async () => {
       if (nav.kind === "open") {
-        // Dive toward the bubble while the veil rises.
+        // 1 — plunge deep into the bubble
         const n = getInternalNode(nav.id);
-        if (n) {
+        if (n && !reduced) {
           const w = n.measured?.width ?? 200;
           const h = n.measured?.height ?? 60;
           const { x, y } = n.internals.positionAbsolute;
-          setCenter(x + w / 2, y + h / 2, {
-            zoom: 2.6,
-            duration: reduced ? 0 : 380,
-          });
+          setCenter(x + w / 2, y + h / 2, { zoom: 7, duration: 620 });
         }
+        // 2 — the veil rises as we pass through the bubble's skin
+        await wait(300);
         setVeil(true);
-        await wait(320);
+        await wait(330);
+        // 3 — swap worlds under the veil
         await openNodeStore(nav.id);
+        await frame();
+        // 4 — the new world starts as a point…
+        fitView({ duration: 0, padding: 6 });
+        await frame();
+        setRing((k) => k + 1); // gold ring blooms at the threshold
+        setVeil(false);
+        // 5 — …and grows to fill the screen
+        fitView({
+          duration: reduced ? 0 : 800,
+          padding: 0.35,
+          maxZoom: 1,
+        });
+        await wait(800);
       } else {
-        setVeil(true);
+        // Rising out: this world recedes to a point…
+        if (!reduced) fitView({ duration: 520, padding: 6 });
         await wait(280);
+        setVeil(true);
+        await wait(260);
         await goToMapStore(nav.index);
+        await frame();
+        // …and the parent settles back around you, slightly over-near
+        fitView({ duration: 0, padding: 0.08, maxZoom: 2.2 });
+        await frame();
+        setVeil(false);
+        fitView({
+          duration: reduced ? 0 : 700,
+          padding: 0.35,
+          maxZoom: 1,
+        });
+        await wait(700);
       }
-      // Emerge: frame the new map under the veil, then lift it.
-      await frame();
-      fitView({ duration: 0, padding: 0.35, maxZoom: 1 });
-      await frame();
-      setVeil(false);
-      await wait(380);
       running.current = false;
       clearPendingNav();
     })();
@@ -677,19 +703,51 @@ function FlowSurface(props: {
    * Click a bubble → edit it inline (shift-click stays multi-select).
    * Verse bubbles are scripture: an empty one opens the verse picker, and a
    * filled one just selects (its text is never hand-edited).
+   *
+   * The action is deferred ~260ms so a DOUBLE-click (dive into the bubble's
+   * map) never flashes the editor first.
    */
+  const requestOpen = useCanvasStore((s) => s.requestOpen);
+  const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (clickTimer.current) clearTimeout(clickTimer.current);
+    },
+    [],
+  );
+
   const onNodeClick = useCallback(
     (e: React.MouseEvent, node: Node) => {
       if (e.shiftKey) return;
-      if (node.type === "verse") {
-        if (!(node.data as { verseRef?: string }).verseRef) {
-          props.onOpenVersePicker(node.id);
+      // Clicks inside an active editor belong to the editor.
+      if ((e.target as HTMLElement).tagName === "TEXTAREA") return;
+      if (clickTimer.current) clearTimeout(clickTimer.current);
+      clickTimer.current = setTimeout(() => {
+        clickTimer.current = null;
+        if (node.type === "verse") {
+          if (!(node.data as { verseRef?: string }).verseRef) {
+            props.onOpenVersePicker(node.id);
+          }
+          return;
         }
-        return;
-      }
-      props.setEditing(node.id);
+        props.setEditing(node.id);
+      }, 260);
     },
     [props],
+  );
+
+  /** Double-click a bubble → dive into its own map. */
+  const onNodeDoubleClick = useCallback(
+    (e: React.MouseEvent, node: Node) => {
+      if (clickTimer.current) {
+        clearTimeout(clickTimer.current);
+        clickTimer.current = null;
+      }
+      // Double-click inside an active editor = native word-select.
+      if ((e.target as HTMLElement).tagName === "TEXTAREA") return;
+      requestOpen(node.id);
+    },
+    [requestOpen],
   );
 
   /**
@@ -750,6 +808,7 @@ function FlowSurface(props: {
           strokeDasharray: "7 5",
         }}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={onNodeDoubleClick}
         onConnectEnd={onConnectEnd}
         onlyRenderVisibleElements={props.nodes.length > 150}
         className={props.nodes.length > 150 ? "perf-mode" : undefined}
@@ -789,13 +848,18 @@ function FlowSurface(props: {
         aria-hidden="true"
         className="canvas-vignette pointer-events-none absolute inset-0"
       />
-      {/* Parchment veil for the zoom-into-a-bubble transition */}
+      {/* Parchment veil for the zoom-into-a-bubble transition — a soft
+          radial light, brightest where you pass through */}
       <div
         aria-hidden="true"
-        className={`pointer-events-none absolute inset-0 z-40 bg-parchment transition-opacity ${
+        className={`zoom-veil pointer-events-none absolute inset-0 z-40 transition-opacity ${
           veil ? "opacity-100 duration-300" : "opacity-0 duration-500"
         }`}
       />
+      {/* Gold ring blooming at the threshold between worlds */}
+      {ring > 0 && !reduced && (
+        <div key={ring} aria-hidden="true" className="zoom-ring z-40" />
+      )}
     </div>
   );
 }

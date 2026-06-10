@@ -23,11 +23,13 @@ export default function HintBar() {
     <div className="pointer-events-none absolute bottom-5 left-1/2 z-30 -translate-x-1/2 animate-fade-up">
       <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-rule/80 bg-parchment/90 py-2 pl-5 pr-3 font-sans text-2xs text-ink-muted shadow-md shadow-ink/5 backdrop-blur-md">
         <span>
-          <span className="text-ink-soft">Double-click</span> to create
+          <span className="text-ink-soft">Double-click</span> the canvas to
+          create
         </span>
         <Dot />
         <span>
-          <span className="text-ink-soft">drag</span> between bubbles to connect
+          <span className="text-ink-soft">double-click</span> a bubble to open
+          its map
         </span>
         <Dot />
         <span className="flex items-center gap-1">

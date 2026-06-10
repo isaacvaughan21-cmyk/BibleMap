@@ -3,32 +3,28 @@
 import { useCanvasStore } from "@/lib/store/canvas-store";
 
 /**
- * "Open into its own map" affordance — every bubble can contain a whole map.
- * Appears on hover; stays lit (gold) when the bubble already holds a sub-map.
+ * Child-map badge — appears only on bubbles that already hold a map inside,
+ * lit gold so you can see at a glance which thoughts contain worlds.
+ * Double-click is the gesture that opens any bubble; clicking the badge
+ * works too.
  */
 export default function NodeOpenButton({ id }: { id: string }) {
   const requestOpen = useCanvasStore((s) => s.requestOpen);
   const hasChild = useCanvasStore((s) => s.childMapIds.has(id));
 
+  if (!hasChild) return null;
+
   return (
     <button
       type="button"
-      title={
-        hasChild
-          ? "Enter this bubble's map"
-          : "Open this bubble into its own map"
-      }
-      aria-label={hasChild ? "Enter map" : "Open bubble into its own map"}
+      title="This bubble holds a map — double-click to enter"
+      aria-label="Enter map"
       onClick={(e) => {
         e.stopPropagation();
         requestOpen(id);
       }}
       onDoubleClick={(e) => e.stopPropagation()}
-      className={`node-open nodrag absolute -right-2.5 -top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border bg-parchment shadow-sm shadow-ink/10 ${
-        hasChild
-          ? "node-open--has border-gold text-gold"
-          : "border-rule text-ink-muted hover:border-gold hover:text-gold"
-      }`}
+      className="node-open node-open--has nodrag absolute -right-2.5 -top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-gold bg-parchment text-gold shadow-sm shadow-ink/10"
     >
       <svg
         width="11"

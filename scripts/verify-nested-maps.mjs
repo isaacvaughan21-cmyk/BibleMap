@@ -30,14 +30,10 @@ await page.waitForSelector(".react-flow__node", { state: "visible" });
 await page.waitForTimeout(1200);
 await shot("01-root");
 
-// Open the question bubble into its own map via the hover "open" button
+// Open the question bubble into its own map by double-clicking it
 const q = page.locator(".react-flow__node", { hasText: "Who is Melchizedek?" });
-await q.hover();
-await page.waitForTimeout(300);
-await q
-  .getByRole("button", { name: /Open bubble into its own map/ })
-  .click({ force: true });
-await page.waitForTimeout(1400); // zoom transition
+await q.dblclick({ force: true });
+await page.waitForTimeout(2400); // cinematic dive transition
 
 // Child map: one anchor bubble mirroring the question
 expect(
@@ -68,7 +64,7 @@ await shot("03-child-built");
 
 // Go back to root via breadcrumb back button
 await page.getByRole("button", { name: "Back one level" }).click();
-await page.waitForTimeout(1400);
+await page.waitForTimeout(2200);
 expect((await nodeCount()) === 3, "back at the root map (3 seeded bubbles)");
 expect(
   (await page
@@ -87,9 +83,9 @@ expect(
 );
 await shot("04-back-at-root");
 
-// Re-enter: the child content is still there (persisted, no reseed)
-await q2.getByRole("button", { name: "Enter map" }).click({ force: true });
-await page.waitForTimeout(1400);
+// Re-enter via double-click: child content is still there (no reseed)
+await q2.dblclick({ force: true });
+await page.waitForTimeout(2400);
 expect(
   await page
     .locator(".react-flow__node", { hasText: "only lives inside" })
@@ -107,8 +103,9 @@ expect((await nodeCount()) === 3, "reload returns to the root map");
 const q3 = page.locator(".react-flow__node", {
   hasText: "Who is Melchizedek?",
 });
+// The lit badge is the secondary entrance — exercise it too
 await q3.getByRole("button", { name: "Enter map" }).click({ force: true });
-await page.waitForTimeout(1400);
+await page.waitForTimeout(2400);
 expect(
   await page
     .locator(".react-flow__node", { hasText: "only lives inside" })

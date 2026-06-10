@@ -127,6 +127,30 @@
       var(--parchment-2) 125%
     );
   }
+
+  /* Veil for the dive-into-a-bubble transition — light at the center,
+     where you pass through. */
+  .zoom-veil {
+    background: radial-gradient(
+      circle at center,
+      var(--parchment) 30%,
+      var(--parchment-2) 100%
+    );
+  }
+
+  /* Gold ring blooming open at the threshold between maps. */
+  .zoom-ring {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 180px;
+    height: 180px;
+    margin: -90px 0 0 -90px;
+    border-radius: 9999px;
+    border: 1.5px solid var(--gold);
+    pointer-events: none;
+    animation: ring-bloom 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
   .bubble-selected {
     box-shadow:
       0 0 0 3px color-mix(in srgb, var(--gold) 24%, transparent),
@@ -235,6 +259,19 @@
 }
 @keyframes edge-in {
   from {
+    opacity: 0;
+  }
+}
+@keyframes ring-bloom {
+  0% {
+    transform: scale(0.15);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(3.4);
     opacity: 0;
   }
 }
