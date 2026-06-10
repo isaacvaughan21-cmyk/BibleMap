@@ -172,16 +172,20 @@ function CanvasInner() {
     }
   }, []);
 
+  const setMapName = useCanvasStore((s) => s.setMapName);
   const finishImport = useCallback(
     async (mode: "merge" | "replace") => {
       if (!importPending) return;
       if (mode === "merge") await repo.importMerge(importPending);
       else await repo.importReplace(importPending);
+      if (importPending.name && mode === "replace") {
+        setMapName(importPending.name);
+      }
       await reloadFromDb();
       setImportPending(null);
       setToast(mode === "merge" ? "Map merged." : "Map replaced.");
     },
-    [importPending, reloadFromDb],
+    [importPending, reloadFromDb, setMapName],
   );
 
   /** Clamp a popover inside the canvas viewport. */

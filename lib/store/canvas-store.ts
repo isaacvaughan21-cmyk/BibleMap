@@ -61,7 +61,11 @@ export interface CanvasStore {
   recoverFromSnapshot(): Promise<boolean>;
   /** Wipe the local database and start over. */
   startFresh(): Promise<void>;
+  mapName: string;
+  setMapName(name: string): void;
 }
+
+export const DEFAULT_MAP_NAME = "Untitled map";
 
 /* ------------------------------------------------------------------ */
 /* Dirty tracking + debounced flush                                    */
@@ -264,6 +268,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     editingNodeId: null,
     saveState: "idle",
     versePickerNodeId: null,
+    mapName: DEFAULT_MAP_NAME,
 
     load() {
       if (loadPromise) return loadPromise;
@@ -287,6 +292,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         }
 
         try {
+          const savedName = await repo.getMeta<string>("mapName");
+          if (savedName) set({ mapName: savedName });
           let { nodes, edges } = await repo.loadLive();
           if (nodes.length === 0 && !(await repo.getMeta("seeded"))) {
             const seed = buildSeed();
@@ -535,6 +542,12 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         // ignore — reload recreates
       }
       window.location.reload();
+    },
+
+    setMapName(name) {
+      const trimmed = name.trim().slice(0, 120) || DEFAULT_MAP_NAME;
+      set({ mapName: trimmed });
+      if (!ephemeralMode) void repo.setMeta("mapName", trimmed);
     },
 
     /** Re-read everything from Dexie (used after import). */

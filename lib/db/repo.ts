@@ -45,9 +45,11 @@ export const setMeta = (key: string, value: unknown) =>
 /** Full live dataset, for export and snapshots. */
 export async function exportData() {
   const { nodes, edges } = await loadLive();
+  const name = await getMeta<string>("mapName");
   return {
     version: 1 as const,
     exportedAt: new Date().toISOString(),
+    name,
     nodes,
     edges,
   };

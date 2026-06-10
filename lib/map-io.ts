@@ -30,6 +30,7 @@ const edgeSchema = z.object({
 export const exportSchema = z.object({
   version: z.literal(1),
   exportedAt: z.string(),
+  name: z.string().max(120).optional(),
   nodes: z.array(nodeSchema),
   edges: z.array(edgeSchema),
 });
@@ -46,13 +47,19 @@ export function parseImport(text: string): HodosExport {
 
 export function downloadExport(data: HodosExport) {
   const stamp = new Date().toISOString().slice(0, 10);
+  const slug =
+    (data.name ?? "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "hodos-map";
   const blob = new Blob([JSON.stringify(data, null, 2)], {
     type: "application/json",
   });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `hodos-map-${stamp}.hodos.json`;
+  a.download = `${slug}-${stamp}.hodos.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

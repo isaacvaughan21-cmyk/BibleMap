@@ -37,13 +37,8 @@ export default function TopBar({
           </span>
         </Link>
 
-        {/* Center: map name placeholder */}
-        <p
-          className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 font-serif text-sm italic text-ink-muted sm:block"
-          aria-label="Map name"
-        >
-          Untitled map
-        </p>
+        {/* Center: map name — click to rename */}
+        <MapName />
 
         {/* Right: save state, palette, zoom, feedback, rail toggle */}
         <div className="flex items-center gap-3">
@@ -230,6 +225,72 @@ function MenuButton({
       className="block w-full px-4 py-2 text-left font-sans text-xs text-ink-soft transition-colors hover:bg-parchment-2 hover:text-ink focus-visible:bg-parchment-2"
     >
       {children}
+    </button>
+  );
+}
+
+/** Map name — inline rename, persisted to the local database. */
+function MapName() {
+  const mapName = useCanvasStore((s) => s.mapName);
+  const setMapName = useCanvasStore((s) => s.setMapName);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(mapName);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keep the browser tab title in step with the map.
+  useEffect(() => {
+    document.title = `${mapName} — Hodos`;
+  }, [mapName]);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing]);
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          setMapName(draft);
+          setEditing(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            setMapName(draft);
+            setEditing(false);
+          } else if (e.key === "Escape") {
+            setEditing(false);
+          }
+        }}
+        maxLength={120}
+        aria-label="Map name"
+        className="absolute left-1/2 hidden w-64 -translate-x-1/2 border-b border-gold/60 bg-transparent text-center font-serif text-sm italic text-ink focus:outline-none sm:block"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        setDraft(mapName);
+        setEditing(true);
+      }}
+      title="Rename this map"
+      className="group/name absolute left-1/2 hidden max-w-[40%] -translate-x-1/2 truncate rounded px-2 py-0.5 font-serif text-sm italic text-ink-muted transition-colors hover:text-ink sm:block"
+    >
+      {mapName}
+      <span
+        aria-hidden="true"
+        className="ml-1.5 inline-block text-gold opacity-0 transition-opacity group-hover/name:opacity-70"
+      >
+        ✎
+      </span>
     </button>
   );
 }
