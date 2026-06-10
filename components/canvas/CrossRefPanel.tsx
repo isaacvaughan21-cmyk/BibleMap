@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useReactFlow } from "@xyflow/react";
 import {
   formatRef,
   getPassageText,
@@ -9,6 +10,7 @@ import {
 } from "@/lib/bible";
 import { formatCrossRef, getCrossRefs, type CrossRef } from "@/lib/crossrefs";
 import { useCanvasStore } from "@/lib/store/canvas-store";
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import type { VerseNodeType } from "@/lib/types";
 
 /**
@@ -18,6 +20,8 @@ import type { VerseNodeType } from "@/lib/types";
  */
 export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
   const addVerseWithCrossRef = useCanvasStore((s) => s.addVerseWithCrossRef);
+  const { fitView } = useReactFlow();
+  const reducedMotion = usePrefersReducedMotion();
   const [state, setState] = useState<
     | { phase: "loading" }
     | { phase: "error" }
@@ -52,7 +56,10 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
   }
 
   return (
-    <PanelShell verseRef={formatRef(parsed)}>
+    <PanelShell
+      verseRef={formatRef(parsed)}
+      count={state.phase === "ready" ? state.refs.length : undefined}
+    >
       {state.phase === "loading" && (
         <p className="px-5 py-6 text-center font-serif text-sm italic text-ink-muted">
           Gathering cross-references…
@@ -91,8 +98,17 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
                 added={addedIds.has(key)}
                 onAdd={async () => {
                   const text = await getPassageText(r.target, r.targetEnd);
-                  addVerseWithCrossRef(node.id, key, text);
+                  const newId = addVerseWithCrossRef(node.id, key, text);
                   setAddedIds((s) => new Set(s).add(key));
+                  // Bring both bubbles into view once the new one measures
+                  setTimeout(() => {
+                    fitView({
+                      nodes: [{ id: node.id }, { id: newId }],
+                      duration: reducedMotion ? 0 : 500,
+                      padding: 0.4,
+                      maxZoom: 1,
+                    });
+                  }, 90);
                 }}
               />
             );
@@ -118,9 +134,11 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
 
 function PanelShell({
   verseRef,
+  count,
   children,
 }: {
   verseRef: string;
+  count?: number;
   children: React.ReactNode;
 }) {
   return (
@@ -128,6 +146,9 @@ function PanelShell({
       <div className="px-5 pb-2 pt-4">
         <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
           CROSS-REFERENCES
+          {typeof count === "number" && count > 0 && (
+            <span className="ml-1.5 text-gold">· {count}</span>
+          )}
         </p>
         <p className="mt-1 font-mono text-xs uppercase tracking-[0.14em] text-gold">
           {verseRef}
