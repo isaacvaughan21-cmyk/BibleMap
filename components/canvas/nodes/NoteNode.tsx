@@ -3,6 +3,7 @@ import type { NoteNodeType } from "@/lib/types";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
+import { floatStyle } from "./float";
 
 /** A personal note — borderless, quieter than questions and verses. */
 export default function NoteNode({
@@ -15,27 +16,31 @@ export default function NoteNode({
   const setEditing = useCanvasStore((s) => s.setEditing);
 
   return (
-    <div
-      className={`bubble max-w-60 rounded-xl border border-transparent bg-parchment-2 px-4 py-3 ${
-        selected ? "bubble-selected border-gold" : ""
-      }`}
-    >
-      {editing ? (
-        <NodeEditor
-          value={data.content}
-          placeholder="A thought of your own…"
-          className="w-44 font-serif text-sm italic leading-relaxed text-ink-soft"
-          onCommit={(v) => {
-            updateNodeData(id, { content: v });
-            setEditing(null);
-          }}
-        />
-      ) : (
-        <p className="font-serif text-sm italic leading-relaxed text-ink-soft">
-          {data.content || <span className="text-ink-muted/60">New note</span>}
-        </p>
-      )}
-      <NodeHandles />
+    <div className={editing ? undefined : "floaty"} style={floatStyle(id)}>
+      <div
+        className={`bubble max-w-60 rounded-xl border border-transparent bg-parchment-2 px-4 py-3 ${
+          selected ? "bubble-selected border-gold" : ""
+        }`}
+      >
+        {editing ? (
+          <NodeEditor
+            value={data.content}
+            placeholder="A thought of your own…"
+            className="w-44 font-serif text-sm italic leading-relaxed text-ink-soft"
+            onCommit={(v) => {
+              updateNodeData(id, { content: v });
+              setEditing(null);
+            }}
+          />
+        ) : (
+          <p className="font-serif text-sm italic leading-relaxed text-ink-soft">
+            {data.content || (
+              <span className="text-ink-muted/60">New note</span>
+            )}
+          </p>
+        )}
+        <NodeHandles />
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { NodeProps } from "@xyflow/react";
 import type { VerseNodeType } from "@/lib/types";
 import NodeHandles from "./NodeHandles";
+import { floatStyle } from "./float";
 
 const TRUNCATE_AT = 240;
 
@@ -13,6 +14,7 @@ const TRUNCATE_AT = 240;
  * Long passages truncate at 240 chars with an expand affordance.
  */
 export default function VerseNode({
+  id,
   data,
   selected,
 }: NodeProps<VerseNodeType>) {
@@ -24,39 +26,41 @@ export default function VerseNode({
       : data.verseText;
 
   return (
-    <div
-      className={`bubble w-64 rounded-xl border border-l-[3px] border-l-gold bg-parchment px-4 py-3 ${
-        selected ? "bubble-selected border-gold" : "border-rule"
-      }`}
-    >
-      <p
-        className={`font-mono text-2xs font-medium uppercase tracking-[0.14em] ${
-          data.verseRef ? "text-gold" : "text-gold/50"
-        }`}
+    <div className="floaty" style={floatStyle(id)}>
+      <div
+        className={`bubble w-64 rounded-xl border border-l-[3px] border-l-gold bg-parchment px-4 py-3 ${
+          selected ? "bubble-selected border-gold" : "border-rule"
+        } ${data.verseRef ? "" : "cursor-pointer hover:border-gold/60"}`}
       >
-        {data.verseRef || "Choose a verse…"}
-      </p>
-      {data.verseText && (
-        <p className="mt-1.5 font-serif text-sm leading-relaxed text-ink-soft">
-          {shown}
-          {isLong && (
-            <>
-              {" "}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpanded((x) => !x);
-                }}
-                className="nodrag font-sans text-2xs tracking-wide text-gold transition-colors hover:text-ink"
-              >
-                {expanded ? "collapse" : "expand"}
-              </button>
-            </>
-          )}
+        <p
+          className={`font-mono text-2xs font-medium uppercase tracking-[0.14em] ${
+            data.verseRef ? "text-gold" : "text-gold/50"
+          }`}
+        >
+          {data.verseRef || "Choose a verse…"}
         </p>
-      )}
-      <NodeHandles />
+        {data.verseText && (
+          <p className="mt-1.5 font-serif text-sm leading-relaxed text-ink-soft">
+            {shown}
+            {isLong && (
+              <>
+                {" "}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setExpanded((x) => !x);
+                  }}
+                  className="nodrag font-sans text-2xs tracking-wide text-gold transition-colors hover:text-ink"
+                >
+                  {expanded ? "collapse" : "expand"}
+                </button>
+              </>
+            )}
+          </p>
+        )}
+        <NodeHandles />
+      </div>
     </div>
   );
 }
