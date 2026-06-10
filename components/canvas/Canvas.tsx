@@ -15,6 +15,7 @@ import {
 import { useShallow } from "zustand/react/shallow";
 import "@xyflow/react/dist/style.css";
 
+import { track } from "@/lib/analytics";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import * as repo from "@/lib/db/repo";
 import type { HodosExport } from "@/lib/db/repo";
@@ -81,6 +82,7 @@ function CanvasInner() {
     nodes,
     edges,
     loaded,
+    loadError,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -94,6 +96,7 @@ function CanvasInner() {
       nodes: s.nodes,
       edges: s.edges,
       loaded: s.loaded,
+      loadError: s.loadError,
       onNodesChange: s.onNodesChange,
       onEdgesChange: s.onEdgesChange,
       onConnect: s.onConnect,
@@ -120,6 +123,18 @@ function CanvasInner() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // session_minutes — reported when the tab goes to the background.
+  useEffect(() => {
+    const start = Date.now();
+    const report = () => {
+      if (document.visibilityState !== "hidden") return;
+      const minutes = Math.round((Date.now() - start) / 60_000);
+      if (minutes >= 1) track("session_minutes", { minutes });
+    };
+    document.addEventListener("visibilitychange", report);
+    return () => document.removeEventListener("visibilitychange", report);
+  }, []);
 
   useCanvasShortcuts({
     onPalette: () => setPaletteOpen((o) => !o),
@@ -256,7 +271,8 @@ function CanvasInner() {
       />
 
       <main className="absolute inset-0" aria-label="Map canvas">
-        {loaded && (
+        {loaded && loadError && <RecoveryScreen />}
+        {loaded && !loadError && (
           <FlowSurface
             railOpen={railOpen}
             onNodeContextMenu={onNodeContextMenu}
@@ -273,7 +289,7 @@ function CanvasInner() {
             onOpenVersePicker={setVersePicker}
           />
         )}
-        {loaded && nodes.length === 0 && <EmptyState />}
+        {loaded && !loadError && nodes.length === 0 && <EmptyState />}
       </main>
 
       {menu && (
@@ -366,6 +382,66 @@ function CanvasInner() {
           {toast}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Shown when IndexedDB can't be opened. Never crash silently — offer the
+ * last-good snapshot, a fresh start, or (after recovery) JSON re-import.
+ */
+function RecoveryScreen() {
+  const recoverFromSnapshot = useCanvasStore((s) => s.recoverFromSnapshot);
+  const startFresh = useCanvasStore((s) => s.startFresh);
+  const [hasSnapshot, setHasSnapshot] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setHasSnapshot(!!localStorage.getItem("hodos.snapshot"));
+  }, []);
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 px-8 text-center">
+      <div className="flex items-baseline gap-3">
+        <span className="font-serif text-xl text-ink">Hodos</span>
+        <span className="font-sans text-2xs tracking-greek text-gold">
+          ΟΔΟΣ
+        </span>
+      </div>
+      <p className="max-w-md font-serif text-md text-ink-soft">
+        Your local map couldn&rsquo;t be opened.
+      </p>
+      <p className="max-w-md font-sans text-xs text-ink-muted">
+        {hasSnapshot
+          ? "A snapshot from your last good save is available."
+          : "No local snapshot was found. If you exported a backup, you can re-import it after starting fresh."}
+      </p>
+      {failed && (
+        <p className="font-sans text-xs text-ink-soft" role="alert">
+          Snapshot recovery failed — starting fresh is still available.
+        </p>
+      )}
+      <div className="mt-2 flex items-center gap-3">
+        {hasSnapshot && (
+          <button
+            type="button"
+            onClick={async () => {
+              const ok = await recoverFromSnapshot();
+              if (!ok) setFailed(true);
+            }}
+            className="rounded-full bg-gold px-5 py-2 font-sans text-xs font-medium text-parchment shadow-md shadow-gold/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-ink"
+          >
+            Restore last snapshot
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => startFresh()}
+          className="rounded-full border border-rule px-5 py-2 font-sans text-xs text-ink-soft transition-colors hover:border-gold hover:text-gold"
+        >
+          Start fresh
+        </button>
+      </div>
     </div>
   );
 }
@@ -483,6 +559,7 @@ function FlowSurface(props: {
         }}
         onNodeClick={onNodeClick}
         onConnectEnd={onConnectEnd}
+        onlyRenderVisibleElements={props.nodes.length > 150}
         onNodeContextMenu={props.onNodeContextMenu}
         onEdgeContextMenu={props.onEdgeContextMenu}
         onPaneContextMenu={props.onPaneContextMenu}

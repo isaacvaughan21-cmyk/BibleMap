@@ -4,11 +4,8 @@ import { useEffect, useRef } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { joinWaitlist, type WaitlistResult } from "@/app/actions/join-waitlist";
 
-declare global {
-  interface Window {
-    plausible?: (event: string) => void;
-  }
-}
+// window.plausible is declared once in lib/analytics.ts.
+import "@/lib/analytics";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -38,7 +35,7 @@ function SubmitButton() {
 export default function WaitlistForm() {
   const [state, formAction] = useFormState<WaitlistResult | null, FormData>(
     joinWaitlist,
-    null
+    null,
   );
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -64,7 +61,13 @@ export default function WaitlistForm() {
         className="mx-auto max-w-md rounded-xl border border-rule bg-parchment px-8 py-10 text-center"
       >
         <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full border border-gold text-gold">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
             <path
               d="m5 13 4 4L19 7"
               stroke="currentColor"

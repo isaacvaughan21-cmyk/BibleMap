@@ -135,18 +135,18 @@
   stroke-width: 1.8;
 }
 
-/* Edge endpoint caps — appear on hover/selection */
+/* Edge endpoint caps — appear on hover/selection. display:none (not
+   opacity) so 500-edge maps never pay paint cost for hidden caps. */
 .react-flow__edge .hodos-edge-cap {
   fill: var(--parchment);
   stroke: var(--gold);
   stroke-width: 1.2;
-  opacity: 0;
-  transition: opacity 0.18s ease;
+  display: none;
   pointer-events: none;
 }
 .react-flow__edge:hover .hodos-edge-cap,
 .react-flow__edge.selected .hodos-edge-cap {
-  opacity: 1;
+  display: block;
 }
 
 /* Handles — hidden until the node is hovered or selected.

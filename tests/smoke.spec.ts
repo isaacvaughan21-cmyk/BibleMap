@@ -15,6 +15,7 @@ test("canvas loads, creates a bubble, and persists it across reload", async ({
   // Create a note via the double-click picker
   await page.mouse.dblclick(360, 620);
   await page.getByRole("menuitem", { name: /Note/ }).click();
+  await page.waitForTimeout(500); // editor focuses once React Flow measures
   await page.keyboard.type("smoke test note");
   await page.keyboard.press("Escape");
   await expect(

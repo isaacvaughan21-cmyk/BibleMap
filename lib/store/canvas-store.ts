@@ -6,9 +6,11 @@ import {
   type EdgeChange,
   type NodeChange,
 } from "@xyflow/react";
+import { track } from "@/lib/analytics";
 import * as repo from "@/lib/db/repo";
-import type { DbEdge, DbNode } from "@/lib/db/schema";
+import { db, type DbEdge, type DbNode } from "@/lib/db/schema";
 import { buildSeed } from "@/lib/db/seed";
+import { parseImport } from "@/lib/map-io";
 import { uuidv7 } from "@/lib/uuid";
 import type {
   EdgeKind,
@@ -55,6 +57,10 @@ export interface CanvasStore {
     verseRef: string,
     verseText: string,
   ): string;
+  /** Rebuild IndexedDB from the last-good localStorage snapshot. */
+  recoverFromSnapshot(): Promise<boolean>;
+  /** Wipe the local database and start over. */
+  startFresh(): Promise<void>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -76,6 +82,62 @@ export function getNodeRecency(id: string): number {
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 let idleTimer: ReturnType<typeof setTimeout> | null = null;
 let loadPromise: Promise<void> | null = null;
+
+/**
+ * `/app?synthetic=300&edges=500` loads an in-memory stress map for perf work.
+ * Ephemeral mode never touches IndexedDB, so real maps stay safe.
+ */
+let ephemeralMode = false;
+
+function buildSynthetic(nodeCount: number, edgeCount: number) {
+  const sampleTexts = [
+    "In the beginning God created the heavens and the earth.",
+    "The LORD is my shepherd; I shall not want.",
+    "For God so loved the world that He gave His one and only Son.",
+    "Your word is a lamp to my feet and a light to my path.",
+  ];
+  const cols = Math.ceil(Math.sqrt(nodeCount * 1.8));
+  const nodes: HodosNode[] = Array.from({ length: nodeCount }, (_, i) => {
+    const kind = (["question", "verse", "note"] as const)[i % 3];
+    const position = {
+      x: (i % cols) * 340 + ((i * 97) % 60),
+      y: Math.floor(i / cols) * 220 + ((i * 53) % 50),
+    };
+    if (kind === "verse") {
+      return {
+        id: `syn-${i}`,
+        type: "verse",
+        position,
+        data: {
+          verseRef: `Psalm ${(i % 150) + 1}:1`,
+          verseText: sampleTexts[i % sampleTexts.length],
+        },
+      };
+    }
+    return {
+      id: `syn-${i}`,
+      type: kind,
+      position,
+      data: {
+        content:
+          kind === "question"
+            ? `Synthetic question #${i} — how do these connect?`
+            : `Synthetic note #${i}: ${sampleTexts[i % sampleTexts.length]}`,
+      },
+    } as HodosNode;
+  });
+  const edges: HodosEdge[] = Array.from({ length: edgeCount }, (_, i) => {
+    const source = i % nodeCount;
+    const target = (source + 1 + ((i * 7) % (nodeCount - 1))) % nodeCount;
+    return {
+      id: `syn-e-${i}`,
+      source: `syn-${source}`,
+      target: `syn-${target}`,
+      type: i % 4 === 0 ? "crossref" : "manual",
+    };
+  });
+  return { nodes, edges };
+}
 
 export const SNAPSHOT_KEY = "hodos.snapshot";
 
@@ -146,6 +208,7 @@ function writeSnapshot(nodes: HodosNode[], edges: HodosEdge[]) {
 
 export const useCanvasStore = create<CanvasStore>()((set, get) => {
   function scheduleFlush() {
+    if (ephemeralMode) return; // synthetic stress maps never persist
     set({ saveState: "saving" });
     if (flushTimer) clearTimeout(flushTimer);
     flushTimer = setTimeout(flush, 250);
@@ -205,6 +268,24 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     load() {
       if (loadPromise) return loadPromise;
       loadPromise = (async () => {
+        // Synthetic stress-test mode (?synthetic=300&edges=500) — in-memory only.
+        const params =
+          typeof window !== "undefined"
+            ? new URLSearchParams(window.location.search)
+            : null;
+        const synthetic = params?.get("synthetic");
+        if (synthetic) {
+          ephemeralMode = true;
+          const n = Math.min(Number(synthetic) || 300, 2000);
+          const e = Math.min(
+            Number(params?.get("edges")) || Math.round((n * 5) / 3),
+            4000,
+          );
+          const data = buildSynthetic(n, e);
+          set({ nodes: data.nodes, edges: data.edges, loaded: true });
+          return;
+        }
+
         try {
           let { nodes, edges } = await repo.loadLive();
           if (nodes.length === 0 && !(await repo.getMeta("seeded"))) {
@@ -226,6 +307,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
             loaded: true,
             loadError: null,
           });
+          track("map_size", { nodes: nodes.length, edges: edges.length });
         } catch (err) {
           console.error("hodos: failed to open local database", err);
           set({
@@ -282,6 +364,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       set({ edges: [...get().edges, edge] });
       dirtyEdgeIds.add(edge.id);
       scheduleFlush();
+      track("edge_drawn", { kind: "manual" });
     },
 
     createNode(type, position) {
@@ -300,6 +383,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         editingNodeId: id,
       });
       markNodeDirty(id);
+      track("bubble_created", { type });
       return id;
     },
 
@@ -418,7 +502,39 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       updatedAtById.set(nodeId, Date.now());
       dirtyEdgeIds.add(edge.id);
       scheduleFlush();
+      track("crossref_added", { ref: verseRef });
       return nodeId;
+    },
+
+    async recoverFromSnapshot() {
+      const raw =
+        typeof window !== "undefined"
+          ? localStorage.getItem(SNAPSHOT_KEY)
+          : null;
+      if (!raw) return false;
+      try {
+        const data = parseImport(raw);
+        try {
+          await db.delete();
+        } catch {
+          // already unusable — Dexie recreates on next open
+        }
+        await repo.importReplace(data);
+        window.location.reload();
+        return true;
+      } catch (err) {
+        console.error("hodos: snapshot recovery failed", err);
+        return false;
+      }
+    },
+
+    async startFresh() {
+      try {
+        await db.delete();
+      } catch {
+        // ignore — reload recreates
+      }
+      window.location.reload();
     },
 
     /** Re-read everything from Dexie (used after import). */
