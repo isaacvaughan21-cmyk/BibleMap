@@ -30,6 +30,7 @@ import ContextMenu, { type MenuTarget } from "./ContextMenu";
 import CreatePicker from "./CreatePicker";
 import EmptyState from "./EmptyState";
 import FeedbackWidget from "./FeedbackWidget";
+import HintBar from "./HintBar";
 import HelpOverlay from "./HelpOverlay";
 import ImportDialog from "./ImportDialog";
 import VersePicker from "./VersePicker";
@@ -259,10 +260,17 @@ function CanvasInner() {
     [clampToViewport],
   );
 
-  const onPaneContextMenu = useCallback((e: React.MouseEvent | MouseEvent) => {
-    e.preventDefault(); // keep the browser menu off the canvas
-    setMenu(null);
-  }, []);
+  /** Right-click on empty canvas → create picker, right where you clicked. */
+  const { screenToFlowPosition } = useReactFlow();
+  const onPaneContextMenu = useCallback(
+    (e: React.MouseEvent | MouseEvent) => {
+      e.preventDefault();
+      setMenu(null);
+      const flow = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      setPicker({ ...clampToViewport(e), fx: flow.x, fy: flow.y });
+    },
+    [clampToViewport, screenToFlowPosition],
+  );
 
   const closeMenu = useCallback(() => setMenu(null), []);
   const closeOverlays = useCallback(() => {
@@ -329,6 +337,8 @@ function CanvasInner() {
         )}
         {loaded && !loadError && nodes.length === 0 && <EmptyState />}
       </main>
+
+      {!loadError && !toast && <HintBar />}
 
       {menu && (
         <ContextMenu

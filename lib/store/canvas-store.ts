@@ -73,6 +73,9 @@ export interface CanvasStore {
     at: number;
   } | null;
   restoreLastDeletion(): void;
+  /** First-run hint bar — shown until dismissed once. */
+  hintsDismissed: boolean;
+  dismissHints(): void;
 }
 
 export const DEFAULT_MAP_NAME = "Untitled map";
@@ -297,6 +300,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     versePickerNodeId: null,
     mapName: DEFAULT_MAP_NAME,
     lastDeletion: null,
+    hintsDismissed: true, // assume dismissed until load() learns otherwise
 
     load() {
       if (loadPromise) return loadPromise;
@@ -322,6 +326,9 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         try {
           const savedName = await repo.getMeta<string>("mapName");
           if (savedName) set({ mapName: savedName });
+          set({
+            hintsDismissed: !!(await repo.getMeta<boolean>("hintsDismissed")),
+          });
           let { nodes, edges } = await repo.loadLive();
           if (nodes.length === 0 && !(await repo.getMeta("seeded"))) {
             const seed = buildSeed();
@@ -584,6 +591,11 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       const trimmed = name.trim().slice(0, 120) || DEFAULT_MAP_NAME;
       set({ mapName: trimmed });
       if (!ephemeralMode) void repo.setMeta("mapName", trimmed);
+    },
+
+    dismissHints() {
+      set({ hintsDismissed: true });
+      if (!ephemeralMode) void repo.setMeta("hintsDismissed", true);
     },
 
     restoreLastDeletion() {

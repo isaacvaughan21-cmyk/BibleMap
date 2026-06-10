@@ -14,6 +14,9 @@ export default function EmptyState() {
       <p className="font-serif text-md italic text-ink-muted">
         Double-click anywhere to begin
       </p>
+      <p className="font-sans text-2xs tracking-eyebrow text-ink-muted/80">
+        EVERY QUESTION IS A DOOR
+      </p>
       <span className="scroll-cue mt-1 block" aria-hidden="true" />
     </div>
   );
