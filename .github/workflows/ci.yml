@@ -39,3 +39,11 @@ jobs:
             exit 1
           fi
           echo "client bundle clean"
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke test (create a bubble, reload, persists)
+        run: npx playwright test
+        env:
+          NEXT_PUBLIC_HODOS_APP_ENABLED: "true"
