@@ -118,10 +118,34 @@
   opacity: 0.9;
   transition: stroke 0.2s ease;
 }
-.react-flow__edge.selected .hodos-edge-manual,
-.react-flow__edge.selected .hodos-edge-crossref {
+.react-flow .react-flow__edge.selected .hodos-edge-manual,
+.react-flow .react-flow__edge.selected .hodos-edge-crossref {
   stroke: var(--gold);
   stroke-width: 1.8;
+  opacity: 1;
+}
+
+/* Edge hover — line warms toward gold */
+.react-flow__edge:hover .hodos-edge-manual {
+  stroke: var(--gold-soft);
+  stroke-width: 1.5;
+}
+.react-flow__edge:hover .hodos-edge-crossref {
+  opacity: 1;
+  stroke-width: 1.8;
+}
+
+/* Edge endpoint caps — appear on hover/selection */
+.react-flow__edge .hodos-edge-cap {
+  fill: var(--parchment);
+  stroke: var(--gold);
+  stroke-width: 1.2;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  pointer-events: none;
+}
+.react-flow__edge:hover .hodos-edge-cap,
+.react-flow__edge.selected .hodos-edge-cap {
   opacity: 1;
 }
 
@@ -150,10 +174,18 @@
 }
 
 /* Drag-select rectangle */
-.react-flow__selection {
+.react-flow .react-flow__selection,
+.react-flow__container.react-flow__selectionpane .react-flow__selection {
   background: color-mix(in srgb, var(--gold) 8%, transparent);
   border: 1px dashed var(--gold);
   border-radius: 4px;
+}
+
+/* Group rectangle around a completed multi-selection */
+.react-flow .react-flow__nodesselection-rect {
+  background: color-mix(in srgb, var(--gold) 6%, transparent);
+  border: 1px dashed var(--gold-soft);
+  border-radius: 8px;
 }
 
 /* Minimap — parchment card above the control cluster */

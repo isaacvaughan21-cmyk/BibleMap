@@ -13,8 +13,12 @@ export default function VerseNode({
         selected ? "bubble-selected border-gold" : "border-rule"
       }`}
     >
-      <p className="font-mono text-2xs font-medium uppercase tracking-[0.14em] text-gold">
-        {data.verseRef}
+      <p
+        className={`font-mono text-2xs font-medium uppercase tracking-[0.14em] ${
+          data.verseRef ? "text-gold" : "text-gold/50"
+        }`}
+      >
+        {data.verseRef || "Add reference"}
       </p>
       <p className="mt-1.5 font-serif text-sm leading-relaxed text-ink-soft">
         {data.verseText}

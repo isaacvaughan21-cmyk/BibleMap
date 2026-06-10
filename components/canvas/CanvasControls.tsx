@@ -1,6 +1,7 @@
 "use client";
 
 import { useReactFlow } from "@xyflow/react";
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
 /**
  * Bottom-right control cluster — zoom out, fit-to-view (gold accent), zoom in.
@@ -8,6 +9,8 @@ import { useReactFlow } from "@xyflow/react";
  */
 export default function CanvasControls({ railOpen }: { railOpen: boolean }) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
+  const reducedMotion = usePrefersReducedMotion();
+  const ms = (d: number) => (reducedMotion ? 0 : d);
 
   return (
     <div
@@ -19,7 +22,7 @@ export default function CanvasControls({ railOpen }: { railOpen: boolean }) {
     >
       <ControlButton
         label="Zoom out"
-        onClick={() => zoomOut({ duration: 200 })}
+        onClick={() => zoomOut({ duration: ms(200) })}
       >
         <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true">
           <line
@@ -36,7 +39,9 @@ export default function CanvasControls({ railOpen }: { railOpen: boolean }) {
 
       <button
         type="button"
-        onClick={() => fitView({ duration: 500, padding: 0.25, maxZoom: 1 })}
+        onClick={() =>
+          fitView({ duration: ms(500), padding: 0.25, maxZoom: 1 })
+        }
         aria-label="Fit map to view"
         className="flex h-9 w-9 items-center justify-center rounded-full bg-gold text-parchment shadow-md shadow-gold/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-ink hover:shadow-lg hover:shadow-ink/15"
       >
@@ -56,7 +61,10 @@ export default function CanvasControls({ railOpen }: { railOpen: boolean }) {
         </svg>
       </button>
 
-      <ControlButton label="Zoom in" onClick={() => zoomIn({ duration: 200 })}>
+      <ControlButton
+        label="Zoom in"
+        onClick={() => zoomIn({ duration: ms(200) })}
+      >
         <svg
           width="12"
           height="12"

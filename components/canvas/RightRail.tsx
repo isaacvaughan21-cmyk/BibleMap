@@ -9,8 +9,10 @@ export default function RightRail({ open }: { open: boolean }) {
     <aside
       aria-label="Study panel"
       aria-hidden={!open}
-      className={`absolute bottom-0 right-0 top-14 z-30 w-80 transform border-l border-rule/70 bg-parchment-2/85 backdrop-blur-md transition-transform duration-300 ease-out ${
-        open ? "translate-x-0" : "translate-x-full"
+      className={`absolute bottom-0 right-0 top-14 z-30 w-80 transform border-l border-rule/70 bg-parchment-2/85 backdrop-blur-md ${
+        open
+          ? "visible translate-x-0 [transition:transform_300ms_ease-out,visibility_0s]"
+          : "invisible translate-x-full [transition:transform_300ms_ease-out,visibility_0s_300ms]"
       }`}
     >
       <div className="flex h-12 items-center border-b border-rule/70 px-5">

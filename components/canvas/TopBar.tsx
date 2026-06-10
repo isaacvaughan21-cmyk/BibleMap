@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useReactFlow, useViewport } from "@xyflow/react";
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
 type TopBarProps = {
   railOpen: boolean;
@@ -106,11 +107,12 @@ export default function TopBar({
 function ZoomBadge() {
   const { zoom } = useViewport();
   const { zoomTo } = useReactFlow();
+  const reducedMotion = usePrefersReducedMotion();
   const pct = Math.round(zoom * 100);
   return (
     <button
       type="button"
-      onClick={() => zoomTo(1, { duration: 400 })}
+      onClick={() => zoomTo(1, { duration: reducedMotion ? 0 : 400 })}
       aria-label={`Zoom ${pct} percent — click to reset to 100 percent`}
       className="rounded-full px-2 py-1 font-sans text-2xs tabular-nums text-ink-muted transition-colors hover:bg-parchment-2 hover:text-ink"
     >

@@ -19,5 +19,12 @@ export default function CrossRefEdge({
     targetPosition,
     curvature: 0.3,
   });
-  return <BaseEdge id={id} path={path} className="hodos-edge-crossref" />;
+  return (
+    <>
+      <BaseEdge id={id} path={path} className="hodos-edge-crossref" />
+      {/* endpoint caps — revealed on hover/selection */}
+      <circle cx={sourceX} cy={sourceY} r={3} className="hodos-edge-cap" />
+      <circle cx={targetX} cy={targetY} r={3} className="hodos-edge-cap" />
+    </>
+  );
 }

@@ -19,5 +19,12 @@ export default function ManualEdge({
     targetPosition,
     curvature: 0.3,
   });
-  return <BaseEdge id={id} path={path} className="hodos-edge-manual" />;
+  return (
+    <>
+      <BaseEdge id={id} path={path} className="hodos-edge-manual" />
+      {/* endpoint caps — revealed on hover/selection */}
+      <circle cx={sourceX} cy={sourceY} r={3} className="hodos-edge-cap" />
+      <circle cx={targetX} cy={targetY} r={3} className="hodos-edge-cap" />
+    </>
+  );
 }
