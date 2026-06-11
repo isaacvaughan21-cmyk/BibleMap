@@ -239,15 +239,30 @@ export default function WelcomeGate() {
           Your maps live in your browser
         </p>
 
-        <div className="my-5 h-px bg-rule/70" aria-hidden="true" />
+        <div className="my-5 flex items-center gap-3" aria-hidden="true">
+          <span className="h-px flex-1 bg-rule/70" />
+          <span className="font-sans text-2xs tracking-eyebrow text-ink-muted/70">
+            OR
+          </span>
+          <span className="h-px flex-1 bg-rule/70" />
+        </div>
 
         <button
           type="button"
           onClick={() => enter(null)}
-          className="mx-auto block font-sans text-xs text-ink-muted transition-colors hover:text-gold"
+          className="group w-full rounded-full border border-ink/15 bg-transparent py-3.5 font-sans text-sm font-medium text-ink-soft transition-all duration-300 hover:-translate-y-0.5 hover:border-gold/60 hover:text-gold"
         >
-          Continue as a guest for now →
+          Continue as guest{" "}
+          <span
+            aria-hidden="true"
+            className="inline-block transition-transform duration-300 group-hover:translate-x-1"
+          >
+            →
+          </span>
         </button>
+        <p className="mt-2.5 text-center font-sans text-2xs text-ink-muted">
+          No email needed — jump straight into the canvas
+        </p>
 
         <p className="mt-5 text-center font-sans text-2xs leading-relaxed text-ink-muted/70">
           v0 beta — sign-in and cloud sync are on the way; for now your account
