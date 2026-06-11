@@ -137,7 +137,7 @@
       var(--parchment) 30%,
       var(--parchment-2) 100%
     );
-    transition: opacity 360ms ease !important;
+    transition: opacity 240ms ease !important;
   }
 
   /* Gold ring blooming open at the threshold between maps. */

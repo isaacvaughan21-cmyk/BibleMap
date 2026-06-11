@@ -730,54 +730,53 @@ function FlowSurface(props: {
     (async () => {
       try {
         if (nav.kind === "open") {
-          // 1 — the fall: accelerate into the heart of the bubble,
-          //     the veil rising as you pass through its skin
+          // 1 — the fall: accelerate into the heart of the bubble. A brief
+          //     veil flash masks only the node-list swap at the very peak —
+          //     no held breath, no blank dwell.
           const center = bubbleCenter(nav.id) ?? currentFocus();
-          const veilTimer = setTimeout(() => setVeil(true), 430);
+          const veilTimer = setTimeout(() => setVeil(true), 620);
           await flyTo({ ...center, zoom: 8.5 }, 800, easeInCubic);
-          clearTimeout(veilTimer);
           setVeil(true);
-          await wait(240); // a held breath at the threshold
-          // 2 — swap worlds under the veil
+          // 2 — swap worlds the instant we pass through the skin
           await openNodeStore(nav.id);
+          clearTimeout(veilTimer);
           setArriving(true);
           await waitMeasured();
-          // 3 — the new world begins as a distant point…
-          const target = restingTarget();
-          jumpTo(target, 0.1);
-          await frame();
+          // 3 — the child's anchor mirrors the bubble, so hold it at the SAME
+          //     scale: passing through is seamless, never a blank gap
+          const b = getNodesBounds(getNodes());
+          const cc = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+          jumpTo(cc, 8.5);
           setRing((k) => k + 1); // gold ring blooms at the threshold
           setVeil(false);
-          // 4 — …and rushes out to meet you, settling gently
-          await flyTo(target, 950, easeOutQuint);
+          // 4 — pull back to reveal the new world, settling gently
+          await flyTo(restingTarget(), 900, easeOutQuint);
         } else {
           // Rising out: remember which bubble we were inside
           const departedId = useCanvasStore.getState().currentMapId;
-          // 1 — this world falls away beneath you
+          // 1 — this world falls away beneath you (still visible, not blank)
           const f = currentFocus();
-          const veilTimer = setTimeout(() => setVeil(true), 320);
+          const veilTimer = setTimeout(() => setVeil(true), 480);
           await flyTo(
-            { x: f.x, y: f.y, zoom: Math.max(0.1, f.zoom * 0.1) },
-            680,
+            { x: f.x, y: f.y, zoom: Math.max(0.14, f.zoom * 0.34) },
+            640,
             easeInCubic,
           );
-          clearTimeout(veilTimer);
           setVeil(true);
-          await wait(220);
-          // 2 — swap to the parent under the veil
+          // 2 — swap to the parent the instant we cross the threshold
           await goToMapStore(nav.index);
+          clearTimeout(veilTimer);
           setArriving(true);
           await waitMeasured();
-          // 3 — emerge OUT of the bubble you were just inside…
-          const target = restingTarget();
+          // 3 — emerge OUT of the bubble you were just inside, at full scale
           const exited = bubbleCenter(departedId);
-          jumpTo(exited ?? target, exited ? 3 : target.zoom * 2);
-          await frame();
+          const target = restingTarget();
+          jumpTo(exited ?? target, exited ? 6 : target.zoom);
           setRing((k) => k + 1);
           setVeil(false);
           if (exited) selectOnlyStore(departedId); // halo marks where you were
           // 4 — …as the parent world settles around it
-          await flyTo(target, 900, easeOutQuint);
+          await flyTo(target, 880, easeOutQuint);
         }
       } catch (err) {
         console.error("hodos: map transition failed", err);
