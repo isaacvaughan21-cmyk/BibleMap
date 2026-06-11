@@ -621,55 +621,58 @@ function FlowSurface(props: {
       new Promise<void>((r) => requestAnimationFrame(() => r()));
 
     (async () => {
-      if (nav.kind === "open") {
-        // 1 — plunge deep into the bubble
-        const n = getInternalNode(nav.id);
-        if (n && !reduced) {
-          const w = n.measured?.width ?? 200;
-          const h = n.measured?.height ?? 60;
-          const { x, y } = n.internals.positionAbsolute;
-          setCenter(x + w / 2, y + h / 2, { zoom: 7, duration: 620 });
+      try {
+        if (nav.kind === "open") {
+          // 1 — plunge deep into the bubble
+          const n = getInternalNode(nav.id);
+          if (n && !reduced) {
+            const w = n.measured?.width ?? 200;
+            const h = n.measured?.height ?? 60;
+            const { x, y } = n.internals.positionAbsolute;
+            setCenter(x + w / 2, y + h / 2, { zoom: 8, duration: 650 });
+          }
+          // 2 — the veil rises as we pass through the bubble's skin
+          await wait(360);
+          setVeil(true);
+          await wait(300);
+          // 3 — swap worlds under the veil
+          await openNodeStore(nav.id);
+          await frame();
+          // 4 — the new world begins as a distant point (maxZoom caps it
+          //     small and centered; padding:6 doesn't — RF clamps it)
+          fitView({ duration: 0, padding: 0.3, maxZoom: 0.12 });
+          setRing((k) => k + 1); // gold ring blooms at the threshold
+          setVeil(false);
+          // Let those re-renders commit before starting the grow — a render
+          // mid-flight cancels React Flow's d3 zoom transition.
+          await wait(reduced ? 0 : 70);
+          // 5 — …and rushes outward to fill the screen
+          fitView({ duration: reduced ? 0 : 820, padding: 0.3, maxZoom: 1 });
+          await wait(reduced ? 0 : 820);
+        } else {
+          // Rising out: this world recedes to a point…
+          if (!reduced) fitView({ duration: 460, padding: 0.3, maxZoom: 0.12 });
+          await wait(reduced ? 0 : 340);
+          setVeil(true);
+          await wait(reduced ? 0 : 220);
+          await goToMapStore(nav.index);
+          await frame();
+          // …and the parent settles back around you, slightly over-near
+          fitView({ duration: 0, padding: 0.02, maxZoom: 2.4 });
+          setVeil(false);
+          await wait(reduced ? 0 : 70);
+          fitView({ duration: reduced ? 0 : 720, padding: 0.3, maxZoom: 1 });
+          await wait(reduced ? 0 : 720);
         }
-        // 2 — the veil rises as we pass through the bubble's skin
-        await wait(300);
-        setVeil(true);
-        await wait(330);
-        // 3 — swap worlds under the veil
-        await openNodeStore(nav.id);
-        await frame();
-        // 4 — the new world starts as a point…
-        fitView({ duration: 0, padding: 6 });
-        await frame();
-        setRing((k) => k + 1); // gold ring blooms at the threshold
+      } catch (err) {
+        console.error("hodos: map transition failed", err);
+        fitView({ duration: 0, padding: 0.3, maxZoom: 1 });
+      } finally {
+        // Always release — a thrown transition must never wedge navigation.
         setVeil(false);
-        // 5 — …and grows to fill the screen
-        fitView({
-          duration: reduced ? 0 : 800,
-          padding: 0.35,
-          maxZoom: 1,
-        });
-        await wait(800);
-      } else {
-        // Rising out: this world recedes to a point…
-        if (!reduced) fitView({ duration: 520, padding: 6 });
-        await wait(280);
-        setVeil(true);
-        await wait(260);
-        await goToMapStore(nav.index);
-        await frame();
-        // …and the parent settles back around you, slightly over-near
-        fitView({ duration: 0, padding: 0.08, maxZoom: 2.2 });
-        await frame();
-        setVeil(false);
-        fitView({
-          duration: reduced ? 0 : 700,
-          padding: 0.35,
-          maxZoom: 1,
-        });
-        await wait(700);
+        running.current = false;
+        clearPendingNav();
       }
-      running.current = false;
-      clearPendingNav();
     })();
   }, [
     pendingNav,
