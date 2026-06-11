@@ -11,8 +11,10 @@ import { useCanvasStore } from "@/lib/store/canvas-store";
 export default function NodeOpenButton({ id }: { id: string }) {
   const requestOpen = useCanvasStore((s) => s.requestOpen);
   const hasChild = useCanvasStore((s) => s.childMapIds.has(id));
+  const isAnchor = useCanvasStore((s) => s.anchorNodeId === id);
 
-  if (!hasChild) return null;
+  // The anchor mirrors the bubble you dove into — it can't be re-entered.
+  if (isAnchor || !hasChild) return null;
 
   return (
     <button

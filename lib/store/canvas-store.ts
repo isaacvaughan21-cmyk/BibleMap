@@ -94,6 +94,12 @@ export interface CanvasStore {
   mapPath: MapCrumb[];
   /** Ids of bubbles on the current map that already contain a child map. */
   childMapIds: Set<string>;
+  /**
+   * The anchor bubble of the current map — the mirror of the bubble you dove
+   * into. You can't dive into it again (no zooming the same bubble twice).
+   * Null on the root and on legacy maps seeded before this was tracked.
+   */
+  anchorNodeId: string | null;
   /** Dive into a bubble's child map (seeding it on first open). */
   openNode(id: string): Promise<void>;
   /** Jump to a breadcrumb level (0 = root). */
@@ -369,6 +375,16 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     await flush();
   }
 
+  /** Resolve the anchor (self-mirror) bubble of a map; null = none. */
+  async function refreshAnchor(mapId: string) {
+    if (mapId === ROOT_MAP_ID) {
+      set({ anchorNodeId: null });
+      return;
+    }
+    const aid = (await repo.getMeta<string>(`anchor:${mapId}`)) ?? null;
+    set({ anchorNodeId: aid });
+  }
+
   /** Recompute which on-screen bubbles already hold a child map. */
   async function refreshChildMapIds() {
     try {
@@ -430,6 +446,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     currentMapId: ROOT_MAP_ID,
     mapPath: [{ id: ROOT_MAP_ID, label: DEFAULT_MAP_NAME }],
     childMapIds: new Set<string>(),
+    anchorNodeId: null,
     pendingNav: null,
 
     load() {
@@ -804,7 +821,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         nodes,
         edges,
       );
-      set({ mapName: savedName });
+      set({ mapName: savedName, anchorNodeId: null });
       await refreshChildMapIds();
       await writeSnapshot();
     },
@@ -847,6 +864,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
                 content: node.data.content,
               };
         await repo.upsertNodes([anchor]);
+        await repo.setMeta(`anchor:${childMapId}`, anchor.id);
         nodes = [anchor];
       }
       if (!openedBefore) await repo.setMeta(`opened:${childMapId}`, true);
@@ -857,6 +875,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         nodes,
         edges,
       );
+      await refreshAnchor(childMapId);
       await refreshChildMapIds();
       track("bubble_opened", { type: node.type as string });
     },
@@ -870,6 +889,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       const target = path[index];
       const { nodes, edges } = await repo.loadLive(target.id);
       applyMap(target.id, path.slice(0, index + 1), nodes, edges);
+      await refreshAnchor(target.id);
       await refreshChildMapIds();
     },
 
@@ -879,6 +899,9 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
 
     requestOpen(id) {
       if (ephemeralMode || get().pendingNav) return;
+      // You can only dive into a given bubble once — its self-mirror anchor
+      // on the next canvas can't be dived into again.
+      if (id === get().anchorNodeId) return;
       set({ pendingNav: { kind: "open", id } });
     },
     requestGoTo(index) {
