@@ -42,6 +42,7 @@ import VerseNode from "./nodes/VerseNode";
 import NoteNode from "./nodes/NoteNode";
 import ManualEdge from "./edges/ManualEdge";
 import CrossRefEdge from "./edges/CrossRefEdge";
+import EdgeMarkers from "./edges/EdgeMarkers";
 import type { VerseNodeType } from "@/lib/types";
 
 const nodeTypes = {
@@ -73,6 +74,8 @@ const MENU_HEIGHT = 180;
 /* Dive easing — fall in with gathering speed, arrive with a long soft landing */
 const easeInCubic = (t: number) => t * t * t;
 const easeOutQuint = (t: number) => 1 - Math.pow(1 - t, 5);
+const easeInOutCubic = (t: number) =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 type ToastState = {
   text: string;
@@ -623,6 +626,7 @@ function FlowSurface(props: {
   const pendingNav = useCanvasStore((s) => s.pendingNav);
   const openNodeStore = useCanvasStore((s) => s.openNode);
   const goToMapStore = useCanvasStore((s) => s.goToMap);
+  const switchCanvasStore = useCanvasStore((s) => s.switchCanvas);
   const clearPendingNav = useCanvasStore((s) => s.clearPendingNav);
   const selectOnlyStore = useCanvasStore((s) => s.selectOnly);
   const [veil, setVeil] = useState(false);
@@ -751,7 +755,7 @@ function FlowSurface(props: {
           setVeil(false);
           // 4 — pull back to reveal the new world, settling gently
           await flyTo(restingTarget(), 900, easeOutQuint);
-        } else {
+        } else if (nav.kind === "goto") {
           // Rising out: remember which bubble we were inside
           const departedId = useCanvasStore.getState().currentMapId;
           // 1 — this world falls away beneath you (still visible, not blank)
@@ -777,6 +781,24 @@ function FlowSurface(props: {
           if (exited) selectOnlyStore(departedId); // halo marks where you were
           // 4 — …as the parent world settles around it
           await flyTo(target, 880, easeOutQuint);
+        } else {
+          // Canvas switch — a sideways jump, no zoom. The current world
+          // slides off to the left; the new one slides in from the right.
+          const f = currentFocus();
+          const span = paneDims().w / f.zoom;
+          await flyTo(
+            { x: f.x + span, y: f.y, zoom: f.zoom },
+            440,
+            easeInOutCubic,
+          );
+          // swap canvases while everything is off-screen (just parchment)
+          await switchCanvasStore(nav.id);
+          setArriving(true);
+          await waitMeasured();
+          const target = restingTarget();
+          const span2 = paneDims().w / target.zoom;
+          jumpTo({ x: target.x - span2, y: target.y }, target.zoom);
+          await flyTo(target, 560, easeOutQuint);
         }
       } catch (err) {
         console.error("hodos: map transition failed", err);
@@ -798,6 +820,7 @@ function FlowSurface(props: {
     fitView,
     openNodeStore,
     goToMapStore,
+    switchCanvasStore,
     selectOnlyStore,
     clearPendingNav,
   ]);
@@ -908,6 +931,7 @@ function FlowSurface(props: {
       className="relative h-full w-full"
       onDoubleClick={onDoubleClick}
     >
+      <EdgeMarkers />
       <ReactFlow
         nodes={props.nodes}
         edges={props.edges}

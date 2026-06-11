@@ -127,6 +127,10 @@ function OverflowMenu({
 }) {
   const [open, setOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const canvases = useCanvasStore((s) => s.canvases);
+  const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
+  const createCanvas = useCanvasStore((s) => s.createCanvas);
+  const requestCanvas = useCanvasStore((s) => s.requestCanvas);
 
   useEffect(() => {
     if (!open) return;
@@ -167,8 +171,43 @@ function OverflowMenu({
           <div
             role="menu"
             aria-label="Map options"
-            className="absolute right-0 top-10 z-50 w-52 animate-fade-up rounded-xl border border-rule bg-parchment py-1.5 shadow-xl shadow-ink/10"
+            className="absolute right-0 top-10 z-50 w-56 animate-fade-up rounded-xl border border-rule bg-parchment py-1.5 shadow-xl shadow-ink/10"
           >
+            <p className="px-4 pb-1 pt-1.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
+              CANVASES
+            </p>
+            <div className="max-h-44 overflow-y-auto">
+              {canvases.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={c.id === activeCanvasId}
+                  onClick={() => {
+                    requestCanvas(c.id);
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2 px-4 py-1.5 text-left font-sans text-xs text-ink-soft transition-colors hover:bg-parchment-2 hover:text-ink"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                      c.id === activeCanvasId ? "bg-gold" : "bg-rule"
+                    }`}
+                  />
+                  <span className="truncate">{c.name}</span>
+                </button>
+              ))}
+            </div>
+            <MenuButton
+              onClick={() => {
+                createCanvas();
+                setOpen(false);
+              }}
+            >
+              + New canvas
+            </MenuButton>
+            <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
             <MenuButton
               onClick={() => {
                 onExport();

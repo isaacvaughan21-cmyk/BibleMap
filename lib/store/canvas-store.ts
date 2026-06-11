@@ -113,10 +113,23 @@ export interface CanvasStore {
   pendingNav:
     | { kind: "open"; id: string }
     | { kind: "goto"; index: number }
+    | { kind: "canvas"; id: string }
     | null;
   requestOpen(id: string): void;
   requestGoTo(index: number): void;
   clearPendingNav(): void;
+
+  /* ---- Canvases (independent top-level maps) ---- */
+  /** All top-level canvases. The first is always the root. */
+  canvases: { id: string; name: string }[];
+  /** The canvas currently in view. */
+  activeCanvasId: string;
+  /** Create a blank canvas and slide to it. Returns its id. */
+  createCanvas(): string;
+  /** Request a sideways slide to an existing canvas. */
+  requestCanvas(id: string): void;
+  /** Perform the canvas switch (called by the slide animation). */
+  switchCanvas(id: string): Promise<void>;
 }
 
 export const DEFAULT_MAP_NAME = "Untitled map";
@@ -448,6 +461,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     childMapIds: new Set<string>(),
     anchorNodeId: null,
     pendingNav: null,
+    canvases: [{ id: ROOT_MAP_ID, name: DEFAULT_MAP_NAME }],
+    activeCanvasId: ROOT_MAP_ID,
 
     load() {
       if (loadPromise) return loadPromise;
@@ -471,14 +486,34 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         }
 
         try {
-          const savedName =
+          // Canvas registry — migrate from the legacy single `mapName`.
+          const legacyName =
             (await repo.getMeta<string>("mapName")) ?? DEFAULT_MAP_NAME;
+          const canvases = (await repo.getMeta<{ id: string; name: string }[]>(
+            "canvases",
+          )) ?? [{ id: ROOT_MAP_ID, name: legacyName }];
+          const savedActive =
+            (await repo.getMeta<string>("activeCanvas")) ?? ROOT_MAP_ID;
+          const active = canvases.some((c) => c.id === savedActive)
+            ? savedActive
+            : ROOT_MAP_ID;
+          const activeName =
+            canvases.find((c) => c.id === active)?.name ?? legacyName;
+
           set({
-            mapName: savedName,
+            canvases,
+            activeCanvasId: active,
+            mapName: activeName,
             hintsDismissed: !!(await repo.getMeta<boolean>("hintsDismissed")),
           });
-          let { nodes, edges } = await repo.loadLive(ROOT_MAP_ID);
-          if (nodes.length === 0 && !(await repo.getMeta("seeded"))) {
+
+          let { nodes, edges } = await repo.loadLive(active);
+          // Seed the onboarding map only on the original root canvas.
+          if (
+            active === ROOT_MAP_ID &&
+            nodes.length === 0 &&
+            !(await repo.getMeta("seeded"))
+          ) {
             const seed = buildSeed();
             await repo.upsertNodes(seed.nodes);
             await repo.upsertEdges(seed.edges);
@@ -486,11 +521,11 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
             nodes = seed.nodes;
             edges = seed.edges;
           }
-          activeMapId = ROOT_MAP_ID;
+          activeMapId = active;
           registerLoaded(nodes, edges);
           set({
-            currentMapId: ROOT_MAP_ID,
-            mapPath: [{ id: ROOT_MAP_ID, label: savedName }],
+            currentMapId: active,
+            mapPath: [{ id: active, label: activeName }],
             nodes: nodes.map(fromDbNode),
             edges: edges.map(fromDbEdge),
             loaded: true,
@@ -739,12 +774,18 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
 
     setMapName(name) {
       const trimmed = name.trim().slice(0, 120) || DEFAULT_MAP_NAME;
-      // The root crumb mirrors the map name.
+      // The root crumb mirrors the active canvas name.
       const path = get().mapPath.map((c, i) =>
         i === 0 ? { ...c, label: trimmed } : c,
       );
-      set({ mapName: trimmed, mapPath: path });
-      if (!ephemeralMode) void repo.setMeta("mapName", trimmed);
+      const canvases = get().canvases.map((c) =>
+        c.id === get().activeCanvasId ? { ...c, name: trimmed } : c,
+      );
+      set({ mapName: trimmed, mapPath: path, canvases });
+      if (!ephemeralMode) {
+        void repo.setMeta("mapName", trimmed); // legacy mirror
+        void repo.setMeta("canvases", canvases);
+      }
     },
 
     dismissHints() {
@@ -911,6 +952,35 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
     clearPendingNav() {
       set({ pendingNav: null });
+    },
+
+    /* ---------------- Canvases ---------------- */
+
+    createCanvas() {
+      const id = uuidv7();
+      const canvases = [...get().canvases, { id, name: DEFAULT_MAP_NAME }];
+      set({ canvases });
+      if (!ephemeralMode) void repo.setMeta("canvases", canvases);
+      if (!get().pendingNav) set({ pendingNav: { kind: "canvas", id } });
+      return id;
+    },
+
+    requestCanvas(id) {
+      if (ephemeralMode || get().pendingNav) return;
+      if (id === get().activeCanvasId) return; // already here
+      set({ pendingNav: { kind: "canvas", id } });
+    },
+
+    async switchCanvas(id) {
+      if (ephemeralMode) return;
+      await flushPending();
+      const { nodes, edges } = await repo.loadLive(id);
+      const name =
+        get().canvases.find((c) => c.id === id)?.name ?? DEFAULT_MAP_NAME;
+      applyMap(id, [{ id, label: name }], nodes, edges);
+      set({ activeCanvasId: id, mapName: name, anchorNodeId: null });
+      if (!ephemeralMode) void repo.setMeta("activeCanvas", id);
+      await refreshChildMapIds();
     },
   };
 });
