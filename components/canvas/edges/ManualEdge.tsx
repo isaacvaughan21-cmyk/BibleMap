@@ -5,6 +5,7 @@ import {
   type EdgeProps,
 } from "@xyflow/react";
 import { floatingEdgeParams } from "@/lib/edge-routing";
+import { ARROW_RULE } from "./EdgeMarkers";
 
 /** A hand-drawn connection — hairline rule, slight curve, floating anchors. */
 export default function ManualEdge({ id, source, target }: EdgeProps) {
@@ -27,7 +28,12 @@ export default function ManualEdge({ id, source, target }: EdgeProps) {
   });
   return (
     <>
-      <BaseEdge id={id} path={path} className="hodos-edge-manual" />
+      <BaseEdge
+        id={id}
+        path={path}
+        markerEnd={ARROW_RULE}
+        className="hodos-edge-manual"
+      />
       {/* endpoint caps — revealed on hover/selection */}
       <circle cx={sx} cy={sy} r={3} className="hodos-edge-cap" />
       <circle cx={tx} cy={ty} r={3} className="hodos-edge-cap" />

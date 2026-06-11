@@ -70,7 +70,7 @@ export default function FeedbackWidget({
                 Thank you — it&rsquo;s on its way.
               </p>
               <p className="mt-1 font-sans text-2xs text-ink-muted">
-                Isaac reads every note.
+                Every note is read.
               </p>
               <button
                 type="button"
@@ -83,7 +83,7 @@ export default function FeedbackWidget({
           ) : (
             <>
               <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
-                SEND ISAAC A NOTE
+                SEND FEEDBACK
               </p>
               <textarea
                 ref={textareaRef}
@@ -152,7 +152,7 @@ export default function FeedbackWidget({
             strokeLinejoin="round"
           />
         </svg>
-        Send Isaac a note
+        Send feedback
       </button>
     </div>
   );
