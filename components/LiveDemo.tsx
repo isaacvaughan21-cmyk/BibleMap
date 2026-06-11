@@ -59,7 +59,7 @@ export default function LiveDemo() {
             className="mt-4 text-center font-sans text-2xs tracking-eyebrow text-ink-muted"
             aria-hidden="true"
           >
-            DRAG A BUBBLE · PAN THE CANVAS · ZOOM IN
+            DRAG A BUBBLE · DOUBLE-CLICK A VERSE TO DIVE IN
           </p>
         </Reveal>
 

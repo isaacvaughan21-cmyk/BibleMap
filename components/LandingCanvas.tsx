@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
@@ -7,6 +8,8 @@ import {
   Position,
   ReactFlow,
   ReactFlowProvider,
+  useEdgesState,
+  useNodesState,
   useReactFlow,
   type Edge,
   type Node,
@@ -15,8 +18,11 @@ import {
 import "@xyflow/react/dist/style.css";
 
 import {
+  LANDING_BRANCHES,
   LANDING_EDGES,
   LANDING_NODES,
+  type LandingEdge,
+  type LandingNode,
   type LandingNodeData,
 } from "@/lib/landing-canvas-data";
 
@@ -24,6 +30,10 @@ import {
  * The live mini-canvas on the landing page — a real React Flow surface with
  * a handful of draggable bubbles from the Melchizedek map. Read-only in
  * spirit (no editing, no connecting), fully touchable in practice.
+ *
+ * One verse is marked `expandable`: double-clicking it dives into an isolated
+ * branch map nested inside that bubble — the "a whole map inside one bubble"
+ * payoff, the same gesture the full app uses.
  */
 
 /* Invisible handles so edges have anchor points on custom nodes. */
@@ -34,6 +44,22 @@ function Anchors() {
       <Handle type="target" position={Position.Top} className={cls} />
       <Handle type="source" position={Position.Bottom} className={cls} />
     </>
+  );
+}
+
+/** Floating "Double-click me" affordance on an expandable verse bubble. */
+function CtaBadge({ label }: { label: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="floaty pointer-events-none absolute -top-3.5 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-gold px-3 py-1 font-sans text-2xs font-medium tracking-eyebrow text-parchment shadow-md shadow-gold/30"
+      style={
+        { "--float-amp": "2.5px", "--float-dur": "2.6s" } as React.CSSProperties
+      }
+    >
+      {label}
+      <span className="absolute -bottom-1 left-1/2 h-2 w-2 -translate-x-1/2 rotate-45 bg-gold" />
+    </span>
   );
 }
 
@@ -55,8 +81,15 @@ function QuestionBubble({ data }: NodeProps) {
 function VerseBubble({ data }: NodeProps) {
   const d = data as LandingNodeData;
   return (
-    <div className="w-[250px] cursor-grab rounded-2xl border border-gold/40 bg-parchment px-5 py-4 shadow-md shadow-ink/5 transition-shadow hover:shadow-lg hover:shadow-gold/10 active:cursor-grabbing">
+    <div
+      className={`relative w-[250px] rounded-2xl border bg-parchment px-5 py-4 shadow-md shadow-ink/5 transition-shadow active:cursor-grabbing ${
+        d.expandable
+          ? "cursor-pointer border-gold/70 ring-1 ring-gold/30 hover:shadow-lg hover:shadow-gold/20"
+          : "cursor-grab border-gold/40 hover:shadow-lg hover:shadow-gold/10"
+      }`}
+    >
       <Anchors />
+      {d.expandable && d.cta && <CtaBadge label={d.cta} />}
       <p className="flex items-center gap-2 font-sans text-2xs tracking-eyebrow text-gold">
         <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-gold" />
         {d.ref}
@@ -86,29 +119,33 @@ const nodeTypes = {
   note: NoteBubble,
 };
 
-const initialNodes: Node[] = LANDING_NODES.map((n) => ({
-  id: n.id,
-  type: n.type,
-  position: n.position,
-  data: n.data as Record<string, unknown>,
-}));
+function toFlowNodes(nodes: LandingNode[]): Node[] {
+  return nodes.map((n) => ({
+    id: n.id,
+    type: n.type,
+    position: n.position,
+    data: n.data as Record<string, unknown>,
+  }));
+}
 
-const initialEdges: Edge[] = LANDING_EDGES.map((e) => ({
-  id: e.id,
-  source: e.source,
-  target: e.target,
-  type: "default",
-  focusable: false,
-  style:
-    e.kind === "crossref"
-      ? {
-          stroke: "var(--gold)",
-          strokeWidth: 1.5,
-          strokeDasharray: "6 5",
-          opacity: 0.75,
-        }
-      : { stroke: "var(--rule)", strokeWidth: 1.5 },
-}));
+function toFlowEdges(edges: LandingEdge[]): Edge[] {
+  return edges.map((e) => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    type: "default",
+    focusable: false,
+    style:
+      e.kind === "crossref"
+        ? {
+            stroke: "var(--gold)",
+            strokeWidth: 1.5,
+            strokeDasharray: "6 5",
+            opacity: 0.75,
+          }
+        : { stroke: "var(--rule)", strokeWidth: 1.5 },
+  }));
+}
 
 /** +/− zoom pills, bottom-right — echoes the full app's control cluster. */
 function ZoomControls() {
@@ -139,13 +176,74 @@ function ZoomControls() {
 }
 
 function LandingCanvasInner() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(
+    toFlowNodes(LANDING_NODES),
+  );
+  const [edges, setEdges, onEdgesChange] = useEdgesState(
+    toFlowEdges(LANDING_EDGES),
+  );
+  // null = the root map; otherwise the id of the branch we've dived into.
+  const [branchId, setBranchId] = useState<string | null>(null);
+  const [branchTitle, setBranchTitle] = useState<string | null>(null);
+  // Veil opacity drives the cinematic cross-fade between maps.
+  const [veiled, setVeiled] = useState(false);
+  // Bumped on each dive so the gold threshold ring re-blooms.
+  const [diveKey, setDiveKey] = useState(0);
+  const animatingRef = useRef(false);
+  const { fitView } = useReactFlow();
+
+  // Cross-fade to a new set of nodes/edges: veil in → swap → fit → veil out.
+  const transitionTo = useCallback(
+    (next: { nodes: LandingNode[]; edges: LandingEdge[] }) => {
+      if (animatingRef.current) return;
+      animatingRef.current = true;
+      setDiveKey((k) => k + 1);
+      setVeiled(true);
+      window.setTimeout(() => {
+        setNodes(toFlowNodes(next.nodes));
+        setEdges(toFlowEdges(next.edges));
+        // Let React commit the new graph before framing it.
+        window.requestAnimationFrame(() =>
+          fitView({ padding: 0.18, duration: 520 }),
+        );
+        setVeiled(false);
+      }, 260);
+      window.setTimeout(() => {
+        animatingRef.current = false;
+      }, 640);
+    },
+    [fitView, setNodes, setEdges],
+  );
+
+  const onNodeDoubleClick = useCallback(
+    (_: React.MouseEvent, node: Node) => {
+      const data = node.data as LandingNodeData;
+      if (!data.expandable) return;
+      const branch = LANDING_BRANCHES[node.id];
+      if (!branch) return;
+      setBranchId(node.id);
+      setBranchTitle(branch.title);
+      transitionTo({ nodes: branch.nodes, edges: branch.edges });
+    },
+    [transitionTo],
+  );
+
+  const goBack = useCallback(() => {
+    setBranchId(null);
+    setBranchTitle(null);
+    transitionTo({ nodes: LANDING_NODES, edges: LANDING_EDGES });
+  }, [transitionTo]);
+
   return (
     // .landing-flow re-enables vertical touch scrolling over the canvas
     // (globals.css) so the section never traps the page on mobile.
     <div className="landing-flow relative h-[440px] w-full md:h-[520px]">
       <ReactFlow
-        defaultNodes={initialNodes}
-        defaultEdges={initialEdges}
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeDoubleClick={onNodeDoubleClick}
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.12, maxZoom: 0.9 }}
@@ -170,7 +268,44 @@ function LandingCanvasInner() {
           style={{ opacity: 0.55 }}
         />
       </ReactFlow>
+
       <ZoomControls />
+
+      {/* Back to the root map — only while inside a branch */}
+      {branchId && (
+        <button
+          type="button"
+          onClick={goBack}
+          className="group absolute left-3 top-3 z-20 flex items-center gap-2 rounded-full border border-rule bg-parchment/90 px-4 py-2 font-sans text-2xs tracking-eyebrow text-ink-soft shadow-md shadow-ink/10 backdrop-blur-sm transition-colors hover:text-gold"
+        >
+          <span
+            aria-hidden="true"
+            className="inline-block transition-transform duration-300 group-hover:-translate-x-0.5"
+          >
+            ←
+          </span>
+          BACK TO THE MAP
+        </button>
+      )}
+
+      {/* Depth crumb — which bubble we opened into */}
+      {branchTitle && (
+        <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-full border border-gold/40 bg-gold/10 px-3 py-1 font-sans text-2xs tracking-eyebrow text-gold">
+          INSIDE · {branchTitle}
+        </div>
+      )}
+
+      {/* Gold threshold ring — blooms as we pass through the bubble */}
+      {veiled && <span key={diveKey} className="zoom-ring z-10" />}
+
+      {/* Cross-fade veil for the dive */}
+      <div
+        aria-hidden="true"
+        className={`zoom-veil pointer-events-none absolute inset-0 z-10 ${
+          veiled ? "opacity-100" : "opacity-0"
+        }`}
+      />
+
       {/* Soft vignette, same token-based class as the app canvas */}
       <div
         aria-hidden="true"
