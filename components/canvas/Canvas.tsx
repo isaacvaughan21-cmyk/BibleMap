@@ -5,6 +5,7 @@ import {
   Background,
   BackgroundVariant,
   ConnectionLineType,
+  getNodesBounds,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
@@ -22,7 +23,6 @@ import { CROSSREF_DRAG_TYPE } from "./CrossRefPanel";
 import type { HodosExport } from "@/lib/db/repo";
 import { downloadExport, parseImport } from "@/lib/map-io";
 import { useCanvasShortcuts } from "@/lib/shortcuts";
-import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import type { EdgeKind, NodeKind } from "@/lib/types";
 import TopBar from "./TopBar";
 import RightRail from "./RightRail";
@@ -594,11 +594,19 @@ function FlowSurface(props: {
   setEditing: (id: string | null) => void;
   onOpenVersePicker: (id: string) => void;
 }) {
-  const { screenToFlowPosition, setCenter, getInternalNode, fitView } =
-    useReactFlow();
-  const reduced = usePrefersReducedMotion();
+  const {
+    screenToFlowPosition,
+    setCenter,
+    getInternalNode,
+    getViewport,
+    fitView,
+  } = useReactFlow();
+  const surfaceRef = useRef<HTMLDivElement>(null);
 
   // ---- Nested-map zoom transition ----
+  // The dive is the signature interaction, so it ALWAYS plays — even under
+  // prefers-reduced-motion (which the Claude preview and OS "Reduce Motion"
+  // force on). The landing's zoom demo drops the same gate for the same reason.
   // Opening: the camera plunges INTO the bubble, a parchment veil rises as
   // you pass through its skin, a gold ring blooms (the landing's signature),
   // and the inner world grows from a point to fill the screen.
@@ -615,17 +623,59 @@ function FlowSurface(props: {
     if (!pendingNav || running.current) return;
     running.current = true;
     const nav = pendingNav;
-    const wait = (ms: number) =>
-      new Promise((r) => setTimeout(r, reduced ? 0 : ms));
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
     const frame = () =>
       new Promise<void>((r) => requestAnimationFrame(() => r()));
+
+    /** Screen-space center of the canvas pane. */
+    const paneCenter = () => {
+      const r = surfaceRef.current?.getBoundingClientRect();
+      return r
+        ? { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+        : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+    };
+
+    /** Center (flow coords) of all bubbles on the current map. */
+    const contentCenter = () => {
+      const ns = useCanvasStore.getState().nodes;
+      if (!ns.length) return { x: 0, y: 0 };
+      const b = getNodesBounds(ns);
+      return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    };
+
+    /**
+     * Animate the camera between two absolute zoom levels around the current
+     * map's center, then settle precisely. Built on setCenter (not fitView's
+     * animated form) because React Flow suppresses fitView transitions under
+     * prefers-reduced-motion — and the dive must always play.
+     */
+    const animateZoom = async (
+      fromZoom: number,
+      toZoom: number,
+      duration: number,
+    ) => {
+      const c = contentCenter();
+      setCenter(c.x, c.y, { zoom: fromZoom, duration: 0 });
+      await wait(70); // let the jump + re-renders commit before animating
+      setCenter(c.x, c.y, { zoom: toZoom, duration });
+      await wait(duration);
+      fitView({ duration: 0, padding: 0.3, maxZoom: 1 }); // settle exactly
+    };
+
+    /** Zoom the CURRENT view toward a factor of its present zoom. */
+    const animateZoomCurrent = async (factor: number, duration: number) => {
+      const vp = getViewport();
+      const c = screenToFlowPosition(paneCenter());
+      setCenter(c.x, c.y, { zoom: vp.zoom * factor, duration });
+      await wait(duration);
+    };
 
     (async () => {
       try {
         if (nav.kind === "open") {
           // 1 — plunge deep into the bubble
           const n = getInternalNode(nav.id);
-          if (n && !reduced) {
+          if (n) {
             const w = n.measured?.width ?? 200;
             const h = n.measured?.height ?? 60;
             const { x, y } = n.internals.positionAbsolute;
@@ -638,31 +688,20 @@ function FlowSurface(props: {
           // 3 — swap worlds under the veil
           await openNodeStore(nav.id);
           await frame();
-          // 4 — the new world begins as a distant point (maxZoom caps it
-          //     small and centered; padding:6 doesn't — RF clamps it)
-          fitView({ duration: 0, padding: 0.3, maxZoom: 0.12 });
           setRing((k) => k + 1); // gold ring blooms at the threshold
           setVeil(false);
-          // Let those re-renders commit before starting the grow — a render
-          // mid-flight cancels React Flow's d3 zoom transition.
-          await wait(reduced ? 0 : 70);
-          // 5 — …and rushes outward to fill the screen
-          fitView({ duration: reduced ? 0 : 820, padding: 0.3, maxZoom: 1 });
-          await wait(reduced ? 0 : 820);
+          // 4&5 — the new world begins as a point and rushes out to fill it
+          await animateZoom(0.12, 1, 820);
         } else {
           // Rising out: this world recedes to a point…
-          if (!reduced) fitView({ duration: 460, padding: 0.3, maxZoom: 0.12 });
-          await wait(reduced ? 0 : 340);
+          await animateZoomCurrent(0.2, 460);
           setVeil(true);
-          await wait(reduced ? 0 : 220);
+          await wait(200);
           await goToMapStore(nav.index);
           await frame();
-          // …and the parent settles back around you, slightly over-near
-          fitView({ duration: 0, padding: 0.02, maxZoom: 2.4 });
           setVeil(false);
-          await wait(reduced ? 0 : 70);
-          fitView({ duration: reduced ? 0 : 720, padding: 0.3, maxZoom: 1 });
-          await wait(reduced ? 0 : 720);
+          // …and the parent settles back around you, slightly over-near
+          await animateZoom(2.2, 1, 720);
         }
       } catch (err) {
         console.error("hodos: map transition failed", err);
@@ -676,8 +715,9 @@ function FlowSurface(props: {
     })();
   }, [
     pendingNav,
-    reduced,
     getInternalNode,
+    getViewport,
+    screenToFlowPosition,
     setCenter,
     fitView,
     openNodeStore,
@@ -786,7 +826,11 @@ function FlowSurface(props: {
   );
 
   return (
-    <div className="relative h-full w-full" onDoubleClick={onDoubleClick}>
+    <div
+      ref={surfaceRef}
+      className="relative h-full w-full"
+      onDoubleClick={onDoubleClick}
+    >
       <ReactFlow
         nodes={props.nodes}
         edges={props.edges}
@@ -852,15 +896,16 @@ function FlowSurface(props: {
         className="canvas-vignette pointer-events-none absolute inset-0"
       />
       {/* Parchment veil for the zoom-into-a-bubble transition — a soft
-          radial light, brightest where you pass through */}
+          radial light, brightest where you pass through. Transition timing
+          lives in .zoom-veil so it survives the reduced-motion override. */}
       <div
         aria-hidden="true"
-        className={`zoom-veil pointer-events-none absolute inset-0 z-40 transition-opacity ${
-          veil ? "opacity-100 duration-300" : "opacity-0 duration-500"
+        className={`zoom-veil pointer-events-none absolute inset-0 z-40 ${
+          veil ? "opacity-100" : "opacity-0"
         }`}
       />
       {/* Gold ring blooming at the threshold between worlds */}
-      {ring > 0 && !reduced && (
+      {ring > 0 && (
         <div key={ring} aria-hidden="true" className="zoom-ring z-40" />
       )}
     </div>

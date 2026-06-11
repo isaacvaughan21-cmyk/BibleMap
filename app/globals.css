@@ -129,13 +129,15 @@
   }
 
   /* Veil for the dive-into-a-bubble transition — light at the center,
-     where you pass through. */
+     where you pass through. The dive always plays, so its timing carries
+     !important to beat the global prefers-reduced-motion override. */
   .zoom-veil {
     background: radial-gradient(
       circle at center,
       var(--parchment) 30%,
       var(--parchment-2) 100%
     );
+    transition: opacity 360ms ease !important;
   }
 
   /* Gold ring blooming open at the threshold between maps. */
@@ -149,7 +151,7 @@
     border-radius: 9999px;
     border: 1.5px solid var(--gold);
     pointer-events: none;
-    animation: ring-bloom 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    animation: ring-bloom 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
   }
   .bubble-selected {
     box-shadow:
