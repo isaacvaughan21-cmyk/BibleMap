@@ -50,7 +50,7 @@
       "content": "",
       "position": {
         "x": 0,
-        "y": 320
+        "y": 330
       },
       "createdAt": 1749513603000,
       "updatedAt": 1749513603000,
@@ -58,66 +58,16 @@
       "verseText": "Without father or mother or genealogy, without beginning of days or end of life, like the Son of God, he remains a priest for all time."
     },
     {
-      "id": "q-superior",
-      "mapId": "root",
-      "type": "question",
-      "content": "What makes his priesthood superior to the Levitical one?",
-      "position": {
-        "x": 700,
-        "y": -40
-      },
-      "createdAt": 1749513604000,
-      "updatedAt": 1749513604000
-    },
-    {
-      "id": "v-ps1104",
-      "mapId": "root",
-      "type": "verse",
-      "content": "",
-      "position": {
-        "x": 700,
-        "y": 240
-      },
-      "createdAt": 1749513605000,
-      "updatedAt": 1749513605000,
-      "verseRef": "Psalm 110:4",
-      "verseText": "The LORD has sworn and will not change His mind: “You are a priest forever in the order of Melchizedek.”"
-    },
-    {
-      "id": "q-forever",
-      "mapId": "root",
-      "type": "question",
-      "content": "What does it actually mean to be 'a priest forever'?",
-      "position": {
-        "x": -700,
-        "y": -40
-      },
-      "createdAt": 1749513606000,
-      "updatedAt": 1749513606000
-    },
-    {
-      "id": "q-bornagain",
-      "mapId": "root",
-      "type": "question",
-      "content": "How does being 'born again' connect to an eternal priesthood?",
-      "position": {
-        "x": -700,
-        "y": 280
-      },
-      "createdAt": 1749513607000,
-      "updatedAt": 1749513607000
-    },
-    {
       "id": "q-abraham",
       "mapId": "root",
       "type": "question",
       "content": "Why does Abraham's response to Melchizedek matter so much?",
       "position": {
-        "x": 380,
+        "x": 400,
         "y": -300
       },
-      "createdAt": 1749513608000,
-      "updatedAt": 1749513608000
+      "createdAt": 1749513604000,
+      "updatedAt": 1749513604000
     },
     {
       "id": "n-root1",
@@ -125,11 +75,311 @@
       "type": "note",
       "content": "My take: Melchizedek shows up for three verses in Genesis, one line in the Psalms, then a whole chapter in Hebrews. The disproportion feels deliberate — like a seed planted early and harvested late.",
       "position": {
-        "x": -380,
+        "x": -400,
         "y": -300
+      },
+      "createdAt": 1749513605000,
+      "updatedAt": 1749513605000
+    },
+    {
+      "id": "q-genealogy",
+      "mapId": "root",
+      "type": "question",
+      "content": "Why is he 'without father or mother or genealogy'?",
+      "position": {
+        "x": 0,
+        "y": -580
+      },
+      "createdAt": 1749513606000,
+      "updatedAt": 1749513606000
+    },
+    {
+      "id": "v-heb78",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": 340,
+        "y": -640
+      },
+      "createdAt": 1749513607000,
+      "updatedAt": 1749513607000,
+      "verseRef": "Hebrews 7:8",
+      "verseText": "In the case of the Levites, mortal men collect the tenth; but in the case of Melchizedek, it is affirmed that he lives on."
+    },
+    {
+      "id": "n-root2",
+      "mapId": "root",
+      "type": "note",
+      "content": "The author of Hebrews seems to read the SILENCE of Genesis as testimony — what Scripture doesn't say about him carries weight too. That way of reading feels worth learning slowly.",
+      "position": {
+        "x": -340,
+        "y": -660
+      },
+      "createdAt": 1749513608000,
+      "updatedAt": 1749513608000
+    },
+    {
+      "id": "q-superior",
+      "mapId": "root",
+      "type": "question",
+      "content": "What makes his priesthood superior to the Levitical one?",
+      "position": {
+        "x": 720,
+        "y": -40
       },
       "createdAt": 1749513609000,
       "updatedAt": 1749513609000
+    },
+    {
+      "id": "v-ps1104",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": 720,
+        "y": 260
+      },
+      "createdAt": 1749513610000,
+      "updatedAt": 1749513610000,
+      "verseRef": "Psalm 110:4",
+      "verseText": "The LORD has sworn and will not change His mind: “You are a priest forever in the order of Melchizedek.”"
+    },
+    {
+      "id": "q-oath",
+      "mapId": "root",
+      "type": "question",
+      "content": "Why does God confirm this priesthood with an oath?",
+      "position": {
+        "x": 1100,
+        "y": -240
+      },
+      "createdAt": 1749513611000,
+      "updatedAt": 1749513611000
+    },
+    {
+      "id": "v-heb721",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": 1120,
+        "y": 60
+      },
+      "createdAt": 1749513612000,
+      "updatedAt": 1749513612000,
+      "verseRef": "Hebrews 7:21",
+      "verseText": "but Jesus became a priest with an oath by the One who said to Him: “The Lord has sworn and will not change His mind: ‘You are a priest forever.’”"
+    },
+    {
+      "id": "v-heb620",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": 1100,
+        "y": 360
+      },
+      "createdAt": 1749513613000,
+      "updatedAt": 1749513613000,
+      "verseRef": "Hebrews 6:20",
+      "verseText": "where Jesus our forerunner has entered on our behalf. He has become a high priest forever in the order of Melchizedek."
+    },
+    {
+      "id": "v-heb56",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": 760,
+        "y": 560
+      },
+      "createdAt": 1749513614000,
+      "updatedAt": 1749513614000,
+      "verseRef": "Hebrews 5:6",
+      "verseText": "And in another passage God says: “You are a priest forever in the order of Melchizedek.”"
+    },
+    {
+      "id": "v-ps1101",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": 340,
+        "y": 560
+      },
+      "createdAt": 1749513615000,
+      "updatedAt": 1749513615000,
+      "verseRef": "Psalm 110:1",
+      "verseText": "A Psalm of David. The LORD said to my Lord: “Sit at My right hand until I make Your enemies a footstool for Your feet.”"
+    },
+    {
+      "id": "n-root5",
+      "mapId": "root",
+      "type": "note",
+      "content": "Something I noticed while tracing references: the New Testament reaches for Psalm 110 more than any other psalm. The early church clearly heard Jesus in every line of it.",
+      "position": {
+        "x": 1180,
+        "y": 640
+      },
+      "createdAt": 1749513616000,
+      "updatedAt": 1749513616000
+    },
+    {
+      "id": "q-priestking",
+      "mapId": "root",
+      "type": "question",
+      "content": "How can one man hold both the throne and the altar?",
+      "position": {
+        "x": 1500,
+        "y": -40
+      },
+      "createdAt": 1749513617000,
+      "updatedAt": 1749513617000
+    },
+    {
+      "id": "v-zech613",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": 1520,
+        "y": 280
+      },
+      "createdAt": 1749513618000,
+      "updatedAt": 1749513618000,
+      "verseRef": "Zechariah 6:13",
+      "verseText": "Yes, He will build the temple of the LORD; He will be clothed in splendor and will sit on His throne and rule. And He will be a priest on His throne, and there will be peaceful counsel between the two.’"
+    },
+    {
+      "id": "n-root3",
+      "mapId": "root",
+      "type": "note",
+      "content": "Israel kept crown and priesthood strictly apart — Uzziah was struck down for crossing that line. So a figure who carries both at once feels like a signpost pointing past the whole system.",
+      "position": {
+        "x": 1500,
+        "y": -360
+      },
+      "createdAt": 1749513619000,
+      "updatedAt": 1749513619000
+    },
+    {
+      "id": "q-forever",
+      "mapId": "root",
+      "type": "question",
+      "content": "What does it actually mean to be 'a priest forever'?",
+      "position": {
+        "x": -720,
+        "y": -40
+      },
+      "createdAt": 1749513620000,
+      "updatedAt": 1749513620000
+    },
+    {
+      "id": "q-intercede",
+      "mapId": "root",
+      "type": "question",
+      "content": "What is Jesus doing for us right now as our High Priest?",
+      "position": {
+        "x": -1140,
+        "y": -260
+      },
+      "createdAt": 1749513621000,
+      "updatedAt": 1749513621000
+    },
+    {
+      "id": "v-heb81",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": -1140,
+        "y": 40
+      },
+      "createdAt": 1749513622000,
+      "updatedAt": 1749513622000,
+      "verseRef": "Hebrews 8:1",
+      "verseText": "The point of what we are saying is this: We do have such a high priest, who sat down at the right hand of the throne of the Majesty in heaven,"
+    },
+    {
+      "id": "v-rom834",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": -1480,
+        "y": -60
+      },
+      "createdAt": 1749513623000,
+      "updatedAt": 1749513623000,
+      "verseRef": "Romans 8:34",
+      "verseText": "Who is there to condemn us? For Christ Jesus, who died, and more than that was raised to life, is at the right hand of God—and He is interceding for us."
+    },
+    {
+      "id": "v-heb726",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": -1480,
+        "y": -360
+      },
+      "createdAt": 1749513624000,
+      "updatedAt": 1749513624000,
+      "verseRef": "Hebrews 7:26",
+      "verseText": "Such a high priest truly befits us—One who is holy, innocent, undefiled, set apart from sinners, and exalted above the heavens."
+    },
+    {
+      "id": "q-bornagain",
+      "mapId": "root",
+      "type": "question",
+      "content": "How does being 'born again' connect to an eternal priesthood?",
+      "position": {
+        "x": -720,
+        "y": 300
+      },
+      "createdAt": 1749513625000,
+      "updatedAt": 1749513625000
+    },
+    {
+      "id": "v-heb415",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": -1060,
+        "y": 560
+      },
+      "createdAt": 1749513626000,
+      "updatedAt": 1749513626000,
+      "verseRef": "Hebrews 4:15",
+      "verseText": "For we do not have a high priest who is unable to sympathize with our weaknesses, but we have one who was tempted in every way that we are, yet was without sin."
+    },
+    {
+      "id": "v-heb416",
+      "mapId": "root",
+      "type": "verse",
+      "content": "",
+      "position": {
+        "x": -1420,
+        "y": 480
+      },
+      "createdAt": 1749513627000,
+      "updatedAt": 1749513627000,
+      "verseRef": "Hebrews 4:16",
+      "verseText": "Let us then approach the throne of grace with confidence, so that we may receive mercy and find grace to help us in our time of need."
+    },
+    {
+      "id": "n-root4",
+      "mapId": "root",
+      "type": "note",
+      "content": "What gets me: because the Priest lives forever, the invitation is to draw near with CONFIDENCE — not to tiptoe. I want to pray like that's true.",
+      "position": {
+        "x": -720,
+        "y": 620
+      },
+      "createdAt": 1749513628000,
+      "updatedAt": 1749513628000
     },
     {
       "id": "anchor-mel",
@@ -140,8 +390,8 @@
         "x": 0,
         "y": 0
       },
-      "createdAt": 1749513618000,
-      "updatedAt": 1749513618000
+      "createdAt": 1749513666000,
+      "updatedAt": 1749513666000
     },
     {
       "id": "v-gen1417",
@@ -152,8 +402,8 @@
         "x": -380,
         "y": -210
       },
-      "createdAt": 1749513619000,
-      "updatedAt": 1749513619000,
+      "createdAt": 1749513667000,
+      "updatedAt": 1749513667000,
       "verseRef": "Genesis 14:17",
       "verseText": "After Abram returned from defeating Chedorlaomer and the kings allied with him, the king of Sodom went out to meet him in the Valley of Shaveh (that is, the King’s Valley)."
     },
@@ -166,8 +416,8 @@
         "x": 360,
         "y": -210
       },
-      "createdAt": 1749513620000,
-      "updatedAt": 1749513620000,
+      "createdAt": 1749513668000,
+      "updatedAt": 1749513668000,
       "verseRef": "Genesis 14:18",
       "verseText": "Then Melchizedek king of Salem brought out bread and wine—since he was priest of God Most High—"
     },
@@ -180,8 +430,8 @@
         "x": 400,
         "y": 180
       },
-      "createdAt": 1749513621000,
-      "updatedAt": 1749513621000,
+      "createdAt": 1749513669000,
+      "updatedAt": 1749513669000,
       "verseRef": "Genesis 14:19",
       "verseText": "and he blessed Abram and said: “Blessed be Abram by God Most High, Creator of heaven and earth,"
     },
@@ -194,8 +444,8 @@
         "x": -400,
         "y": 220
       },
-      "createdAt": 1749513622000,
-      "updatedAt": 1749513622000,
+      "createdAt": 1749513670000,
+      "updatedAt": 1749513670000,
       "verseRef": "Genesis 14:20",
       "verseText": "and blessed be God Most High, who has delivered your enemies into your hand.” Then Abram gave Melchizedek a tenth of everything."
     },
@@ -208,8 +458,8 @@
         "x": 0,
         "y": 360
       },
-      "createdAt": 1749513623000,
-      "updatedAt": 1749513623000
+      "createdAt": 1749513671000,
+      "updatedAt": 1749513671000
     },
     {
       "id": "n-mel1",
@@ -220,8 +470,8 @@
         "x": 760,
         "y": 0
       },
-      "createdAt": 1749513624000,
-      "updatedAt": 1749513624000
+      "createdAt": 1749513672000,
+      "updatedAt": 1749513672000
     },
     {
       "id": "anchor-breadwine",
@@ -232,8 +482,8 @@
         "x": 0,
         "y": 0
       },
-      "createdAt": 1749513631000,
-      "updatedAt": 1749513631000
+      "createdAt": 1749513679000,
+      "updatedAt": 1749513679000
     },
     {
       "id": "v-matt2626",
@@ -244,8 +494,8 @@
         "x": -380,
         "y": 200
       },
-      "createdAt": 1749513632000,
-      "updatedAt": 1749513632000,
+      "createdAt": 1749513680000,
+      "updatedAt": 1749513680000,
       "verseRef": "Matthew 26:26",
       "verseText": "While they were eating, Jesus took bread, spoke a blessing and broke it, and gave it to the disciples, saying, “Take and eat; this is My body.”"
     },
@@ -258,8 +508,8 @@
         "x": 0,
         "y": 320
       },
-      "createdAt": 1749513633000,
-      "updatedAt": 1749513633000,
+      "createdAt": 1749513681000,
+      "updatedAt": 1749513681000,
       "verseRef": "Matthew 26:27",
       "verseText": "Then He took the cup, gave thanks, and gave it to them, saying, “Drink from it, all of you."
     },
@@ -272,8 +522,8 @@
         "x": 380,
         "y": 200
       },
-      "createdAt": 1749513634000,
-      "updatedAt": 1749513634000,
+      "createdAt": 1749513682000,
+      "updatedAt": 1749513682000,
       "verseRef": "Matthew 26:28",
       "verseText": "This is My blood of the covenant, which is poured out for many for the forgiveness of sins."
     },
@@ -286,8 +536,8 @@
         "x": 380,
         "y": -220
       },
-      "createdAt": 1749513635000,
-      "updatedAt": 1749513635000
+      "createdAt": 1749513683000,
+      "updatedAt": 1749513683000
     },
     {
       "id": "n-bw1",
@@ -298,8 +548,8 @@
         "x": -380,
         "y": -220
       },
-      "createdAt": 1749513636000,
-      "updatedAt": 1749513636000
+      "createdAt": 1749513684000,
+      "updatedAt": 1749513684000
     },
     {
       "id": "anchor-newcov",
@@ -310,8 +560,8 @@
         "x": 0,
         "y": 0
       },
-      "createdAt": 1749513643000,
-      "updatedAt": 1749513643000
+      "createdAt": 1749513691000,
+      "updatedAt": 1749513691000
     },
     {
       "id": "v-luke2220",
@@ -322,8 +572,8 @@
         "x": -360,
         "y": 220
       },
-      "createdAt": 1749513644000,
-      "updatedAt": 1749513644000,
+      "createdAt": 1749513692000,
+      "updatedAt": 1749513692000,
       "verseRef": "Luke 22:20",
       "verseText": "In the same way, after supper He took the cup, saying, “This cup is the new covenant in My blood, which is poured out for you."
     },
@@ -336,8 +586,8 @@
         "x": 360,
         "y": 220
       },
-      "createdAt": 1749513645000,
-      "updatedAt": 1749513645000,
+      "createdAt": 1749513693000,
+      "updatedAt": 1749513693000,
       "verseRef": "Hebrews 9:15",
       "verseText": "Therefore Christ is the mediator of a new covenant, so that those who are called may receive the promised eternal inheritance, now that He has died to redeem them from the transgressions committed under the first covenant."
     },
@@ -350,8 +600,8 @@
         "x": 0,
         "y": 320
       },
-      "createdAt": 1749513646000,
-      "updatedAt": 1749513646000
+      "createdAt": 1749513694000,
+      "updatedAt": 1749513694000
     },
     {
       "id": "anchor-superior",
@@ -362,8 +612,8 @@
         "x": 0,
         "y": 0
       },
-      "createdAt": 1749513651000,
-      "updatedAt": 1749513651000
+      "createdAt": 1749513699000,
+      "updatedAt": 1749513699000
     },
     {
       "id": "v-heb74",
@@ -374,8 +624,8 @@
         "x": -380,
         "y": 200
       },
-      "createdAt": 1749513652000,
-      "updatedAt": 1749513652000,
+      "createdAt": 1749513700000,
+      "updatedAt": 1749513700000,
       "verseRef": "Hebrews 7:4",
       "verseText": "Consider how great Melchizedek was: Even the patriarch Abraham gave him a tenth of the plunder."
     },
@@ -388,8 +638,8 @@
         "x": 380,
         "y": 200
       },
-      "createdAt": 1749513653000,
-      "updatedAt": 1749513653000,
+      "createdAt": 1749513701000,
+      "updatedAt": 1749513701000,
       "verseRef": "Hebrews 7:7",
       "verseText": "And indisputably, the lesser is blessed by the greater."
     },
@@ -402,8 +652,8 @@
         "x": 0,
         "y": 330
       },
-      "createdAt": 1749513654000,
-      "updatedAt": 1749513654000,
+      "createdAt": 1749513702000,
+      "updatedAt": 1749513702000,
       "verseRef": "Hebrews 7:2",
       "verseText": "and Abraham apportioned to him a tenth of everything. First, his name means “king of righteousness.” Then also, “king of Salem” means “king of peace.”"
     },
@@ -416,8 +666,8 @@
         "x": 0,
         "y": -330
       },
-      "createdAt": 1749513655000,
-      "updatedAt": 1749513655000
+      "createdAt": 1749513703000,
+      "updatedAt": 1749513703000
     },
     {
       "id": "n-sup1",
@@ -428,8 +678,8 @@
         "x": 760,
         "y": -40
       },
-      "createdAt": 1749513656000,
-      "updatedAt": 1749513656000
+      "createdAt": 1749513704000,
+      "updatedAt": 1749513704000
     },
     {
       "id": "anchor-mvl",
@@ -440,8 +690,8 @@
         "x": 0,
         "y": 0
       },
-      "createdAt": 1749513662000,
-      "updatedAt": 1749513662000
+      "createdAt": 1749513710000,
+      "updatedAt": 1749513710000
     },
     {
       "id": "v-heb711",
@@ -452,8 +702,8 @@
         "x": -390,
         "y": 200
       },
-      "createdAt": 1749513663000,
-      "updatedAt": 1749513663000,
+      "createdAt": 1749513711000,
+      "updatedAt": 1749513711000,
       "verseRef": "Hebrews 7:11",
       "verseText": "Now if perfection could have been attained through the Levitical priesthood (for on this basis the people received the law), why was there still need for another priest to appear—one in the order of Melchizedek and not in the order of Aaron?"
     },
@@ -466,8 +716,8 @@
         "x": 0,
         "y": 320
       },
-      "createdAt": 1749513664000,
-      "updatedAt": 1749513664000,
+      "createdAt": 1749513712000,
+      "updatedAt": 1749513712000,
       "verseRef": "Hebrews 7:12",
       "verseText": "For when the priesthood is changed, the law must be changed as well."
     },
@@ -480,8 +730,8 @@
         "x": 390,
         "y": 200
       },
-      "createdAt": 1749513665000,
-      "updatedAt": 1749513665000,
+      "createdAt": 1749513713000,
+      "updatedAt": 1749513713000,
       "verseRef": "Hebrews 7:19",
       "verseText": "(for the law made nothing perfect), and a better hope is introduced, by which we draw near to God."
     },
@@ -494,8 +744,8 @@
         "x": 0,
         "y": -330
       },
-      "createdAt": 1749513666000,
-      "updatedAt": 1749513666000
+      "createdAt": 1749513714000,
+      "updatedAt": 1749513714000
     },
     {
       "id": "n-mvl1",
@@ -506,8 +756,8 @@
         "x": 760,
         "y": 0
       },
-      "createdAt": 1749513667000,
-      "updatedAt": 1749513667000
+      "createdAt": 1749513715000,
+      "updatedAt": 1749513715000
     },
     {
       "id": "anchor-lawgrace",
@@ -518,8 +768,8 @@
         "x": 0,
         "y": 0
       },
-      "createdAt": 1749513674000,
-      "updatedAt": 1749513674000
+      "createdAt": 1749513722000,
+      "updatedAt": 1749513722000
     },
     {
       "id": "v-john117",
@@ -530,8 +780,8 @@
         "x": -380,
         "y": -200
       },
-      "createdAt": 1749513675000,
-      "updatedAt": 1749513675000,
+      "createdAt": 1749513723000,
+      "updatedAt": 1749513723000,
       "verseRef": "John 1:17",
       "verseText": "For the law was given through Moses; grace and truth came through Jesus Christ."
     },
@@ -544,8 +794,8 @@
         "x": 380,
         "y": -200
       },
-      "createdAt": 1749513676000,
-      "updatedAt": 1749513676000,
+      "createdAt": 1749513724000,
+      "updatedAt": 1749513724000,
       "verseRef": "Romans 6:14",
       "verseText": "For sin shall not be your master, because you are not under law, but under grace."
     },
@@ -558,8 +808,8 @@
         "x": 380,
         "y": 200
       },
-      "createdAt": 1749513677000,
-      "updatedAt": 1749513677000,
+      "createdAt": 1749513725000,
+      "updatedAt": 1749513725000,
       "verseRef": "Galatians 3:24",
       "verseText": "So the law became our guardian to lead us to Christ, that we might be justified by faith."
     },
@@ -572,8 +822,8 @@
         "x": -380,
         "y": 200
       },
-      "createdAt": 1749513678000,
-      "updatedAt": 1749513678000,
+      "createdAt": 1749513726000,
+      "updatedAt": 1749513726000,
       "verseRef": "Galatians 3:25",
       "verseText": "Now that faith has come, we are no longer under a guardian."
     },
@@ -586,8 +836,8 @@
         "x": 0,
         "y": 330
       },
-      "createdAt": 1749513679000,
-      "updatedAt": 1749513679000
+      "createdAt": 1749513727000,
+      "updatedAt": 1749513727000
     },
     {
       "id": "anchor-forever",
@@ -598,8 +848,8 @@
         "x": 0,
         "y": 0
       },
-      "createdAt": 1749513686000,
-      "updatedAt": 1749513686000
+      "createdAt": 1749513734000,
+      "updatedAt": 1749513734000
     },
     {
       "id": "v-heb716",
@@ -610,8 +860,8 @@
         "x": -390,
         "y": 200
       },
-      "createdAt": 1749513687000,
-      "updatedAt": 1749513687000,
+      "createdAt": 1749513735000,
+      "updatedAt": 1749513735000,
       "verseRef": "Hebrews 7:16",
       "verseText": "one who has become a priest not by a law of succession, but by the power of an indestructible life."
     },
@@ -624,8 +874,8 @@
         "x": 0,
         "y": 320
       },
-      "createdAt": 1749513688000,
-      "updatedAt": 1749513688000,
+      "createdAt": 1749513736000,
+      "updatedAt": 1749513736000,
       "verseRef": "Hebrews 7:24",
       "verseText": "But because Jesus lives forever, He has a permanent priesthood."
     },
@@ -638,8 +888,8 @@
         "x": 390,
         "y": 200
       },
-      "createdAt": 1749513689000,
-      "updatedAt": 1749513689000,
+      "createdAt": 1749513737000,
+      "updatedAt": 1749513737000,
       "verseRef": "Hebrews 7:25",
       "verseText": "Therefore He is able to save completely those who draw near to God through Him, since He always lives to intercede for them."
     },
@@ -652,8 +902,8 @@
         "x": 390,
         "y": -200
       },
-      "createdAt": 1749513690000,
-      "updatedAt": 1749513690000,
+      "createdAt": 1749513738000,
+      "updatedAt": 1749513738000,
       "verseRef": "Hebrews 7:17",
       "verseText": "For it is testified: “You are a priest forever in the order of Melchizedek.”"
     },
@@ -666,8 +916,8 @@
         "x": -390,
         "y": -200
       },
-      "createdAt": 1749513691000,
-      "updatedAt": 1749513691000
+      "createdAt": 1749513739000,
+      "updatedAt": 1749513739000
     },
     {
       "id": "anchor-bornagain",
@@ -678,8 +928,8 @@
         "x": 0,
         "y": 0
       },
-      "createdAt": 1749513698000,
-      "updatedAt": 1749513698000
+      "createdAt": 1749513746000,
+      "updatedAt": 1749513746000
     },
     {
       "id": "v-john33",
@@ -690,8 +940,8 @@
         "x": -390,
         "y": 200
       },
-      "createdAt": 1749513699000,
-      "updatedAt": 1749513699000,
+      "createdAt": 1749513747000,
+      "updatedAt": 1749513747000,
       "verseRef": "John 3:3",
       "verseText": "Jesus replied, “Truly, truly, I tell you, no one can see the kingdom of God unless he is born again.”"
     },
@@ -704,8 +954,8 @@
         "x": 0,
         "y": 330
       },
-      "createdAt": 1749513700000,
-      "updatedAt": 1749513700000,
+      "createdAt": 1749513748000,
+      "updatedAt": 1749513748000,
       "verseRef": "John 3:5",
       "verseText": "Jesus answered, “Truly, truly, I tell you, no one can enter the kingdom of God unless he is born of water and the Spirit."
     },
@@ -718,8 +968,8 @@
         "x": 390,
         "y": 200
       },
-      "createdAt": 1749513701000,
-      "updatedAt": 1749513701000,
+      "createdAt": 1749513749000,
+      "updatedAt": 1749513749000,
       "verseRef": "John 3:6",
       "verseText": "Flesh is born of flesh, but spirit is born of the Spirit."
     },
@@ -732,8 +982,8 @@
         "x": 0,
         "y": -330
       },
-      "createdAt": 1749513702000,
-      "updatedAt": 1749513702000
+      "createdAt": 1749513750000,
+      "updatedAt": 1749513750000
     },
     {
       "id": "n-ba1",
@@ -744,8 +994,8 @@
         "x": 760,
         "y": 0
       },
-      "createdAt": 1749513703000,
-      "updatedAt": 1749513703000
+      "createdAt": 1749513751000,
+      "updatedAt": 1749513751000
     },
     {
       "id": "anchor-spirit",
@@ -756,8 +1006,8 @@
         "x": 0,
         "y": 0
       },
-      "createdAt": 1749513709000,
-      "updatedAt": 1749513709000
+      "createdAt": 1749513757000,
+      "updatedAt": 1749513757000
     },
     {
       "id": "v-john37",
@@ -768,8 +1018,8 @@
         "x": -360,
         "y": 210
       },
-      "createdAt": 1749513710000,
-      "updatedAt": 1749513710000,
+      "createdAt": 1749513758000,
+      "updatedAt": 1749513758000,
       "verseRef": "John 3:7",
       "verseText": "Do not be amazed that I said, ‘You must be born again.’"
     },
@@ -782,8 +1032,8 @@
         "x": 360,
         "y": 210
       },
-      "createdAt": 1749513711000,
-      "updatedAt": 1749513711000,
+      "createdAt": 1749513759000,
+      "updatedAt": 1749513759000,
       "verseRef": "John 3:8",
       "verseText": "The wind blows where it wishes. You hear its sound, but you do not know where it comes from or where it is going. So it is with everyone born of the Spirit.”"
     },
@@ -796,8 +1046,8 @@
         "x": 0,
         "y": 330
       },
-      "createdAt": 1749513712000,
-      "updatedAt": 1749513712000,
+      "createdAt": 1749513760000,
+      "updatedAt": 1749513760000,
       "verseRef": "1 Peter 1:23",
       "verseText": "For you have been born again, not of perishable seed, but of imperishable, through the living and enduring word of God."
     },
@@ -810,8 +1060,8 @@
         "x": 0,
         "y": -300
       },
-      "createdAt": 1749513713000,
-      "updatedAt": 1749513713000
+      "createdAt": 1749513761000,
+      "updatedAt": 1749513761000
     },
     {
       "id": "anchor-abraham",
@@ -822,8 +1072,8 @@
         "x": 0,
         "y": 0
       },
-      "createdAt": 1749513718000,
-      "updatedAt": 1749513718000
+      "createdAt": 1749513766000,
+      "updatedAt": 1749513766000
     },
     {
       "id": "v-gen156",
@@ -834,8 +1084,8 @@
         "x": -390,
         "y": 200
       },
-      "createdAt": 1749513719000,
-      "updatedAt": 1749513719000,
+      "createdAt": 1749513767000,
+      "updatedAt": 1749513767000,
       "verseRef": "Genesis 15:6",
       "verseText": "Abram believed the LORD, and it was credited to him as righteousness."
     },
@@ -848,8 +1098,8 @@
         "x": 0,
         "y": 320
       },
-      "createdAt": 1749513720000,
-      "updatedAt": 1749513720000,
+      "createdAt": 1749513768000,
+      "updatedAt": 1749513768000,
       "verseRef": "Romans 4:3",
       "verseText": "For what does the Scripture say? “Abraham believed God, and it was credited to him as righteousness.”"
     },
@@ -862,8 +1112,8 @@
         "x": 390,
         "y": 200
       },
-      "createdAt": 1749513721000,
-      "updatedAt": 1749513721000,
+      "createdAt": 1749513769000,
+      "updatedAt": 1749513769000,
       "verseRef": "Galatians 3:6",
       "verseText": "So also, “Abraham believed God, and it was credited to him as righteousness.”"
     },
@@ -876,8 +1126,8 @@
         "x": 0,
         "y": -300
       },
-      "createdAt": 1749513722000,
-      "updatedAt": 1749513722000
+      "createdAt": 1749513770000,
+      "updatedAt": 1749513770000
     }
   ],
   "edges": [
@@ -887,8 +1137,8 @@
       "source": "q-mel",
       "target": "v-gen1418",
       "kind": "manual",
-      "createdAt": 1749513610000,
-      "updatedAt": 1749513610000
+      "createdAt": 1749513629000,
+      "updatedAt": 1749513629000
     },
     {
       "id": "e2",
@@ -896,8 +1146,8 @@
       "source": "q-mel",
       "target": "v-heb71",
       "kind": "manual",
-      "createdAt": 1749513611000,
-      "updatedAt": 1749513611000
+      "createdAt": 1749513630000,
+      "updatedAt": 1749513630000
     },
     {
       "id": "e3",
@@ -905,8 +1155,8 @@
       "source": "q-mel",
       "target": "v-heb73",
       "kind": "manual",
-      "createdAt": 1749513612000,
-      "updatedAt": 1749513612000
+      "createdAt": 1749513631000,
+      "updatedAt": 1749513631000
     },
     {
       "id": "e4",
@@ -914,521 +1164,782 @@
       "source": "q-mel",
       "target": "n-root1",
       "kind": "manual",
-      "createdAt": 1749513613000,
-      "updatedAt": 1749513613000
+      "createdAt": 1749513632000,
+      "updatedAt": 1749513632000
     },
     {
       "id": "e5",
       "mapId": "root",
-      "source": "q-superior",
-      "target": "v-ps1104",
+      "source": "q-mel",
+      "target": "q-genealogy",
       "kind": "manual",
-      "createdAt": 1749513614000,
-      "updatedAt": 1749513614000
+      "createdAt": 1749513633000,
+      "updatedAt": 1749513633000
     },
     {
       "id": "e6",
       "mapId": "root",
-      "source": "v-gen1418",
-      "target": "v-ps1104",
-      "kind": "crossref",
-      "createdAt": 1749513615000,
-      "updatedAt": 1749513615000
+      "source": "q-mel",
+      "target": "q-superior",
+      "kind": "manual",
+      "createdAt": 1749513634000,
+      "updatedAt": 1749513634000
     },
     {
       "id": "e7",
       "mapId": "root",
-      "source": "v-ps1104",
-      "target": "v-heb71",
-      "kind": "crossref",
-      "createdAt": 1749513616000,
-      "updatedAt": 1749513616000
+      "source": "q-mel",
+      "target": "q-forever",
+      "kind": "manual",
+      "createdAt": 1749513635000,
+      "updatedAt": 1749513635000
     },
     {
       "id": "e8",
       "mapId": "root",
-      "source": "v-gen1418",
-      "target": "v-heb71",
-      "kind": "crossref",
-      "createdAt": 1749513617000,
-      "updatedAt": 1749513617000
+      "source": "q-mel",
+      "target": "q-bornagain",
+      "kind": "manual",
+      "createdAt": 1749513636000,
+      "updatedAt": 1749513636000
     },
     {
       "id": "e9",
-      "mapId": "q-mel",
-      "source": "anchor-mel",
-      "target": "v-gen1417",
-      "kind": "manual",
-      "createdAt": 1749513625000,
-      "updatedAt": 1749513625000
-    },
-    {
-      "id": "e10",
-      "mapId": "q-mel",
-      "source": "anchor-mel",
-      "target": "v-gen1418b",
-      "kind": "manual",
-      "createdAt": 1749513626000,
-      "updatedAt": 1749513626000
-    },
-    {
-      "id": "e11",
-      "mapId": "q-mel",
-      "source": "anchor-mel",
-      "target": "n-mel1",
-      "kind": "manual",
-      "createdAt": 1749513627000,
-      "updatedAt": 1749513627000
-    },
-    {
-      "id": "e12",
-      "mapId": "q-mel",
-      "source": "v-gen1418b",
-      "target": "v-gen1419",
-      "kind": "manual",
-      "createdAt": 1749513628000,
-      "updatedAt": 1749513628000
-    },
-    {
-      "id": "e13",
-      "mapId": "q-mel",
-      "source": "v-gen1419",
-      "target": "v-gen1420",
-      "kind": "manual",
-      "createdAt": 1749513629000,
-      "updatedAt": 1749513629000
-    },
-    {
-      "id": "e14",
-      "mapId": "q-mel",
-      "source": "v-gen1418b",
-      "target": "q-breadwine",
-      "kind": "manual",
-      "createdAt": 1749513630000,
-      "updatedAt": 1749513630000
-    },
-    {
-      "id": "e15",
-      "mapId": "q-breadwine",
-      "source": "anchor-breadwine",
-      "target": "v-matt2626",
+      "mapId": "root",
+      "source": "q-mel",
+      "target": "q-abraham",
       "kind": "manual",
       "createdAt": 1749513637000,
       "updatedAt": 1749513637000
     },
     {
-      "id": "e16",
-      "mapId": "q-breadwine",
-      "source": "anchor-breadwine",
-      "target": "n-bw1",
+      "id": "e10",
+      "mapId": "root",
+      "source": "q-genealogy",
+      "target": "v-heb73",
       "kind": "manual",
       "createdAt": 1749513638000,
       "updatedAt": 1749513638000
     },
     {
-      "id": "e17",
-      "mapId": "q-breadwine",
-      "source": "v-matt2626",
-      "target": "v-matt2627",
+      "id": "e11",
+      "mapId": "root",
+      "source": "q-genealogy",
+      "target": "v-heb78",
       "kind": "manual",
       "createdAt": 1749513639000,
       "updatedAt": 1749513639000
     },
     {
-      "id": "e18",
-      "mapId": "q-breadwine",
-      "source": "v-matt2627",
-      "target": "v-matt2628",
+      "id": "e12",
+      "mapId": "root",
+      "source": "q-genealogy",
+      "target": "n-root2",
       "kind": "manual",
       "createdAt": 1749513640000,
       "updatedAt": 1749513640000
     },
     {
-      "id": "e19",
-      "mapId": "q-breadwine",
-      "source": "anchor-breadwine",
-      "target": "q-newcov",
+      "id": "e13",
+      "mapId": "root",
+      "source": "q-superior",
+      "target": "v-ps1104",
       "kind": "manual",
       "createdAt": 1749513641000,
       "updatedAt": 1749513641000
     },
     {
-      "id": "e20",
-      "mapId": "q-breadwine",
-      "source": "v-matt2628",
-      "target": "q-newcov",
+      "id": "e14",
+      "mapId": "root",
+      "source": "q-superior",
+      "target": "q-oath",
       "kind": "manual",
       "createdAt": 1749513642000,
       "updatedAt": 1749513642000
     },
     {
-      "id": "e21",
-      "mapId": "q-newcov",
-      "source": "anchor-newcov",
-      "target": "v-luke2220",
+      "id": "e15",
+      "mapId": "root",
+      "source": "q-oath",
+      "target": "v-heb721",
+      "kind": "manual",
+      "createdAt": 1749513643000,
+      "updatedAt": 1749513643000
+    },
+    {
+      "id": "e16",
+      "mapId": "root",
+      "source": "q-oath",
+      "target": "v-ps1104",
+      "kind": "manual",
+      "createdAt": 1749513644000,
+      "updatedAt": 1749513644000
+    },
+    {
+      "id": "e17",
+      "mapId": "root",
+      "source": "v-heb56",
+      "target": "n-root5",
+      "kind": "manual",
+      "createdAt": 1749513645000,
+      "updatedAt": 1749513645000
+    },
+    {
+      "id": "e18",
+      "mapId": "root",
+      "source": "q-priestking",
+      "target": "v-zech613",
+      "kind": "manual",
+      "createdAt": 1749513646000,
+      "updatedAt": 1749513646000
+    },
+    {
+      "id": "e19",
+      "mapId": "root",
+      "source": "q-priestking",
+      "target": "n-root3",
       "kind": "manual",
       "createdAt": 1749513647000,
       "updatedAt": 1749513647000
     },
     {
-      "id": "e22",
-      "mapId": "q-newcov",
-      "source": "anchor-newcov",
-      "target": "v-heb915",
+      "id": "e20",
+      "mapId": "root",
+      "source": "q-oath",
+      "target": "q-priestking",
       "kind": "manual",
       "createdAt": 1749513648000,
       "updatedAt": 1749513648000
     },
     {
-      "id": "e23",
-      "mapId": "q-newcov",
-      "source": "v-luke2220",
-      "target": "n-nc1",
+      "id": "e21",
+      "mapId": "root",
+      "source": "q-forever",
+      "target": "q-intercede",
       "kind": "manual",
       "createdAt": 1749513649000,
       "updatedAt": 1749513649000
     },
     {
-      "id": "e24",
-      "mapId": "q-newcov",
-      "source": "v-luke2220",
-      "target": "v-heb915",
-      "kind": "crossref",
+      "id": "e22",
+      "mapId": "root",
+      "source": "q-intercede",
+      "target": "v-rom834",
+      "kind": "manual",
       "createdAt": 1749513650000,
       "updatedAt": 1749513650000
     },
     {
-      "id": "e25",
-      "mapId": "q-superior",
-      "source": "anchor-superior",
-      "target": "v-heb74",
+      "id": "e23",
+      "mapId": "root",
+      "source": "q-intercede",
+      "target": "v-heb81",
       "kind": "manual",
+      "createdAt": 1749513651000,
+      "updatedAt": 1749513651000
+    },
+    {
+      "id": "e24",
+      "mapId": "root",
+      "source": "q-intercede",
+      "target": "v-heb726",
+      "kind": "manual",
+      "createdAt": 1749513652000,
+      "updatedAt": 1749513652000
+    },
+    {
+      "id": "e25",
+      "mapId": "root",
+      "source": "q-intercede",
+      "target": "v-heb415",
+      "kind": "manual",
+      "createdAt": 1749513653000,
+      "updatedAt": 1749513653000
+    },
+    {
+      "id": "e26",
+      "mapId": "root",
+      "source": "v-heb415",
+      "target": "v-heb416",
+      "kind": "manual",
+      "createdAt": 1749513654000,
+      "updatedAt": 1749513654000
+    },
+    {
+      "id": "e27",
+      "mapId": "root",
+      "source": "v-heb416",
+      "target": "n-root4",
+      "kind": "manual",
+      "createdAt": 1749513655000,
+      "updatedAt": 1749513655000
+    },
+    {
+      "id": "e28",
+      "mapId": "root",
+      "source": "v-gen1418",
+      "target": "v-ps1104",
+      "kind": "crossref",
+      "createdAt": 1749513656000,
+      "updatedAt": 1749513656000
+    },
+    {
+      "id": "e29",
+      "mapId": "root",
+      "source": "v-ps1104",
+      "target": "v-heb71",
+      "kind": "crossref",
       "createdAt": 1749513657000,
       "updatedAt": 1749513657000
     },
     {
-      "id": "e26",
-      "mapId": "q-superior",
-      "source": "anchor-superior",
-      "target": "v-heb77",
-      "kind": "manual",
+      "id": "e30",
+      "mapId": "root",
+      "source": "v-gen1418",
+      "target": "v-heb71",
+      "kind": "crossref",
       "createdAt": 1749513658000,
       "updatedAt": 1749513658000
     },
     {
-      "id": "e27",
-      "mapId": "q-superior",
-      "source": "anchor-superior",
-      "target": "v-heb72",
-      "kind": "manual",
+      "id": "e31",
+      "mapId": "root",
+      "source": "v-ps1104",
+      "target": "v-heb721",
+      "kind": "crossref",
       "createdAt": 1749513659000,
       "updatedAt": 1749513659000
     },
     {
-      "id": "e28",
-      "mapId": "q-superior",
-      "source": "anchor-superior",
-      "target": "n-sup1",
-      "kind": "manual",
+      "id": "e32",
+      "mapId": "root",
+      "source": "v-ps1104",
+      "target": "v-heb56",
+      "kind": "crossref",
       "createdAt": 1749513660000,
       "updatedAt": 1749513660000
     },
     {
-      "id": "e29",
-      "mapId": "q-superior",
-      "source": "anchor-superior",
-      "target": "q-mvl",
-      "kind": "manual",
+      "id": "e33",
+      "mapId": "root",
+      "source": "v-ps1104",
+      "target": "v-heb620",
+      "kind": "crossref",
       "createdAt": 1749513661000,
       "updatedAt": 1749513661000
     },
     {
-      "id": "e30",
-      "mapId": "q-mvl",
-      "source": "anchor-mvl",
-      "target": "v-heb711",
-      "kind": "manual",
-      "createdAt": 1749513668000,
-      "updatedAt": 1749513668000
-    },
-    {
-      "id": "e31",
-      "mapId": "q-mvl",
-      "source": "anchor-mvl",
-      "target": "n-mvl1",
-      "kind": "manual",
-      "createdAt": 1749513669000,
-      "updatedAt": 1749513669000
-    },
-    {
-      "id": "e32",
-      "mapId": "q-mvl",
-      "source": "v-heb711",
-      "target": "v-heb712",
-      "kind": "manual",
-      "createdAt": 1749513670000,
-      "updatedAt": 1749513670000
-    },
-    {
-      "id": "e33",
-      "mapId": "q-mvl",
-      "source": "v-heb712",
-      "target": "v-heb719",
-      "kind": "manual",
-      "createdAt": 1749513671000,
-      "updatedAt": 1749513671000
-    },
-    {
       "id": "e34",
-      "mapId": "q-mvl",
-      "source": "anchor-mvl",
-      "target": "q-lawgrace",
-      "kind": "manual",
-      "createdAt": 1749513672000,
-      "updatedAt": 1749513672000
+      "mapId": "root",
+      "source": "v-ps1101",
+      "target": "v-ps1104",
+      "kind": "crossref",
+      "createdAt": 1749513662000,
+      "updatedAt": 1749513662000
     },
     {
       "id": "e35",
-      "mapId": "q-mvl",
-      "source": "v-heb719",
-      "target": "q-lawgrace",
+      "mapId": "root",
+      "source": "v-ps1101",
+      "target": "v-heb81",
+      "kind": "crossref",
+      "createdAt": 1749513663000,
+      "updatedAt": 1749513663000
+    },
+    {
+      "id": "e36",
+      "mapId": "root",
+      "source": "v-zech613",
+      "target": "v-gen1418",
+      "kind": "crossref",
+      "createdAt": 1749513664000,
+      "updatedAt": 1749513664000
+    },
+    {
+      "id": "e37",
+      "mapId": "root",
+      "source": "v-rom834",
+      "target": "v-heb81",
+      "kind": "crossref",
+      "createdAt": 1749513665000,
+      "updatedAt": 1749513665000
+    },
+    {
+      "id": "e38",
+      "mapId": "q-mel",
+      "source": "anchor-mel",
+      "target": "v-gen1417",
       "kind": "manual",
       "createdAt": 1749513673000,
       "updatedAt": 1749513673000
     },
     {
-      "id": "e36",
-      "mapId": "q-lawgrace",
-      "source": "anchor-lawgrace",
-      "target": "v-john117",
-      "kind": "manual",
-      "createdAt": 1749513680000,
-      "updatedAt": 1749513680000
-    },
-    {
-      "id": "e37",
-      "mapId": "q-lawgrace",
-      "source": "anchor-lawgrace",
-      "target": "v-rom614",
-      "kind": "manual",
-      "createdAt": 1749513681000,
-      "updatedAt": 1749513681000
-    },
-    {
-      "id": "e38",
-      "mapId": "q-lawgrace",
-      "source": "anchor-lawgrace",
-      "target": "v-gal324",
-      "kind": "manual",
-      "createdAt": 1749513682000,
-      "updatedAt": 1749513682000
-    },
-    {
       "id": "e39",
-      "mapId": "q-lawgrace",
-      "source": "v-gal324",
-      "target": "v-gal325",
+      "mapId": "q-mel",
+      "source": "anchor-mel",
+      "target": "v-gen1418b",
       "kind": "manual",
-      "createdAt": 1749513683000,
-      "updatedAt": 1749513683000
+      "createdAt": 1749513674000,
+      "updatedAt": 1749513674000
     },
     {
       "id": "e40",
-      "mapId": "q-lawgrace",
-      "source": "v-gal325",
-      "target": "n-lg1",
+      "mapId": "q-mel",
+      "source": "anchor-mel",
+      "target": "n-mel1",
       "kind": "manual",
-      "createdAt": 1749513684000,
-      "updatedAt": 1749513684000
+      "createdAt": 1749513675000,
+      "updatedAt": 1749513675000
     },
     {
       "id": "e41",
-      "mapId": "q-lawgrace",
-      "source": "v-john117",
-      "target": "v-rom614",
-      "kind": "crossref",
+      "mapId": "q-mel",
+      "source": "v-gen1418b",
+      "target": "v-gen1419",
+      "kind": "manual",
+      "createdAt": 1749513676000,
+      "updatedAt": 1749513676000
+    },
+    {
+      "id": "e42",
+      "mapId": "q-mel",
+      "source": "v-gen1419",
+      "target": "v-gen1420",
+      "kind": "manual",
+      "createdAt": 1749513677000,
+      "updatedAt": 1749513677000
+    },
+    {
+      "id": "e43",
+      "mapId": "q-mel",
+      "source": "v-gen1418b",
+      "target": "q-breadwine",
+      "kind": "manual",
+      "createdAt": 1749513678000,
+      "updatedAt": 1749513678000
+    },
+    {
+      "id": "e44",
+      "mapId": "q-breadwine",
+      "source": "anchor-breadwine",
+      "target": "v-matt2626",
+      "kind": "manual",
       "createdAt": 1749513685000,
       "updatedAt": 1749513685000
     },
     {
-      "id": "e42",
-      "mapId": "q-forever",
-      "source": "anchor-forever",
-      "target": "v-heb716",
-      "kind": "manual",
-      "createdAt": 1749513692000,
-      "updatedAt": 1749513692000
-    },
-    {
-      "id": "e43",
-      "mapId": "q-forever",
-      "source": "anchor-forever",
-      "target": "v-heb717",
-      "kind": "manual",
-      "createdAt": 1749513693000,
-      "updatedAt": 1749513693000
-    },
-    {
-      "id": "e44",
-      "mapId": "q-forever",
-      "source": "v-heb716",
-      "target": "v-heb724",
-      "kind": "manual",
-      "createdAt": 1749513694000,
-      "updatedAt": 1749513694000
-    },
-    {
       "id": "e45",
-      "mapId": "q-forever",
-      "source": "v-heb724",
-      "target": "v-heb725",
+      "mapId": "q-breadwine",
+      "source": "anchor-breadwine",
+      "target": "n-bw1",
+      "kind": "manual",
+      "createdAt": 1749513686000,
+      "updatedAt": 1749513686000
+    },
+    {
+      "id": "e46",
+      "mapId": "q-breadwine",
+      "source": "v-matt2626",
+      "target": "v-matt2627",
+      "kind": "manual",
+      "createdAt": 1749513687000,
+      "updatedAt": 1749513687000
+    },
+    {
+      "id": "e47",
+      "mapId": "q-breadwine",
+      "source": "v-matt2627",
+      "target": "v-matt2628",
+      "kind": "manual",
+      "createdAt": 1749513688000,
+      "updatedAt": 1749513688000
+    },
+    {
+      "id": "e48",
+      "mapId": "q-breadwine",
+      "source": "anchor-breadwine",
+      "target": "q-newcov",
+      "kind": "manual",
+      "createdAt": 1749513689000,
+      "updatedAt": 1749513689000
+    },
+    {
+      "id": "e49",
+      "mapId": "q-breadwine",
+      "source": "v-matt2628",
+      "target": "q-newcov",
+      "kind": "manual",
+      "createdAt": 1749513690000,
+      "updatedAt": 1749513690000
+    },
+    {
+      "id": "e50",
+      "mapId": "q-newcov",
+      "source": "anchor-newcov",
+      "target": "v-luke2220",
       "kind": "manual",
       "createdAt": 1749513695000,
       "updatedAt": 1749513695000
     },
     {
-      "id": "e46",
-      "mapId": "q-forever",
-      "source": "v-heb725",
-      "target": "n-fv1",
+      "id": "e51",
+      "mapId": "q-newcov",
+      "source": "anchor-newcov",
+      "target": "v-heb915",
       "kind": "manual",
       "createdAt": 1749513696000,
       "updatedAt": 1749513696000
     },
     {
-      "id": "e47",
-      "mapId": "q-forever",
-      "source": "v-heb716",
-      "target": "v-heb724",
-      "kind": "crossref",
+      "id": "e52",
+      "mapId": "q-newcov",
+      "source": "v-luke2220",
+      "target": "n-nc1",
+      "kind": "manual",
       "createdAt": 1749513697000,
       "updatedAt": 1749513697000
     },
     {
-      "id": "e48",
-      "mapId": "q-bornagain",
-      "source": "anchor-bornagain",
-      "target": "v-john33",
-      "kind": "manual",
-      "createdAt": 1749513704000,
-      "updatedAt": 1749513704000
+      "id": "e53",
+      "mapId": "q-newcov",
+      "source": "v-luke2220",
+      "target": "v-heb915",
+      "kind": "crossref",
+      "createdAt": 1749513698000,
+      "updatedAt": 1749513698000
     },
     {
-      "id": "e49",
-      "mapId": "q-bornagain",
-      "source": "anchor-bornagain",
-      "target": "n-ba1",
+      "id": "e54",
+      "mapId": "q-superior",
+      "source": "anchor-superior",
+      "target": "v-heb74",
       "kind": "manual",
       "createdAt": 1749513705000,
       "updatedAt": 1749513705000
     },
     {
-      "id": "e50",
-      "mapId": "q-bornagain",
-      "source": "v-john33",
-      "target": "v-john35",
+      "id": "e55",
+      "mapId": "q-superior",
+      "source": "anchor-superior",
+      "target": "v-heb77",
       "kind": "manual",
       "createdAt": 1749513706000,
       "updatedAt": 1749513706000
     },
     {
-      "id": "e51",
-      "mapId": "q-bornagain",
-      "source": "v-john35",
-      "target": "v-john36",
+      "id": "e56",
+      "mapId": "q-superior",
+      "source": "anchor-superior",
+      "target": "v-heb72",
       "kind": "manual",
       "createdAt": 1749513707000,
       "updatedAt": 1749513707000
     },
     {
-      "id": "e52",
-      "mapId": "q-bornagain",
-      "source": "anchor-bornagain",
-      "target": "q-spirit",
+      "id": "e57",
+      "mapId": "q-superior",
+      "source": "anchor-superior",
+      "target": "n-sup1",
       "kind": "manual",
       "createdAt": 1749513708000,
       "updatedAt": 1749513708000
     },
     {
-      "id": "e53",
-      "mapId": "q-spirit",
-      "source": "anchor-spirit",
-      "target": "v-john37",
+      "id": "e58",
+      "mapId": "q-superior",
+      "source": "anchor-superior",
+      "target": "q-mvl",
       "kind": "manual",
-      "createdAt": 1749513714000,
-      "updatedAt": 1749513714000
+      "createdAt": 1749513709000,
+      "updatedAt": 1749513709000
     },
     {
-      "id": "e54",
-      "mapId": "q-spirit",
-      "source": "v-john37",
-      "target": "v-john38",
-      "kind": "manual",
-      "createdAt": 1749513715000,
-      "updatedAt": 1749513715000
-    },
-    {
-      "id": "e55",
-      "mapId": "q-spirit",
-      "source": "v-john38",
-      "target": "v-1pet123",
+      "id": "e59",
+      "mapId": "q-mvl",
+      "source": "anchor-mvl",
+      "target": "v-heb711",
       "kind": "manual",
       "createdAt": 1749513716000,
       "updatedAt": 1749513716000
     },
     {
-      "id": "e56",
-      "mapId": "q-spirit",
-      "source": "anchor-spirit",
-      "target": "n-sp1",
+      "id": "e60",
+      "mapId": "q-mvl",
+      "source": "anchor-mvl",
+      "target": "n-mvl1",
       "kind": "manual",
       "createdAt": 1749513717000,
       "updatedAt": 1749513717000
     },
     {
-      "id": "e57",
+      "id": "e61",
+      "mapId": "q-mvl",
+      "source": "v-heb711",
+      "target": "v-heb712",
+      "kind": "manual",
+      "createdAt": 1749513718000,
+      "updatedAt": 1749513718000
+    },
+    {
+      "id": "e62",
+      "mapId": "q-mvl",
+      "source": "v-heb712",
+      "target": "v-heb719",
+      "kind": "manual",
+      "createdAt": 1749513719000,
+      "updatedAt": 1749513719000
+    },
+    {
+      "id": "e63",
+      "mapId": "q-mvl",
+      "source": "anchor-mvl",
+      "target": "q-lawgrace",
+      "kind": "manual",
+      "createdAt": 1749513720000,
+      "updatedAt": 1749513720000
+    },
+    {
+      "id": "e64",
+      "mapId": "q-mvl",
+      "source": "v-heb719",
+      "target": "q-lawgrace",
+      "kind": "manual",
+      "createdAt": 1749513721000,
+      "updatedAt": 1749513721000
+    },
+    {
+      "id": "e65",
+      "mapId": "q-lawgrace",
+      "source": "anchor-lawgrace",
+      "target": "v-john117",
+      "kind": "manual",
+      "createdAt": 1749513728000,
+      "updatedAt": 1749513728000
+    },
+    {
+      "id": "e66",
+      "mapId": "q-lawgrace",
+      "source": "anchor-lawgrace",
+      "target": "v-rom614",
+      "kind": "manual",
+      "createdAt": 1749513729000,
+      "updatedAt": 1749513729000
+    },
+    {
+      "id": "e67",
+      "mapId": "q-lawgrace",
+      "source": "anchor-lawgrace",
+      "target": "v-gal324",
+      "kind": "manual",
+      "createdAt": 1749513730000,
+      "updatedAt": 1749513730000
+    },
+    {
+      "id": "e68",
+      "mapId": "q-lawgrace",
+      "source": "v-gal324",
+      "target": "v-gal325",
+      "kind": "manual",
+      "createdAt": 1749513731000,
+      "updatedAt": 1749513731000
+    },
+    {
+      "id": "e69",
+      "mapId": "q-lawgrace",
+      "source": "v-gal325",
+      "target": "n-lg1",
+      "kind": "manual",
+      "createdAt": 1749513732000,
+      "updatedAt": 1749513732000
+    },
+    {
+      "id": "e70",
+      "mapId": "q-lawgrace",
+      "source": "v-john117",
+      "target": "v-rom614",
+      "kind": "crossref",
+      "createdAt": 1749513733000,
+      "updatedAt": 1749513733000
+    },
+    {
+      "id": "e71",
+      "mapId": "q-forever",
+      "source": "anchor-forever",
+      "target": "v-heb716",
+      "kind": "manual",
+      "createdAt": 1749513740000,
+      "updatedAt": 1749513740000
+    },
+    {
+      "id": "e72",
+      "mapId": "q-forever",
+      "source": "anchor-forever",
+      "target": "v-heb717",
+      "kind": "manual",
+      "createdAt": 1749513741000,
+      "updatedAt": 1749513741000
+    },
+    {
+      "id": "e73",
+      "mapId": "q-forever",
+      "source": "v-heb716",
+      "target": "v-heb724",
+      "kind": "manual",
+      "createdAt": 1749513742000,
+      "updatedAt": 1749513742000
+    },
+    {
+      "id": "e74",
+      "mapId": "q-forever",
+      "source": "v-heb724",
+      "target": "v-heb725",
+      "kind": "manual",
+      "createdAt": 1749513743000,
+      "updatedAt": 1749513743000
+    },
+    {
+      "id": "e75",
+      "mapId": "q-forever",
+      "source": "v-heb725",
+      "target": "n-fv1",
+      "kind": "manual",
+      "createdAt": 1749513744000,
+      "updatedAt": 1749513744000
+    },
+    {
+      "id": "e76",
+      "mapId": "q-forever",
+      "source": "v-heb716",
+      "target": "v-heb724",
+      "kind": "crossref",
+      "createdAt": 1749513745000,
+      "updatedAt": 1749513745000
+    },
+    {
+      "id": "e77",
+      "mapId": "q-bornagain",
+      "source": "anchor-bornagain",
+      "target": "v-john33",
+      "kind": "manual",
+      "createdAt": 1749513752000,
+      "updatedAt": 1749513752000
+    },
+    {
+      "id": "e78",
+      "mapId": "q-bornagain",
+      "source": "anchor-bornagain",
+      "target": "n-ba1",
+      "kind": "manual",
+      "createdAt": 1749513753000,
+      "updatedAt": 1749513753000
+    },
+    {
+      "id": "e79",
+      "mapId": "q-bornagain",
+      "source": "v-john33",
+      "target": "v-john35",
+      "kind": "manual",
+      "createdAt": 1749513754000,
+      "updatedAt": 1749513754000
+    },
+    {
+      "id": "e80",
+      "mapId": "q-bornagain",
+      "source": "v-john35",
+      "target": "v-john36",
+      "kind": "manual",
+      "createdAt": 1749513755000,
+      "updatedAt": 1749513755000
+    },
+    {
+      "id": "e81",
+      "mapId": "q-bornagain",
+      "source": "anchor-bornagain",
+      "target": "q-spirit",
+      "kind": "manual",
+      "createdAt": 1749513756000,
+      "updatedAt": 1749513756000
+    },
+    {
+      "id": "e82",
+      "mapId": "q-spirit",
+      "source": "anchor-spirit",
+      "target": "v-john37",
+      "kind": "manual",
+      "createdAt": 1749513762000,
+      "updatedAt": 1749513762000
+    },
+    {
+      "id": "e83",
+      "mapId": "q-spirit",
+      "source": "v-john37",
+      "target": "v-john38",
+      "kind": "manual",
+      "createdAt": 1749513763000,
+      "updatedAt": 1749513763000
+    },
+    {
+      "id": "e84",
+      "mapId": "q-spirit",
+      "source": "v-john38",
+      "target": "v-1pet123",
+      "kind": "manual",
+      "createdAt": 1749513764000,
+      "updatedAt": 1749513764000
+    },
+    {
+      "id": "e85",
+      "mapId": "q-spirit",
+      "source": "anchor-spirit",
+      "target": "n-sp1",
+      "kind": "manual",
+      "createdAt": 1749513765000,
+      "updatedAt": 1749513765000
+    },
+    {
+      "id": "e86",
       "mapId": "q-abraham",
       "source": "anchor-abraham",
       "target": "v-gen156",
       "kind": "manual",
-      "createdAt": 1749513723000,
-      "updatedAt": 1749513723000
+      "createdAt": 1749513771000,
+      "updatedAt": 1749513771000
     },
     {
-      "id": "e58",
+      "id": "e87",
       "mapId": "q-abraham",
       "source": "anchor-abraham",
       "target": "n-ab1",
       "kind": "manual",
-      "createdAt": 1749513724000,
-      "updatedAt": 1749513724000
+      "createdAt": 1749513772000,
+      "updatedAt": 1749513772000
     },
     {
-      "id": "e59",
+      "id": "e88",
       "mapId": "q-abraham",
       "source": "v-gen156",
       "target": "v-rom43",
       "kind": "manual",
-      "createdAt": 1749513725000,
-      "updatedAt": 1749513725000
+      "createdAt": 1749513773000,
+      "updatedAt": 1749513773000
     },
     {
-      "id": "e60",
+      "id": "e89",
       "mapId": "q-abraham",
       "source": "v-rom43",
       "target": "v-gal36",
       "kind": "manual",
-      "createdAt": 1749513726000,
-      "updatedAt": 1749513726000
+      "createdAt": 1749513774000,
+      "updatedAt": 1749513774000
     },
     {
-      "id": "e61",
+      "id": "e90",
       "mapId": "q-abraham",
       "source": "v-gen156",
       "target": "v-gal36",
       "kind": "crossref",
-      "createdAt": 1749513727000,
-      "updatedAt": 1749513727000
+      "createdAt": 1749513775000,
+      "updatedAt": 1749513775000
     }
   ]
 }
