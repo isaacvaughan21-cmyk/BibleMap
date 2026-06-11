@@ -38,7 +38,7 @@ const browser = await chromium.launch();
     .locator(".react-flow__node", { hasText: "Hebrews 7:3" })
     .first();
   await verse.dblclick();
-  await page.waitForTimeout(1100);
+  await page.waitForTimeout(1900); // cinematic plunge + settle
   const backVisible = await page.getByText("BACK TO THE MAP").isVisible();
   const crumbVisible = await page.getByText("INSIDE · Hebrews 7:3").isVisible();
   const branchVerse = await page
@@ -50,7 +50,7 @@ const browser = await chromium.launch();
   await shot(page, "02-livedemo-branch");
 
   await page.getByText("BACK TO THE MAP").click();
-  await page.waitForTimeout(1100);
+  await page.waitForTimeout(1900); // cinematic rise-out + settle
   const backRoot = await page
     .getByText("Double-click me", { exact: true })
     .count();

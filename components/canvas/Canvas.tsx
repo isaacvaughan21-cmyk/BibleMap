@@ -18,6 +18,7 @@ import { useShallow } from "zustand/react/shallow";
 import "@xyflow/react/dist/style.css";
 
 import { track } from "@/lib/analytics";
+import { easeInCubic, easeOutQuint, easeInOutCubic } from "@/lib/easing";
 import { takeCrossRefDrag, useCanvasStore } from "@/lib/store/canvas-store";
 import * as repo from "@/lib/db/repo";
 import { CROSSREF_DRAG_TYPE } from "./CrossRefPanel";
@@ -71,12 +72,6 @@ function minimapNodeColor(node: Node): string {
 
 const MENU_WIDTH = 192;
 const MENU_HEIGHT = 180;
-
-/* Dive easing — fall in with gathering speed, arrive with a long soft landing */
-const easeInCubic = (t: number) => t * t * t;
-const easeOutQuint = (t: number) => 1 - Math.pow(1 - t, 5);
-const easeInOutCubic = (t: number) =>
-  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 type ToastState = {
   text: string;
@@ -305,6 +300,13 @@ function CanvasInner() {
     setMenu(null);
     setPicker(null);
   }, []);
+  // A click on blank canvas also dismisses the study panel — clearing the
+  // selection should clear what the selection summoned. (Panning, via
+  // onMoveStart, only closes the transient popovers, not the panel.)
+  const onPaneClick = useCallback(() => {
+    closeOverlays();
+    setRailOpen(false);
+  }, [closeOverlays]);
 
   return (
     <div
@@ -381,7 +383,8 @@ function CanvasInner() {
             onEdgeContextMenu={onEdgeContextMenu}
             onPaneContextMenu={onPaneContextMenu}
             onSelectionContextMenu={onSelectionContextMenu}
-            onPaneClick={closeOverlays}
+            onPaneClick={onPaneClick}
+            onMoveStart={closeOverlays}
             onOpenPicker={setPicker}
             nodes={nodes}
             edges={edges}
@@ -605,6 +608,7 @@ function FlowSurface(props: {
   onPaneContextMenu: (e: React.MouseEvent | MouseEvent) => void;
   onSelectionContextMenu: (e: React.MouseEvent) => void;
   onPaneClick: () => void;
+  onMoveStart: () => void;
   onOpenPicker: (p: PickerState) => void;
   setEditing: (id: string | null) => void;
   onOpenVersePicker: (id: string) => void;
@@ -981,7 +985,7 @@ function FlowSurface(props: {
         onPaneContextMenu={props.onPaneContextMenu}
         onSelectionContextMenu={props.onSelectionContextMenu}
         onPaneClick={props.onPaneClick}
-        onMoveStart={props.onPaneClick}
+        onMoveStart={props.onMoveStart}
         attributionPosition="bottom-left"
       >
         <Background

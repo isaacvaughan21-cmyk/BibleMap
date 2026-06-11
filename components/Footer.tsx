@@ -1,4 +1,6 @@
-/** Footer — wordmark + Greek, copyright. */
+import ChangelogDialog from "@/components/ChangelogDialog";
+
+/** Footer — wordmark + Greek, copyright, version history. */
 export default function Footer() {
   const year = new Date().getFullYear();
   return (
@@ -11,8 +13,11 @@ export default function Footer() {
           </span>
         </div>
 
-        <p className="font-sans text-2xs text-ink-muted">
-          © {year} Hodos · v0 open beta. All rights reserved.
+        <p className="flex items-center gap-2 font-sans text-2xs text-ink-muted">
+          <ChangelogDialog tone="muted" label="open beta" />
+          <span aria-hidden="true">·</span>
+          <ChangelogDialog tone="muted" />
+          <span aria-hidden="true">·</span>© {year} Hodos
         </p>
       </div>
     </footer>

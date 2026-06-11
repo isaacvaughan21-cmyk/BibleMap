@@ -122,6 +122,9 @@ export const LANDING_EDGES: LandingEdge[] = [
 export type LandingBranch = {
   /** Heading shown on the back pill ("Hebrews 7:3"). */
   title: string;
+  /** The child node that mirrors the opened bubble — held at the same scale
+   *  through the dive so the pass-through is seamless (like the app's anchor). */
+  anchorId: string;
   nodes: LandingNode[];
   edges: LandingEdge[];
 };
@@ -129,6 +132,7 @@ export type LandingBranch = {
 export const LANDING_BRANCHES: Record<string, LandingBranch> = {
   v3: {
     title: "Hebrews 7:3",
+    anchorId: "v3-hub",
     nodes: [
       {
         id: "v3-hub",

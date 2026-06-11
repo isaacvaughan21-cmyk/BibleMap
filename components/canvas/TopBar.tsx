@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useReactFlow, useViewport } from "@xyflow/react";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
+import ChangelogDialog from "@/components/ChangelogDialog";
+import { APP_VERSION } from "@/lib/changelog";
 
 type TopBarProps = {
   railOpen: boolean;
@@ -29,16 +31,18 @@ export default function TopBar({
   return (
     <header className="dive-dim absolute inset-x-0 top-0 z-40 border-b border-rule/60 bg-parchment/70 backdrop-blur-md">
       <div className="relative flex h-14 items-center justify-between px-4 md:px-6">
-        {/* Left: wordmark */}
-        <Link href="/" className="flex items-baseline gap-2">
-          <span className="font-serif text-md text-ink">Hodos</span>
-          <span className="font-sans text-2xs tracking-greek text-gold">
-            ΟΔΟΣ
+        {/* Left: wordmark + version (the version opens "what's new") */}
+        <div className="flex items-baseline gap-2">
+          <Link href="/" className="flex items-baseline gap-2">
+            <span className="font-serif text-md text-ink">Hodos</span>
+            <span className="font-sans text-2xs tracking-greek text-gold">
+              ΟΔΟΣ
+            </span>
+          </Link>
+          <span className="hidden sm:inline-block">
+            <ChangelogDialog tone="chip" label={`BETA v${APP_VERSION}`} />
           </span>
-          <span className="hidden rounded-full border border-gold/40 bg-gold/10 px-2 py-px font-sans text-2xs tracking-eyebrow text-gold sm:inline-block">
-            BETA
-          </span>
-        </Link>
+        </div>
 
         {/* Center: map name at root, breadcrumb trail when nested */}
         <MapTitle />

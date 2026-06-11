@@ -20,6 +20,7 @@ import {
   type DemoLink,
   type DemoNode,
 } from "@/lib/demo-map-data";
+import { diveCurve } from "@/lib/easing";
 import Reveal from "@/components/Reveal";
 
 /**
@@ -56,9 +57,12 @@ export default function ScrollDemo() {
     mass: 0.5,
   });
 
-  // Pure geometric zoom (scale = PEAK^p) centered on the focus bubble,
-  // driven through the SVG viewBox (framer can't transform an SVG <g>).
-  const scale = useTransform(p, (v) => Math.pow(PEAK_SCALE, v));
+  // Geometric zoom (scale = PEAK^e) centered on the focus bubble, but the
+  // progress is remapped through the SAME dive curve the product canvas uses
+  // (easeInCubic fall → easeOutQuint landing), so the zoom-through feels 1:1
+  // with double-clicking a bubble in the app. Driven through the SVG viewBox
+  // (framer can't transform an SVG <g>).
+  const scale = useTransform(p, (v) => Math.pow(PEAK_SCALE, diveCurve(v)));
   const size = useTransform(scale, (s) => VIEWBOX / s);
   const minX = useTransform(size, (w) => FOCUS.x - w / 2);
   const minY = useTransform(size, (h) => FOCUS.y - h / 2);
@@ -73,9 +77,14 @@ export default function ScrollDemo() {
   const outerOpacity = useTransform(p, [0, 0.5, 0.7], [1, 1, 0]);
   const innerLinkOpacity = useTransform(p, [0.55, 0.8, 1], [0, 1, 1]);
 
-  // Gold ring blooms outward as the camera passes through the bubble.
-  const ringOpacity = useTransform(p, [0.32, 0.5, 0.66], [0, 0.9, 0]);
-  const ringR = useTransform(p, [0.32, 0.66], [26, 110]);
+  // Parchment veil flash at the threshold — the same soft light the app shows
+  // the instant you pass through a bubble's skin into its inner map.
+  const veilOpacity = useTransform(p, [0.46, 0.55, 0.66], [0, 0.92, 0]);
+
+  // Gold ring blooms outward as the camera passes through the bubble — timed
+  // to the threshold so ring + veil land together, exactly like the dive.
+  const ringOpacity = useTransform(p, [0.4, 0.55, 0.7], [0, 0.9, 0]);
+  const ringR = useTransform(p, [0.4, 0.7], [26, 110]);
 
   // UI overlays.
   const hintOpacity = useTransform(p, [0, 0.12], [1, 0]);
@@ -220,6 +229,18 @@ export default function ScrollDemo() {
             ))}
           </svg>
 
+          {/* Parchment veil flash at the threshold — mirrors the app's
+              .zoom-veil, but scroll-driven (no CSS transition to lag it). */}
+          <motion.div
+            aria-hidden="true"
+            style={{
+              opacity: veilOpacity,
+              background:
+                "radial-gradient(circle at center, var(--parchment) 30%, var(--parchment-2) 100%)",
+            }}
+            className="pointer-events-none absolute inset-0 z-[5]"
+          />
+
           {/* Scroll hint */}
           <motion.div
             style={{ opacity: hintOpacity }}
@@ -267,7 +288,7 @@ function InnerBubble({
   const opacity = useTransform(
     p,
     [start, Math.min(start + 0.14, 0.99)],
-    [0, 1]
+    [0, 1],
   );
   return (
     <motion.g style={{ opacity }}>

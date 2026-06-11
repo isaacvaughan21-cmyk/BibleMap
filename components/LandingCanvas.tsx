@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
+  getNodesBounds,
+  getViewportForBounds,
   Handle,
   Position,
   ReactFlow,
@@ -25,6 +27,7 @@ import {
   type LandingNode,
   type LandingNodeData,
 } from "@/lib/landing-canvas-data";
+import { easeInCubic, easeOutQuint } from "@/lib/easing";
 
 /**
  * The live mini-canvas on the landing page — a real React Flow surface with
@@ -175,7 +178,11 @@ function ZoomControls() {
   );
 }
 
+/** Peak zoom the camera reaches as it passes through a bubble's skin. */
+const DIVE_PEAK = 2.8;
+
 function LandingCanvasInner() {
+  const surfaceRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState(
     toFlowNodes(LANDING_NODES),
   );
@@ -185,59 +192,214 @@ function LandingCanvasInner() {
   // null = the root map; otherwise the id of the branch we've dived into.
   const [branchId, setBranchId] = useState<string | null>(null);
   const [branchTitle, setBranchTitle] = useState<string | null>(null);
-  // Veil opacity drives the cinematic cross-fade between maps.
+  // Veil flashes as the camera passes through the bubble's skin.
   const [veiled, setVeiled] = useState(false);
   // Bumped on each dive so the gold threshold ring re-blooms.
   const [diveKey, setDiveKey] = useState(0);
-  const animatingRef = useRef(false);
-  const { fitView } = useReactFlow();
+  const running = useRef(false);
+  // Guards against state updates / rAF after the section unmounts mid-dive
+  // (e.g. the visitor clicks a nav link while the camera is flying).
+  const alive = useRef(true);
+  useEffect(() => {
+    // Set on mount too: StrictMode (dev) runs the cleanup on its throwaway
+    // first mount, which would otherwise leave this false for good.
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+  const { setViewport, getViewport, getNodes, getInternalNode } =
+    useReactFlow();
 
-  // Cross-fade to a new set of nodes/edges: veil in → swap → fit → veil out.
-  const transitionTo = useCallback(
-    (next: { nodes: LandingNode[]; edges: LandingEdge[] }) => {
-      if (animatingRef.current) return;
-      animatingRef.current = true;
-      setDiveKey((k) => k + 1);
-      setVeiled(true);
-      window.setTimeout(() => {
-        setNodes(toFlowNodes(next.nodes));
-        setEdges(toFlowEdges(next.edges));
-        // Let React commit the new graph before framing it.
-        window.requestAnimationFrame(() =>
-          fitView({ padding: 0.18, duration: 520 }),
-        );
-        setVeiled(false);
-      }, 260);
-      window.setTimeout(() => {
-        animatingRef.current = false;
-      }, 640);
+  // ---- The product's dive camera, ported 1:1 (see components/canvas/
+  // Canvas.tsx FlowSurface). A custom rAF loop drives setViewport per frame:
+  // geometric zoom (constant perceived rate) with the shared easings. ----
+  const paneDims = useCallback(() => {
+    const r = surfaceRef.current?.getBoundingClientRect();
+    return { w: r?.width ?? 600, h: r?.height ?? 460 };
+  }, []);
+
+  /** The world point at the screen center, and the current zoom. */
+  const currentFocus = useCallback(() => {
+    const vp = getViewport();
+    const { w, h } = paneDims();
+    return {
+      x: (w / 2 - vp.x) / vp.zoom,
+      y: (h / 2 - vp.y) / vp.zoom,
+      zoom: vp.zoom,
+    };
+  }, [getViewport, paneDims]);
+
+  /** Park the camera instantly with `f` at the screen center. */
+  const jumpTo = useCallback(
+    (f: { x: number; y: number }, zoom: number) => {
+      const { w, h } = paneDims();
+      setViewport(
+        { x: w / 2 - f.x * zoom, y: h / 2 - f.y * zoom, zoom },
+        { duration: 0 },
+      );
     },
-    [fitView, setNodes, setEdges],
+    [paneDims, setViewport],
+  );
+
+  /** Fly the camera: pan the focus and zoom GEOMETRICALLY with an easing. */
+  const flyTo = useCallback(
+    (
+      to: { x: number; y: number; zoom: number },
+      duration: number,
+      ease: (t: number) => number,
+    ) =>
+      new Promise<void>((resolve) => {
+        const from = currentFocus();
+        const { w, h } = paneDims();
+        const t0 = performance.now();
+        const step = (now: number) => {
+          if (!alive.current) return resolve();
+          const p = Math.min(1, (now - t0) / duration);
+          const e = ease(p);
+          const zoom = from.zoom * Math.pow(to.zoom / from.zoom, e);
+          const fx = from.x + (to.x - from.x) * e;
+          const fy = from.y + (to.y - from.y) * e;
+          setViewport(
+            { x: w / 2 - fx * zoom, y: h / 2 - fy * zoom, zoom },
+            { duration: 0 },
+          );
+          if (p < 1) requestAnimationFrame(step);
+          else resolve();
+        };
+        requestAnimationFrame(step);
+      }),
+    [currentFocus, paneDims, setViewport],
+  );
+
+  const waitMeasured = useCallback(async () => {
+    const frame = () =>
+      new Promise<void>((r) => requestAnimationFrame(() => r()));
+    for (let i = 0; i < 14; i++) {
+      await frame();
+      if (!alive.current) return;
+      const ns = getNodes();
+      if (ns.length === 0 || ns.every((n) => (n.measured?.width ?? 0) > 0))
+        return;
+    }
+  }, [getNodes]);
+
+  /** Measured center of a bubble in the current map. */
+  const bubbleCenter = useCallback(
+    (id: string) => {
+      const n = getInternalNode(id);
+      if (!n) return null;
+      return {
+        x: n.internals.positionAbsolute.x + (n.measured?.width ?? 220) / 2,
+        y: n.internals.positionAbsolute.y + (n.measured?.height ?? 64) / 2,
+      };
+    },
+    [getInternalNode],
+  );
+
+  /** Where the camera should rest to frame the whole current map. */
+  const restingTarget = useCallback(() => {
+    const ns = getNodes();
+    if (!ns.length) return { x: 0, y: 0, zoom: 1 };
+    const b = getNodesBounds(ns);
+    const { w, h } = paneDims();
+    const vp = getViewportForBounds(b, w, h, 0.12, 1.75, 0.18);
+    return { x: b.x + b.width / 2, y: b.y + b.height / 2, zoom: vp.zoom };
+  }, [getNodes, paneDims]);
+
+  /**
+   * One map-to-map transition, modelled on the app's dive:
+   *  - diving IN: accelerate into the bubble (zoom up to peak)
+   *  - rising OUT: let the world fall away (zoom down)
+   * then flash the veil at the threshold, swap maps, hold the `emergeId`
+   * bubble at the SAME peak scale (seamless pass-through), bloom the ring,
+   * and settle to frame the new map.
+   */
+  const transition = useCallback(
+    async (
+      firstLeg: { x: number; y: number; zoom: number },
+      next: { nodes: LandingNode[]; edges: LandingEdge[] },
+      emergeId: string,
+      rise: boolean,
+    ) => {
+      setDiveKey((k) => k + 1);
+      const veilTimer = window.setTimeout(
+        () => {
+          if (alive.current) setVeiled(true);
+        },
+        rise ? 340 : 440,
+      );
+      await flyTo(firstLeg, rise ? 560 : 720, easeInCubic);
+      window.clearTimeout(veilTimer);
+      if (!alive.current) return;
+      setVeiled(true);
+      setNodes(toFlowNodes(next.nodes));
+      setEdges(toFlowEdges(next.edges));
+      await waitMeasured();
+      if (!alive.current) return;
+      const emerge = bubbleCenter(emergeId);
+      if (emerge) jumpTo(emerge, DIVE_PEAK);
+      setVeiled(false);
+      await flyTo(restingTarget(), rise ? 800 : 820, easeOutQuint);
+    },
+    [
+      bubbleCenter,
+      flyTo,
+      jumpTo,
+      restingTarget,
+      setEdges,
+      setNodes,
+      waitMeasured,
+    ],
   );
 
   const onNodeDoubleClick = useCallback(
     (_: React.MouseEvent, node: Node) => {
+      if (running.current) return;
       const data = node.data as LandingNodeData;
       if (!data.expandable) return;
       const branch = LANDING_BRANCHES[node.id];
       if (!branch) return;
+      running.current = true;
       setBranchId(node.id);
       setBranchTitle(branch.title);
-      transitionTo({ nodes: branch.nodes, edges: branch.edges });
+      const center = bubbleCenter(node.id) ?? currentFocus();
+      void transition(
+        { x: center.x, y: center.y, zoom: DIVE_PEAK },
+        branch,
+        branch.anchorId,
+        false,
+      ).finally(() => {
+        running.current = false;
+      });
     },
-    [transitionTo],
+    [bubbleCenter, currentFocus, transition],
   );
 
   const goBack = useCallback(() => {
+    if (running.current || !branchId) return;
+    running.current = true;
+    const exitId = branchId;
     setBranchId(null);
     setBranchTitle(null);
-    transitionTo({ nodes: LANDING_NODES, edges: LANDING_EDGES });
-  }, [transitionTo]);
+    const f = currentFocus();
+    void transition(
+      { x: f.x, y: f.y, zoom: Math.max(0.3, f.zoom * 0.4) },
+      { nodes: LANDING_NODES, edges: LANDING_EDGES },
+      exitId,
+      true,
+    ).finally(() => {
+      running.current = false;
+    });
+  }, [branchId, currentFocus, transition]);
 
   return (
     // .landing-flow re-enables vertical touch scrolling over the canvas
     // (globals.css) so the section never traps the page on mobile.
-    <div className="landing-flow relative h-[440px] w-full md:h-[520px]">
+    <div
+      ref={surfaceRef}
+      className="landing-flow relative h-[440px] w-full md:h-[520px]"
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -248,7 +410,7 @@ function LandingCanvasInner() {
         fitView
         fitViewOptions={{ padding: 0.12, maxZoom: 0.9 }}
         minZoom={0.12}
-        maxZoom={1.75}
+        maxZoom={DIVE_PEAK}
         zoomOnScroll={false}
         preventScrolling={false}
         zoomOnPinch
@@ -295,8 +457,10 @@ function LandingCanvasInner() {
         </div>
       )}
 
-      {/* Gold threshold ring — blooms as we pass through the bubble */}
-      {veiled && <span key={diveKey} className="zoom-ring z-10" />}
+      {/* Gold threshold ring — blooms once as we pass through the bubble.
+          Keyed by diveKey so each dive replays the one-shot bloom; it plays
+          to completion independently of the (briefer) veil. */}
+      {diveKey > 0 && <span key={diveKey} className="zoom-ring z-10" />}
 
       {/* Cross-fade veil for the dive */}
       <div
