@@ -1,0 +1,71 @@
+import { z } from "zod";
+import type { HodosExport } from "@/lib/db/repo";
+import { ROOT_MAP_ID } from "@/lib/db/schema";
+
+/** Export / import of .hodos.json files. */
+
+const positionSchema = z.object({ x: z.number(), y: z.number() });
+
+// mapId is optional for backward-compatibility — pre-nesting exports default
+// every row to the root map.
+const nodeSchema = z.object({
+  id: z.string().min(1),
+  mapId: z.string().default(ROOT_MAP_ID),
+  type: z.enum(["question", "verse", "note"]),
+  content: z.string().default(""),
+  verseRef: z.string().optional(),
+  verseText: z.string().optional(),
+  position: positionSchema,
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  deletedAt: z.number().optional(),
+});
+
+const edgeSchema = z.object({
+  id: z.string().min(1),
+  mapId: z.string().default(ROOT_MAP_ID),
+  source: z.string().min(1),
+  target: z.string().min(1),
+  kind: z.enum(["manual", "crossref"]),
+  createdAt: z.number(),
+  updatedAt: z.number(),
+  deletedAt: z.number().optional(),
+});
+
+export const exportSchema = z.object({
+  version: z.literal(1),
+  exportedAt: z.string(),
+  name: z.string().max(120).optional(),
+  nodes: z.array(nodeSchema),
+  edges: z.array(edgeSchema),
+});
+
+export function parseImport(text: string): HodosExport {
+  const parsed = exportSchema.parse(JSON.parse(text));
+  // Drop edges that reference missing nodes so an import can never corrupt
+  const ids = new Set(parsed.nodes.map((n) => n.id));
+  return {
+    ...parsed,
+    name: parsed.name,
+    edges: parsed.edges.filter((e) => ids.has(e.source) && ids.has(e.target)),
+  };
+}
+
+export function downloadExport(data: HodosExport) {
+  const stamp = new Date().toISOString().slice(0, 10);
+  const slug =
+    (data.name ?? "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "hodos-map";
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${slug}-${stamp}.hodos.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}

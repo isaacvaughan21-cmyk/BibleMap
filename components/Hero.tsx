@@ -47,7 +47,13 @@ export default function Hero() {
             } as React.CSSProperties
           }
         >
-          <circle cx="1030" cy="190" r="2.5" fill="currentColor" opacity="0.6" />
+          <circle
+            cx="1030"
+            cy="190"
+            r="2.5"
+            fill="currentColor"
+            opacity="0.6"
+          />
           <circle cx="945" cy="285" r="2" fill="currentColor" opacity="0.45" />
           <path
             d="M 1030 190 Q 980 225 945 285"
@@ -66,7 +72,13 @@ export default function Hero() {
           }
         >
           <circle cx="220" cy="620" r="2" fill="currentColor" opacity="0.5" />
-          <circle cx="1000" cy="640" r="2.5" fill="currentColor" opacity="0.55" />
+          <circle
+            cx="1000"
+            cy="640"
+            r="2.5"
+            fill="currentColor"
+            opacity="0.55"
+          />
         </g>
       </svg>
 
@@ -104,6 +116,34 @@ export default function Hero() {
             An infinite, zoomable mind map for Bible study — capture every
             question, connect every insight, and walk deeper into the Word than
             you ever have before.
+          </p>
+        </Reveal>
+
+        <Reveal delay={0.6}>
+          <div className="mt-12 flex flex-col items-center justify-center gap-5 sm:flex-row sm:gap-8">
+            <a
+              href="/app"
+              target="_blank"
+              rel="noopener"
+              className="group rounded-full bg-gold px-8 py-4 font-sans text-sm font-medium text-parchment shadow-lg shadow-gold/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-ink hover:shadow-xl hover:shadow-ink/15"
+            >
+              Try Hodos free{" "}
+              <span
+                aria-hidden="true"
+                className="inline-block transition-transform duration-300 group-hover:translate-x-1"
+              >
+                →
+              </span>
+            </a>
+            <a
+              href="#try"
+              className="font-sans text-2xs tracking-eyebrow text-ink-muted transition-colors hover:text-gold"
+            >
+              SEE THE LIVE DEMO ↓
+            </a>
+          </div>
+          <p className="mt-5 font-sans text-2xs text-ink-muted/80">
+            Now in open beta — free while we build.
           </p>
         </Reveal>
       </div>

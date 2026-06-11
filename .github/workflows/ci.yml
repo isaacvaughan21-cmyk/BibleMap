@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop]
+  push:
+    branches: [develop, main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint (fail on warnings)
+        run: npm run lint -- --max-warnings 0
+
+      - name: Build
+        run: npm run build
+        env:
+          # Build the canvas too, so flag-gated code is always compiled in CI.
+          NEXT_PUBLIC_HODOS_APP_ENABLED: "true"
+
+      - name: Ensure service-role key never reaches the client bundle
+        run: |
+          if grep -r "SUPABASE_SERVICE_ROLE_KEY" .next/static; then
+            echo "::error::service-role key reference found in client bundle"
+            exit 1
+          fi
+          echo "client bundle clean"
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Smoke test (create a bubble, reload, persists)
+        run: npx playwright test
+        env:
+          NEXT_PUBLIC_HODOS_APP_ENABLED: "true"
