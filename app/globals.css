@@ -27,6 +27,9 @@
     color: var(--ink-soft);
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    /* No accidental sideways scroll on phones (decorative auras can overflow).
+       clip (not hidden) so sticky/pinned sections still work. */
+    overflow-x: clip;
   }
 
   ::selection {

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import Script from "next/script";
 import { Analytics } from "@vercel/analytics/next";
@@ -40,6 +40,14 @@ export const metadata: Metadata = {
       "An infinite, zoomable mind map for Bible study. Now in open beta — try it free.",
   },
   robots: { index: true, follow: true },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Don't cap zoom — pinch-to-zoom stays available for accessibility.
+  themeColor: "#f4efe6",
+  colorScheme: "light",
 };
 
 const jsonLd = {
