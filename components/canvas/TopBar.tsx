@@ -27,7 +27,7 @@ export default function TopBar({
   onHelp,
 }: TopBarProps) {
   return (
-    <header className="absolute inset-x-0 top-0 z-40 border-b border-rule/60 bg-parchment/70 backdrop-blur-md">
+    <header className="dive-dim absolute inset-x-0 top-0 z-40 border-b border-rule/60 bg-parchment/70 backdrop-blur-md">
       <div className="relative flex h-14 items-center justify-between px-4 md:px-6">
         {/* Left: wordmark */}
         <Link href="/" className="flex items-baseline gap-2">

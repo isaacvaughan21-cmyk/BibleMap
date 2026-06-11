@@ -20,7 +20,7 @@ export default function HintBar() {
   if (!loaded || hintsDismissed) return null;
 
   return (
-    <div className="pointer-events-none absolute bottom-5 left-1/2 z-30 -translate-x-1/2 animate-fade-up">
+    <div className="dive-dim pointer-events-none absolute bottom-5 left-1/2 z-30 -translate-x-1/2 animate-fade-up">
       <div className="pointer-events-auto flex items-center gap-3 rounded-full border border-rule/80 bg-parchment/90 py-2 pl-5 pr-3 font-sans text-2xs text-ink-muted shadow-md shadow-ink/5 backdrop-blur-md">
         <span>
           <span className="text-ink-soft">Double-click</span> the canvas to

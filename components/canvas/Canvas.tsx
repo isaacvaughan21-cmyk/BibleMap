@@ -6,6 +6,7 @@ import {
   BackgroundVariant,
   ConnectionLineType,
   getNodesBounds,
+  getViewportForBounds,
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
@@ -69,6 +70,10 @@ function minimapNodeColor(node: Node): string {
 const MENU_WIDTH = 192;
 const MENU_HEIGHT = 180;
 
+/* Dive easing — fall in with gathering speed, arrive with a long soft landing */
+const easeInCubic = (t: number) => t * t * t;
+const easeOutQuint = (t: number) => 1 - Math.pow(1 - t, 5);
+
 type ToastState = {
   text: string;
   action?: { label: string; run: () => void };
@@ -120,6 +125,8 @@ function CanvasInner() {
   const reloadFromDb = useCanvasStore((s) => s.reloadFromDb);
   const versePickerNodeId = useCanvasStore((s) => s.versePickerNodeId);
   const setVersePicker = useCanvasStore((s) => s.setVersePicker);
+  // While a dive is in flight, the chrome fades back so the canvas is the star
+  const diving = useCanvasStore((s) => !!s.pendingNav);
   const [railOpen, setRailOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -299,6 +306,7 @@ function CanvasInner() {
     <div
       ref={wrapperRef}
       className="relative h-dvh w-full overflow-hidden bg-parchment"
+      data-diving={diving || undefined}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes(CROSSREF_DRAG_TYPE)) {
           e.preventDefault();
@@ -596,7 +604,8 @@ function FlowSurface(props: {
 }) {
   const {
     screenToFlowPosition,
-    setCenter,
+    setViewport,
+    getNodes,
     getInternalNode,
     getViewport,
     fitView,
@@ -607,16 +616,18 @@ function FlowSurface(props: {
   // The dive is the signature interaction, so it ALWAYS plays — even under
   // prefers-reduced-motion (which the Claude preview and OS "Reduce Motion"
   // force on). The landing's zoom demo drops the same gate for the same reason.
-  // Opening: the camera plunges INTO the bubble, a parchment veil rises as
-  // you pass through its skin, a gold ring blooms (the landing's signature),
-  // and the inner world grows from a point to fill the screen.
-  // Going up: the inverse — this world shrinks away, the parent settles in.
+  //
+  // The camera is driven by our own rAF loop (instant setViewport per frame):
+  // custom easing, geometric zoom (constant perceived rate, like the landing),
+  // and no dependence on React Flow's d3 transitions, which proved flaky here.
   const pendingNav = useCanvasStore((s) => s.pendingNav);
   const openNodeStore = useCanvasStore((s) => s.openNode);
   const goToMapStore = useCanvasStore((s) => s.goToMap);
   const clearPendingNav = useCanvasStore((s) => s.clearPendingNav);
+  const selectOnlyStore = useCanvasStore((s) => s.selectOnly);
   const [veil, setVeil] = useState(false);
   const [ring, setRing] = useState(0);
+  const [arriving, setArriving] = useState(false);
   const running = useRef(false);
 
   useEffect(() => {
@@ -627,81 +638,146 @@ function FlowSurface(props: {
     const frame = () =>
       new Promise<void>((r) => requestAnimationFrame(() => r()));
 
-    /** Screen-space center of the canvas pane. */
-    const paneCenter = () => {
+    const paneDims = () => {
       const r = surfaceRef.current?.getBoundingClientRect();
-      return r
-        ? { x: r.left + r.width / 2, y: r.top + r.height / 2 }
-        : { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+      return {
+        w: r?.width ?? window.innerWidth,
+        h: r?.height ?? window.innerHeight,
+      };
     };
 
-    /** Center (flow coords) of all bubbles on the current map. */
-    const contentCenter = () => {
-      const ns = useCanvasStore.getState().nodes;
-      if (!ns.length) return { x: 0, y: 0 };
-      const b = getNodesBounds(ns);
-      return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    /** The world point currently at the screen center, and the zoom. */
+    const currentFocus = () => {
+      const vp = getViewport();
+      const { w, h } = paneDims();
+      return {
+        x: (w / 2 - vp.x) / vp.zoom,
+        y: (h / 2 - vp.y) / vp.zoom,
+        zoom: vp.zoom,
+      };
+    };
+
+    /** Park the camera instantly with `focus` at the screen center. */
+    const jumpTo = (focus: { x: number; y: number }, zoom: number) => {
+      const { w, h } = paneDims();
+      setViewport(
+        { x: w / 2 - focus.x * zoom, y: h / 2 - focus.y * zoom, zoom },
+        { duration: 0 },
+      );
     };
 
     /**
-     * Animate the camera between two absolute zoom levels around the current
-     * map's center, then settle precisely. Built on setCenter (not fitView's
-     * animated form) because React Flow suppresses fitView transitions under
-     * prefers-reduced-motion — and the dive must always play.
+     * Fly the camera: pan the focus point and zoom GEOMETRICALLY (scale
+     * multiplies at a constant rate — the landing's `PEAK^p` law) with a
+     * chosen easing curve.
      */
-    const animateZoom = async (
-      fromZoom: number,
-      toZoom: number,
+    const flyTo = (
+      to: { x: number; y: number; zoom: number },
       duration: number,
-    ) => {
-      const c = contentCenter();
-      setCenter(c.x, c.y, { zoom: fromZoom, duration: 0 });
-      await wait(70); // let the jump + re-renders commit before animating
-      setCenter(c.x, c.y, { zoom: toZoom, duration });
-      await wait(duration);
-      fitView({ duration: 0, padding: 0.3, maxZoom: 1 }); // settle exactly
+      ease: (t: number) => number,
+    ) =>
+      new Promise<void>((resolve) => {
+        const from = currentFocus();
+        const { w, h } = paneDims();
+        const t0 = performance.now();
+        const step = (now: number) => {
+          const p = Math.min(1, (now - t0) / duration);
+          const e = ease(p);
+          const zoom = from.zoom * Math.pow(to.zoom / from.zoom, e);
+          const fx = from.x + (to.x - from.x) * e;
+          const fy = from.y + (to.y - from.y) * e;
+          setViewport(
+            { x: w / 2 - fx * zoom, y: h / 2 - fy * zoom, zoom },
+            { duration: 0 },
+          );
+          if (p < 1) requestAnimationFrame(step);
+          else resolve();
+        };
+        requestAnimationFrame(step);
+      });
+
+    /** Wait until freshly swapped nodes carry real measurements. */
+    const waitMeasured = async () => {
+      for (let i = 0; i < 14; i++) {
+        await frame();
+        const ns = getNodes();
+        if (ns.length === 0 || ns.every((n) => (n.measured?.width ?? 0) > 0)) {
+          return;
+        }
+      }
     };
 
-    /** Zoom the CURRENT view toward a factor of its present zoom. */
-    const animateZoomCurrent = async (factor: number, duration: number) => {
-      const vp = getViewport();
-      const c = screenToFlowPosition(paneCenter());
-      setCenter(c.x, c.y, { zoom: vp.zoom * factor, duration });
-      await wait(duration);
+    /** Where the camera should come to rest for the current map. */
+    const restingTarget = () => {
+      const ns = getNodes();
+      if (!ns.length) return { x: 0, y: 0, zoom: 1 };
+      const b = getNodesBounds(ns);
+      const { w, h } = paneDims();
+      const vp = getViewportForBounds(b, w, h, 0.1, 1, 0.3);
+      return { x: b.x + b.width / 2, y: b.y + b.height / 2, zoom: vp.zoom };
+    };
+
+    /** Measured center of a bubble. */
+    const bubbleCenter = (id: string) => {
+      const n = getInternalNode(id);
+      if (!n) return null;
+      return {
+        x: n.internals.positionAbsolute.x + (n.measured?.width ?? 200) / 2,
+        y: n.internals.positionAbsolute.y + (n.measured?.height ?? 60) / 2,
+      };
     };
 
     (async () => {
       try {
         if (nav.kind === "open") {
-          // 1 — plunge deep into the bubble
-          const n = getInternalNode(nav.id);
-          if (n) {
-            const w = n.measured?.width ?? 200;
-            const h = n.measured?.height ?? 60;
-            const { x, y } = n.internals.positionAbsolute;
-            setCenter(x + w / 2, y + h / 2, { zoom: 8, duration: 650 });
-          }
-          // 2 — the veil rises as we pass through the bubble's skin
-          await wait(360);
+          // 1 — the fall: accelerate into the heart of the bubble,
+          //     the veil rising as you pass through its skin
+          const center = bubbleCenter(nav.id) ?? currentFocus();
+          const veilTimer = setTimeout(() => setVeil(true), 430);
+          await flyTo({ ...center, zoom: 8.5 }, 800, easeInCubic);
+          clearTimeout(veilTimer);
           setVeil(true);
-          await wait(300);
-          // 3 — swap worlds under the veil
+          await wait(240); // a held breath at the threshold
+          // 2 — swap worlds under the veil
           await openNodeStore(nav.id);
+          setArriving(true);
+          await waitMeasured();
+          // 3 — the new world begins as a distant point…
+          const target = restingTarget();
+          jumpTo(target, 0.1);
           await frame();
           setRing((k) => k + 1); // gold ring blooms at the threshold
           setVeil(false);
-          // 4&5 — the new world begins as a point and rushes out to fill it
-          await animateZoom(0.12, 1, 820);
+          // 4 — …and rushes out to meet you, settling gently
+          await flyTo(target, 950, easeOutQuint);
         } else {
-          // Rising out: this world recedes to a point…
-          await animateZoomCurrent(0.2, 460);
+          // Rising out: remember which bubble we were inside
+          const departedId = useCanvasStore.getState().currentMapId;
+          // 1 — this world falls away beneath you
+          const f = currentFocus();
+          const veilTimer = setTimeout(() => setVeil(true), 320);
+          await flyTo(
+            { x: f.x, y: f.y, zoom: Math.max(0.1, f.zoom * 0.1) },
+            680,
+            easeInCubic,
+          );
+          clearTimeout(veilTimer);
           setVeil(true);
-          await wait(200);
+          await wait(220);
+          // 2 — swap to the parent under the veil
           await goToMapStore(nav.index);
+          setArriving(true);
+          await waitMeasured();
+          // 3 — emerge OUT of the bubble you were just inside…
+          const target = restingTarget();
+          const exited = bubbleCenter(departedId);
+          jumpTo(exited ?? target, exited ? 3 : target.zoom * 2);
           await frame();
+          setRing((k) => k + 1);
           setVeil(false);
-          // …and the parent settles back around you, slightly over-near
-          await animateZoom(2.2, 1, 720);
+          if (exited) selectOnlyStore(departedId); // halo marks where you were
+          // 4 — …as the parent world settles around it
+          await flyTo(target, 900, easeOutQuint);
         }
       } catch (err) {
         console.error("hodos: map transition failed", err);
@@ -711,17 +787,19 @@ function FlowSurface(props: {
         setVeil(false);
         running.current = false;
         clearPendingNav();
+        setTimeout(() => setArriving(false), 2000);
       }
     })();
   }, [
     pendingNav,
     getInternalNode,
+    getNodes,
     getViewport,
-    screenToFlowPosition,
-    setCenter,
+    setViewport,
     fitView,
     openNodeStore,
     goToMapStore,
+    selectOnlyStore,
     clearPendingNav,
   ]);
 
@@ -858,7 +936,9 @@ function FlowSurface(props: {
         onNodeDoubleClick={onNodeDoubleClick}
         onConnectEnd={onConnectEnd}
         onlyRenderVisibleElements={props.nodes.length > 150}
-        className={props.nodes.length > 150 ? "perf-mode" : undefined}
+        className={`${props.nodes.length > 150 ? "perf-mode" : ""} ${
+          arriving ? "arriving" : ""
+        }`}
         onNodeContextMenu={props.onNodeContextMenu}
         onEdgeContextMenu={props.onEdgeContextMenu}
         onPaneContextMenu={props.onPaneContextMenu}

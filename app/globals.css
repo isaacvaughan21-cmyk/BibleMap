@@ -278,15 +278,61 @@
   }
 }
 .react-flow:not(.perf-mode) .bubble {
-  animation: bubble-in 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: bubble-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 .react-flow:not(.perf-mode) .react-flow__edge {
-  animation: edge-in 0.5s ease-out;
+  animation: edge-in 0.5s ease-out backwards;
 }
 /* Large virtualized maps: no ambient drift, no breathing halo */
 .perf-mode .floaty,
 .perf-mode .bubble-selected::before {
   animation: none;
+}
+
+/* Arrival in a map after a dive — the world unfolds bubble by bubble,
+   the landing's cascading inner map. Forced past the reduced-motion
+   override because the dive always plays. */
+.arriving .react-flow__node:nth-child(1) .bubble {
+  animation-duration: 0.4s !important;
+}
+.arriving .react-flow__node:nth-child(2) .bubble {
+  animation: bubble-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.55s backwards !important;
+}
+.arriving .react-flow__node:nth-child(3) .bubble {
+  animation: bubble-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.65s backwards !important;
+}
+.arriving .react-flow__node:nth-child(4) .bubble {
+  animation: bubble-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.75s backwards !important;
+}
+.arriving .react-flow__node:nth-child(5) .bubble {
+  animation: bubble-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.85s backwards !important;
+}
+.arriving .react-flow__node:nth-child(6) .bubble {
+  animation: bubble-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 0.95s backwards !important;
+}
+.arriving .react-flow__node:nth-child(7) .bubble {
+  animation: bubble-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 1.05s backwards !important;
+}
+.arriving .react-flow__node:nth-child(n + 8) .bubble {
+  animation: bubble-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) 1.15s backwards !important;
+}
+.arriving .react-flow__edge {
+  animation: edge-in 0.6s ease-out 1.1s backwards !important;
+}
+
+/* While the camera is in flight, the chrome bows out of the frame */
+.dive-dim {
+  transition:
+    opacity 0.35s ease,
+    transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+    right 0.3s;
+}
+[data-diving] .dive-dim {
+  opacity: 0.15;
+  pointer-events: none;
+}
+[data-diving] main {
+  pointer-events: none;
 }
 
 /* Drag-select rectangle */

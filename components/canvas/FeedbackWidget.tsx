@@ -58,7 +58,7 @@ export default function FeedbackWidget({
 
   return (
     <div
-      className={`absolute bottom-4 z-30 transition-all duration-300 ${
+      className={`dive-dim absolute bottom-4 z-30 transition-all duration-300 ${
         railOpen ? "right-[492px]" : "right-40"
       }`}
     >

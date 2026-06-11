@@ -14,7 +14,7 @@ export default function CanvasControls({ railOpen }: { railOpen: boolean }) {
 
   return (
     <div
-      className={`absolute bottom-4 z-30 flex items-center gap-1 rounded-full border border-rule/80 bg-parchment/85 p-1 shadow-md shadow-ink/5 backdrop-blur-md transition-all duration-300 ${
+      className={`dive-dim absolute bottom-4 z-30 flex items-center gap-1 rounded-full border border-rule/80 bg-parchment/85 p-1 shadow-md shadow-ink/5 backdrop-blur-md transition-all duration-300 ${
         railOpen ? "right-[336px]" : "right-4"
       }`}
       role="group"
