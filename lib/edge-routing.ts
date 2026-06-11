@@ -62,3 +62,34 @@ export function floatingEdgeParams(source: InternalNode, target: InternalNode) {
   const ta = anchor(t, targetPos);
   return { sx: sa.x, sy: sa.y, tx: ta.x, ty: ta.y, sourcePos, targetPos };
 }
+
+/**
+ * A gently curved edge that STRAIGHTENS into its target. The final control
+ * point sits straight back along the chord, so the end tangent runs along the
+ * line — the arrowhead stays aligned and the line enters the centre of its
+ * back. The first control point bows out perpendicular for the curve.
+ */
+export function curvedEdgePath(
+  sx: number,
+  sy: number,
+  tx: number,
+  ty: number,
+): string {
+  const dx = tx - sx;
+  const dy = ty - sy;
+  const dist = Math.hypot(dx, dy) || 1;
+  const ux = dx / dist;
+  const uy = dy / dist;
+  const px = -uy; // unit perpendicular
+  const py = ux;
+  const bow = Math.min(dist * 0.16, 64); // how far the line bows out
+  // First control point: out along the chord, bowed to one side.
+  const c1x = sx + ux * dist * 0.4 + px * bow;
+  const c1y = sy + uy * dist * 0.4 + py * bow;
+  // Second control point: straight back from the end along the chord, so the
+  // approach is straight and the arrow lines up.
+  const straight = Math.min(dist * 0.28, 70);
+  const c2x = tx - ux * straight;
+  const c2y = ty - uy * straight;
+  return `M ${sx},${sy} C ${c1x},${c1y} ${c2x},${c2y} ${tx},${ty}`;
+}

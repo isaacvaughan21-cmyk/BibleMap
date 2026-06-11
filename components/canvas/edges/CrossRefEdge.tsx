@@ -1,10 +1,5 @@
-import {
-  BaseEdge,
-  getStraightPath,
-  useInternalNode,
-  type EdgeProps,
-} from "@xyflow/react";
-import { floatingEdgeParams } from "@/lib/edge-routing";
+import { BaseEdge, useInternalNode, type EdgeProps } from "@xyflow/react";
+import { curvedEdgePath, floatingEdgeParams } from "@/lib/edge-routing";
 import { ARROW_GOLD } from "./EdgeMarkers";
 
 /** A scripture cross-reference — dashed gold, slightly heavier, floating anchors. */
@@ -14,14 +9,8 @@ export default function CrossRefEdge({ id, source, target }: EdgeProps) {
   if (!sourceNode || !targetNode) return null;
 
   const { sx, sy, tx, ty } = floatingEdgeParams(sourceNode, targetNode);
-  // A straight chord between the nearest sides — so the arrow lines up exactly
-  // with the line, its tip on the end and the line through the centre of its back.
-  const [path] = getStraightPath({
-    sourceX: sx,
-    sourceY: sy,
-    targetX: tx,
-    targetY: ty,
-  });
+  // A gentle curve that straightens into the target so the arrow stays aligned.
+  const path = curvedEdgePath(sx, sy, tx, ty);
   return (
     <>
       <BaseEdge
