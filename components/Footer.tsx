@@ -12,7 +12,7 @@ export default function Footer() {
         </div>
 
         <p className="font-sans text-2xs text-ink-muted">
-          © {year} Hodos. All rights reserved.
+          © {year} Hodos · v0 open beta. All rights reserved.
         </p>
       </div>
     </footer>

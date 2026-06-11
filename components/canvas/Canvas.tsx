@@ -37,6 +37,7 @@ import HintBar from "./HintBar";
 import HelpOverlay from "./HelpOverlay";
 import ImportDialog from "./ImportDialog";
 import VersePicker from "./VersePicker";
+import WelcomeGate from "./WelcomeGate";
 import QuestionNode from "./nodes/QuestionNode";
 import VerseNode from "./nodes/VerseNode";
 import NoteNode from "./nodes/NoteNode";
@@ -502,6 +503,9 @@ function CanvasInner() {
           </p>
         </div>
       )}
+
+      {/* v0 beta sign-up gate — first visit only */}
+      <WelcomeGate />
 
       {/* Quiet toast */}
       {toast && (

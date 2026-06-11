@@ -128,6 +128,15 @@
     );
   }
 
+  /* Landing mini-canvas: never trap page scrolling on touch. React Flow's
+     stylesheet (and d3-drag inline styles) set touch-action: none — the
+     !important + higher specificity restores vertical swipes to the page,
+     while horizontal drags still pan the demo. */
+  .landing-flow .react-flow__pane,
+  .landing-flow .react-flow__node {
+    touch-action: pan-y !important;
+  }
+
   /* Veil for the dive-into-a-bubble transition — light at the center,
      where you pass through. The dive always plays, so its timing carries
      !important to beat the global prefers-reduced-motion override. */

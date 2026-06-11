@@ -24,11 +24,11 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Hodos — The way, the path. An infinite mind map for Bible study.",
   description:
-    "Capture every question, connect every insight, and walk deeper into scripture. Hodos is an infinite zoomable mind map for Bible study. Join the waitlist.",
+    "Capture every question, connect every insight, and walk deeper into scripture. Hodos is an infinite zoomable mind map for Bible study. Now in open beta — try it free.",
   openGraph: {
     title: "Hodos — The way, the path.",
     description:
-      "An infinite, zoomable mind map for Bible study. Join the waitlist.",
+      "An infinite, zoomable mind map for Bible study. Now in open beta — try it free.",
     url: SITE_URL,
     siteName: "Hodos",
     type: "website",
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Hodos — The way, the path.",
     description:
-      "An infinite, zoomable mind map for Bible study. Join the waitlist.",
+      "An infinite, zoomable mind map for Bible study. Now in open beta — try it free.",
   },
   robots: { index: true, follow: true },
 };

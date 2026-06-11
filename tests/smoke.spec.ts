@@ -4,6 +4,18 @@ import { expect, test } from "@playwright/test";
 test("canvas loads, creates a bubble, and persists it across reload", async ({
   page,
 }) => {
+  // Pre-seed a beta account so the WelcomeGate doesn't cover the canvas.
+  await page.addInitScript(() => {
+    window.localStorage.setItem(
+      "hodos.account",
+      JSON.stringify({
+        email: "ci@hodos.test",
+        guest: false,
+        plan: "beta",
+        createdAt: 0,
+      }),
+    );
+  });
   await page.goto("/app");
 
   // Fresh context → onboarding seed renders

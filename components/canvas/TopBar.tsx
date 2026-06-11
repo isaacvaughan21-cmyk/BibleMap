@@ -35,6 +35,9 @@ export default function TopBar({
           <span className="font-sans text-2xs tracking-greek text-gold">
             ΟΔΟΣ
           </span>
+          <span className="hidden rounded-full border border-gold/40 bg-gold/10 px-2 py-px font-sans text-2xs tracking-eyebrow text-gold sm:inline-block">
+            BETA
+          </span>
         </Link>
 
         {/* Center: map name at root, breadcrumb trail when nested */}
@@ -126,8 +129,20 @@ function OverflowMenu({
   onHelp: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [isGuest, setIsGuest] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const canvases = useCanvasStore((s) => s.canvases);
+
+  // A guest can upgrade to an account any time — surface it in the menu.
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const raw = localStorage.getItem("hodos.account");
+      setIsGuest(!!raw && !!(JSON.parse(raw) as { guest?: boolean }).guest);
+    } catch {
+      setIsGuest(false);
+    }
+  }, [open]);
   const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
   const createCanvas = useCanvasStore((s) => s.createCanvas);
   const requestCanvas = useCanvasStore((s) => s.requestCanvas);
@@ -219,6 +234,21 @@ function OverflowMenu({
             <MenuButton onClick={() => fileRef.current?.click()}>
               Import map…
             </MenuButton>
+            {isGuest && (
+              <MenuButton
+                onClick={() => {
+                  try {
+                    localStorage.removeItem("hodos.account");
+                  } catch {
+                    // gate also opens via the event below
+                  }
+                  window.dispatchEvent(new Event("hodos:open-gate"));
+                  setOpen(false);
+                }}
+              >
+                Create free account…
+              </MenuButton>
+            )}
             <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
             <MenuButton
               onClick={() => {

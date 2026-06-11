@@ -18,14 +18,12 @@ export default function WaitlistCTA() {
 
       <div className="relative mx-auto max-w-2xl text-center">
         <Reveal>
-          <h2 className="font-serif text-3xl text-ink md:text-2xl">
-            Go deep.
-          </h2>
+          <h2 className="font-serif text-3xl text-ink md:text-2xl">Go deep.</h2>
         </Reveal>
         <Reveal delay={0.1}>
           <p className="mx-auto mt-6 max-w-lg font-sans text-md leading-relaxed text-ink-soft">
-            Hodos is almost ready. Join the waitlist and be among the first to
-            explore Scripture this way.
+            Hodos is now in open beta — free to try today. Join the list to
+            follow the build and hear when accounts and sync arrive.
           </p>
         </Reveal>
 
@@ -35,10 +33,9 @@ export default function WaitlistCTA() {
               EARLY ACCESS
             </p>
             <p className="mt-2 font-sans text-base leading-relaxed text-ink-soft">
-              The first <span className="font-semibold text-ink">10</span> to
-              join get{" "}
-              <span className="font-semibold text-ink">early beta access</span>{" "}
-              — and a{" "}
+              The beta is open to everyone — but the first{" "}
+              <span className="font-semibold text-ink">10</span> on the list
+              still get a{" "}
               <span className="font-semibold text-ink">
                 free lifetime subscription
               </span>

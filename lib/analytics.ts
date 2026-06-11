@@ -19,7 +19,9 @@ export type AnalyticsEvent =
   | "edge_drawn"
   | "crossref_added"
   | "session_minutes"
-  | "map_size";
+  | "map_size"
+  | "beta_signup"
+  | "beta_guest";
 
 export function track(
   name: AnalyticsEvent,
