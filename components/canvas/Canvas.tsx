@@ -782,23 +782,33 @@ function FlowSurface(props: {
           // 4 — …as the parent world settles around it
           await flyTo(target, 880, easeOutQuint);
         } else {
-          // Canvas switch — a sideways jump, no zoom. The current world
-          // slides off to the left; the new one slides in from the right.
+          // Canvas switch — pull back, scroll across the gap, dive into the
+          // new one: a cinematic zoom-out → scroll-over → zoom-in.
           const f = currentFocus();
-          const span = paneDims().w / f.zoom;
+          const alt = Math.max(0.22, f.zoom * 0.26); // fly-over altitude
+          const spanAlt = paneDims().w / alt;
+          // 1 — zoom out from the current canvas
+          await flyTo({ x: f.x, y: f.y, zoom: alt }, 480, easeInOutCubic);
+          // 2 — scroll the current canvas off to the left at altitude
           await flyTo(
-            { x: f.x + span, y: f.y, zoom: f.zoom },
-            440,
+            { x: f.x + spanAlt, y: f.y, zoom: alt },
+            380,
             easeInOutCubic,
           );
-          // swap canvases while everything is off-screen (just parchment)
+          // swap canvases while the gap (empty parchment) is on screen
           await switchCanvasStore(nav.id);
           setArriving(true);
           await waitMeasured();
           const target = restingTarget();
-          const span2 = paneDims().w / target.zoom;
-          jumpTo({ x: target.x - span2, y: target.y }, target.zoom);
-          await flyTo(target, 560, easeOutQuint);
+          // 3 — scroll the new canvas in from the right, still at altitude
+          jumpTo({ x: target.x - spanAlt, y: target.y }, alt);
+          await flyTo(
+            { x: target.x, y: target.y, zoom: alt },
+            420,
+            easeInOutCubic,
+          );
+          // 4 — zoom in to settle on the new canvas
+          await flyTo(target, 600, easeOutQuint);
         }
       } catch (err) {
         console.error("hodos: map transition failed", err);

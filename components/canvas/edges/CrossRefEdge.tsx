@@ -1,6 +1,6 @@
 import {
   BaseEdge,
-  getBezierPath,
+  getStraightPath,
   useInternalNode,
   type EdgeProps,
 } from "@xyflow/react";
@@ -13,18 +13,14 @@ export default function CrossRefEdge({ id, source, target }: EdgeProps) {
   const targetNode = useInternalNode(target);
   if (!sourceNode || !targetNode) return null;
 
-  const { sx, sy, tx, ty, sourcePos, targetPos } = floatingEdgeParams(
-    sourceNode,
-    targetNode,
-  );
-  const [path] = getBezierPath({
+  const { sx, sy, tx, ty } = floatingEdgeParams(sourceNode, targetNode);
+  // A straight chord between the nearest sides — so the arrow lines up exactly
+  // with the line, its tip on the end and the line through the centre of its back.
+  const [path] = getStraightPath({
     sourceX: sx,
     sourceY: sy,
-    sourcePosition: sourcePos,
     targetX: tx,
     targetY: ty,
-    targetPosition: targetPos,
-    curvature: 0.3,
   });
   return (
     <>

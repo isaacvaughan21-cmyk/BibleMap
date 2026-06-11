@@ -3,7 +3,6 @@ import type { NoteNodeType } from "@/lib/types";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
-import NodeOpenButton from "./NodeOpenButton";
 import { floatStyle } from "./float";
 
 /** A personal note — borderless, quieter than questions and verses. */
@@ -40,7 +39,6 @@ export default function NoteNode({
             )}
           </p>
         )}
-        <NodeOpenButton id={id} />
         <NodeHandles />
       </div>
     </div>

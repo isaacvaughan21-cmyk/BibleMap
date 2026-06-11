@@ -73,14 +73,9 @@ expect(
   "child-map content does not leak into the root",
 );
 
-// The opened bubble now shows the child-map indicator (open button lit)
 const q2 = page.locator(".react-flow__node", {
   hasText: "Who is Melchizedek?",
 });
-expect(
-  await q2.getByRole("button", { name: "Enter map" }).isVisible(),
-  "opened bubble shows the 'enter map' indicator",
-);
 await shot("04-back-at-root");
 
 // Re-enter via double-click: child content is still there (no reseed)
@@ -103,8 +98,7 @@ expect((await nodeCount()) === 3, "reload returns to the root map");
 const q3 = page.locator(".react-flow__node", {
   hasText: "Who is Melchizedek?",
 });
-// The lit badge is the secondary entrance — exercise it too
-await q3.getByRole("button", { name: "Enter map" }).click({ force: true });
+await q3.dblclick({ force: true });
 await page.waitForTimeout(2400);
 expect(
   await page

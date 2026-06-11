@@ -1,30 +1,25 @@
 import {
   BaseEdge,
-  getBezierPath,
+  getStraightPath,
   useInternalNode,
   type EdgeProps,
 } from "@xyflow/react";
 import { floatingEdgeParams } from "@/lib/edge-routing";
 import { ARROW_RULE } from "./EdgeMarkers";
 
-/** A hand-drawn connection — hairline rule, slight curve, floating anchors. */
+/** A hand-drawn connection — hairline rule between the nearest sides. */
 export default function ManualEdge({ id, source, target }: EdgeProps) {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
   if (!sourceNode || !targetNode) return null;
 
-  const { sx, sy, tx, ty, sourcePos, targetPos } = floatingEdgeParams(
-    sourceNode,
-    targetNode,
-  );
-  const [path] = getBezierPath({
+  const { sx, sy, tx, ty } = floatingEdgeParams(sourceNode, targetNode);
+  // Straight chord so the arrow aligns exactly with the line.
+  const [path] = getStraightPath({
     sourceX: sx,
     sourceY: sy,
-    sourcePosition: sourcePos,
     targetX: tx,
     targetY: ty,
-    targetPosition: targetPos,
-    curvature: 0.3,
   });
   return (
     <>
