@@ -71,6 +71,16 @@ export default function CreatePicker({
             <span className="h-5 w-5 rounded-md border border-rule bg-parchment-2" />
           }
         />
+        <PickItem
+          label="Definition"
+          hint="look up a word"
+          onClick={() => onPick("definition")}
+          glyph={
+            <span className="flex h-5 w-5 items-center justify-center rounded-md border border-rule bg-parchment-2 font-serif text-2xs text-ink-soft">
+              A
+            </span>
+          }
+        />
       </div>
     </>
   );

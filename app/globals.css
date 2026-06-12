@@ -15,6 +15,7 @@
   --gold: #b98a3a; /* accent, links, CTA */
   --gold-soft: #d9b871; /* hover, decorative nodes */
   --rule: #e4ddcb; /* hairlines, node strokes */
+  --danger: #a23b2d; /* destructive actions — a muted brick that sits on parchment */
 }
 
 @layer base {

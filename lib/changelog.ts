@@ -18,6 +18,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.3.0",
+    date: "2026-06-11",
+    title: "Deeper study tools",
+    changes: [
+      "New here? You now start with a clean, blank canvas.",
+      "Choose your Bible translation — BSB, KJV, WEB, ASV, or YLT — from the ··· menu, or request another.",
+      "The study panel now has tabs: cross-references, the same verse in every translation, and its surrounding passage.",
+      "Cross-references now name who an unclear “he” or “they” is talking about.",
+      "New Definition bubble: type a word and Hodos looks up its meaning.",
+      "Delete a canvas you no longer need from the ··· menu.",
+    ],
+  },
+  {
     version: "0.2.0",
     date: "2026-06-11",
     title: "A living demo & version history",

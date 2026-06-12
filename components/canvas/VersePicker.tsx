@@ -25,6 +25,7 @@ export default function VersePicker({
   onClose: () => void;
 }) {
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
+  const bibleVersion = useCanvasStore((s) => s.bibleVersion);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   useFocusTrap(panelRef, true);
@@ -54,7 +55,7 @@ export default function VersePicker({
     if (!book || chapter === null) return;
     let cancelled = false;
     setLoadState("loading");
-    loadBook(book.code)
+    loadBook(book.code, bibleVersion)
       .then((data) => {
         if (cancelled) return;
         setVerseCount(data.chapters[chapter - 1]?.length ?? 0);
@@ -64,12 +65,12 @@ export default function VersePicker({
     return () => {
       cancelled = true;
     };
-  }, [book, chapter]);
+  }, [book, chapter, bibleVersion]);
 
   const commit = async (ref: ParsedRef) => {
     setCommitting(true);
     try {
-      const { text } = await getVerseByParsed(ref);
+      const { text } = await getVerseByParsed(ref, bibleVersion);
       updateNodeData(nodeId, { verseRef: formatRef(ref), verseText: text });
       onClose();
     } catch {

@@ -36,6 +36,7 @@ const CREATE_ITEMS: { type: NodeKind; label: string }[] = [
   { type: "question", label: "Create a question bubble" },
   { type: "verse", label: "Create a verse bubble" },
   { type: "note", label: "Create a note bubble" },
+  { type: "definition", label: "Create a definition bubble" },
 ];
 
 export default function CommandPalette({

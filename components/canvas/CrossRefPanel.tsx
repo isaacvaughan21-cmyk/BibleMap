@@ -4,25 +4,122 @@ import { useEffect, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import {
   formatRef,
+  getChapterContext,
   getPassageText,
   getVerseByParsed,
   parseRef,
+  type ParsedRef,
 } from "@/lib/bible";
 import { formatCrossRef, getCrossRefs, type CrossRef } from "@/lib/crossrefs";
 import { setCrossRefDrag, useCanvasStore } from "@/lib/store/canvas-store";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
+import { pronounClarifier } from "@/lib/verse-referents";
+import { BIBLE_VERSIONS } from "@/lib/versions";
 import type { VerseNodeType } from "@/lib/types";
 
 /** dataTransfer marker so the canvas can tell a verse drag from a file drag. */
 export const CROSSREF_DRAG_TYPE = "application/x-hodos-crossref";
 
+type Tab = "refs" | "versions" | "context";
+
 /**
- * Contextual cross-reference panel — fills the study rail when a verse
- * bubble is selected. "Add to canvas" spawns a connected VerseNode with a
- * gold dashed crossref edge.
+ * The study panel for a selected verse — three tabs:
+ *  • Cross-refs: TSK cross-references, draggable onto the canvas, with a
+ *    curated pronoun clarifier ("He → Melchizedek") where the context is bare.
+ *  • Versions: the verse across the bundled translations.
+ *  • Context: the surrounding passage, focus verse highlighted.
  */
 export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
+  const [tab, setTab] = useState<Tab>("refs");
+  const parsed = parseRef(node.data.verseRef);
+
+  // A fresh verse selection always starts on cross-refs.
+  useEffect(() => {
+    setTab("refs");
+  }, [node.id]);
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="px-5 pb-2 pt-4">
+        <p className="font-mono text-xs uppercase tracking-[0.14em] text-gold">
+          {parsed ? formatRef(parsed) : node.data.verseRef || "—"}
+        </p>
+      </div>
+
+      <div
+        role="tablist"
+        aria-label="Study"
+        className="flex gap-4 border-b border-rule/60 px-5"
+      >
+        <TabButton active={tab === "refs"} onClick={() => setTab("refs")}>
+          Cross-refs
+        </TabButton>
+        <TabButton
+          active={tab === "versions"}
+          onClick={() => setTab("versions")}
+        >
+          Versions
+        </TabButton>
+        <TabButton active={tab === "context"} onClick={() => setTab("context")}>
+          Context
+        </TabButton>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        {!parsed ? (
+          <p className="px-5 py-6 text-center font-serif text-sm italic text-ink-muted">
+            Couldn&rsquo;t read this reference.
+          </p>
+        ) : tab === "refs" ? (
+          <CrossRefsTab node={node} parsed={parsed} />
+        ) : tab === "versions" ? (
+          <VersionsTab parsed={parsed} />
+        ) : (
+          <ContextTab parsed={parsed} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`-mb-px border-b-2 py-2 font-sans text-2xs tracking-eyebrow transition-colors ${
+        active
+          ? "border-gold text-gold"
+          : "border-transparent text-ink-muted hover:text-ink"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Cross-references tab                                                */
+/* ------------------------------------------------------------------ */
+function CrossRefsTab({
+  node,
+  parsed,
+}: {
+  node: VerseNodeType;
+  parsed: ParsedRef;
+}) {
   const addVerseWithCrossRef = useCanvasStore((s) => s.addVerseWithCrossRef);
+  const bibleVersion = useCanvasStore((s) => s.bibleVersion);
   const { fitView } = useReactFlow();
   const reducedMotion = usePrefersReducedMotion();
   const [state, setState] = useState<
@@ -33,10 +130,7 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
   const [retryToken, setRetryToken] = useState(0);
   const [addedIds, setAddedIds] = useState<Set<string>>(new Set());
 
-  const parsed = parseRef(node.data.verseRef);
-
   useEffect(() => {
-    if (!parsed) return;
     let cancelled = false;
     setState({ phase: "loading" });
     getCrossRefs(parsed)
@@ -48,21 +142,8 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.data.verseRef, retryToken]);
 
-  if (!parsed) {
-    return (
-      <PanelShell verseRef={node.data.verseRef || "—"}>
-        <p className="px-5 py-6 text-center font-serif text-sm italic text-ink-muted">
-          Couldn&rsquo;t read this reference.
-        </p>
-      </PanelShell>
-    );
-  }
-
   return (
-    <PanelShell
-      verseRef={formatRef(parsed)}
-      count={state.phase === "ready" ? state.refs.length : undefined}
-    >
+    <>
       {state.phase === "loading" && (
         <p className="px-5 py-6 text-center font-serif text-sm italic text-ink-muted">
           Gathering cross-references…
@@ -91,20 +172,24 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
       )}
 
       {state.phase === "ready" && state.refs.length > 0 && (
-        <ul className="space-y-1 px-3 pb-3">
+        <ul className="space-y-1 px-3 pb-3 pt-2">
           {state.refs.map((r) => {
             const key = formatCrossRef(r);
             return (
               <CrossRefRow
                 key={key}
                 crossRef={r}
+                version={bibleVersion}
                 added={addedIds.has(key)}
                 sourceId={node.id}
                 onAdd={async () => {
-                  const text = await getPassageText(r.target, r.targetEnd);
+                  const text = await getPassageText(
+                    r.target,
+                    r.targetEnd,
+                    bibleVersion,
+                  );
                   const newId = addVerseWithCrossRef(node.id, key, text);
                   setAddedIds((s) => new Set(s).add(key));
-                  // Bring both bubbles into view once the new one measures
                   setTimeout(() => {
                     fitView({
                       nodes: [{ id: node.id }, { id: newId }],
@@ -133,45 +218,20 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
         </a>{" "}
         (CC-BY)
       </p>
-    </PanelShell>
-  );
-}
-
-function PanelShell({
-  verseRef,
-  count,
-  children,
-}: {
-  verseRef: string;
-  count?: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="flex h-full flex-col">
-      <div className="px-5 pb-2 pt-4">
-        <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
-          CROSS-REFERENCES
-          {typeof count === "number" && count > 0 && (
-            <span className="ml-1.5 text-gold">· {count}</span>
-          )}
-        </p>
-        <p className="mt-1 font-mono text-xs uppercase tracking-[0.14em] text-gold">
-          {verseRef}
-        </p>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
-    </div>
+    </>
   );
 }
 
 function CrossRefRow({
   crossRef,
+  version,
   added,
   sourceId,
   onAdd,
   onMarkAdded,
 }: {
   crossRef: CrossRef;
+  version: string;
   added: boolean;
   sourceId: string;
   onAdd: () => Promise<void>;
@@ -184,14 +244,21 @@ function CrossRefRow({
 
   useEffect(() => {
     let cancelled = false;
-    getVerseByParsed(crossRef.target)
+    setPreview(null);
+    setFailed(false);
+    getVerseByParsed(crossRef.target, version)
       .then(({ text }) => !cancelled && setPreview(text))
       .catch(() => !cancelled && setFailed(true));
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [key, version]);
+
+  // Who an ambiguous pronoun points to (curated; null when not needed).
+  const clar = preview
+    ? pronounClarifier(formatRef(crossRef.target), preview)
+    : null;
 
   return (
     <li
@@ -200,13 +267,11 @@ function CrossRefRow({
         if (added) return;
         e.dataTransfer.setData(CROSSREF_DRAG_TYPE, key);
         e.dataTransfer.effectAllowed = "copy";
-        // Stash the full passage (resolved by drop time); avoids serializing.
         setCrossRefDrag({
           sourceId,
           verseRef: key,
-          text: getPassageText(crossRef.target, crossRef.targetEnd),
+          text: getPassageText(crossRef.target, crossRef.targetEnd, version),
         });
-        // Mark added optimistically — the drop creates the bubble.
         onMarkAdded();
       }}
       className={`group rounded-xl border border-transparent px-2 py-2 transition-colors hover:border-rule hover:bg-parchment ${
@@ -244,11 +309,120 @@ function CrossRefRow({
           (preview ?? "…")
         )}
       </p>
+      {clar && (
+        <p className="mt-1 font-sans text-2xs italic text-gold/80">
+          ({clar.pronoun} → {clar.referent})
+        </p>
+      )}
       {!added && (
         <p className="mt-1 font-sans text-[10px] text-ink-muted/60 opacity-0 transition-opacity group-hover:opacity-100">
           Drag onto the canvas to place it anywhere
         </p>
       )}
     </li>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Versions tab                                                        */
+/* ------------------------------------------------------------------ */
+function VersionsTab({ parsed }: { parsed: ParsedRef }) {
+  // code → text (string), null = failed, undefined = still loading
+  const [texts, setTexts] = useState<Record<string, string | null>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    setTexts({});
+    for (const v of BIBLE_VERSIONS) {
+      getVerseByParsed(parsed, v.code)
+        .then(
+          ({ text }) =>
+            !cancelled && setTexts((t) => ({ ...t, [v.code]: text })),
+        )
+        .catch(() => !cancelled && setTexts((t) => ({ ...t, [v.code]: null })));
+    }
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsed.book.code, parsed.chapter, parsed.verse]);
+
+  return (
+    <ul className="space-y-4 px-5 py-4">
+      {BIBLE_VERSIONS.map((v) => (
+        <li key={v.code}>
+          <p className="font-mono text-2xs uppercase tracking-[0.14em] text-gold">
+            {v.code}
+            <span className="ml-1.5 font-sans normal-case tracking-normal text-ink-muted/70">
+              {v.name}
+            </span>
+          </p>
+          <p className="mt-1 font-serif text-sm leading-relaxed text-ink-soft">
+            {v.code in texts ? (
+              (texts[v.code] ?? (
+                <span className="italic text-ink-muted">unavailable</span>
+              ))
+            ) : (
+              <span className="text-ink-muted/50">…</span>
+            )}
+          </p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Context tab                                                         */
+/* ------------------------------------------------------------------ */
+function ContextTab({ parsed }: { parsed: ParsedRef }) {
+  const bibleVersion = useCanvasStore((s) => s.bibleVersion);
+  const [verses, setVerses] = useState<
+    { verse: number; text: string; focus: boolean }[] | null
+  >(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setVerses(null);
+    setFailed(false);
+    getChapterContext(parsed, 4, bibleVersion)
+      .then((v) => !cancelled && setVerses(v))
+      .catch(() => !cancelled && setFailed(true));
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsed.book.code, parsed.chapter, parsed.verse, bibleVersion]);
+
+  return (
+    <div className="px-5 py-4">
+      <p className="mb-2 font-sans text-2xs tracking-eyebrow text-ink-muted">
+        {parsed.book.name} {parsed.chapter} · in context
+      </p>
+      {failed ? (
+        <p className="font-serif text-sm italic text-ink-muted">
+          Couldn&rsquo;t load the surrounding passage.
+        </p>
+      ) : !verses ? (
+        <p className="font-serif text-sm italic text-ink-muted">Reading…</p>
+      ) : (
+        <p className="font-serif text-sm leading-relaxed text-ink-soft">
+          {verses.map((v) => (
+            <span
+              key={v.verse}
+              className={
+                v.focus ? "rounded bg-gold/15 px-0.5 text-ink" : undefined
+              }
+            >
+              <sup className="mr-0.5 font-sans text-[9px] text-gold">
+                {v.verse}
+              </sup>
+              {v.text}{" "}
+            </span>
+          ))}
+        </p>
+      )}
+    </div>
   );
 }

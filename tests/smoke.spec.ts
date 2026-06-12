@@ -18,11 +18,8 @@ test("canvas loads, creates a bubble, and persists it across reload", async ({
   });
   await page.goto("/app");
 
-  // Fresh context → onboarding seed renders
-  await expect(page.locator(".react-flow__node").first()).toBeVisible();
-  await expect(
-    page.locator(".react-flow__node", { hasText: "Who is Melchizedek?" }),
-  ).toBeVisible();
+  // New users start on a blank canvas (no sample seed) — the empty state shows.
+  await expect(page.getByText("Double-click anywhere to begin")).toBeVisible();
 
   // Create a note via the double-click picker
   await page.mouse.dblclick(360, 620);

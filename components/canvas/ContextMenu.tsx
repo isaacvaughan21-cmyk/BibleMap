@@ -13,6 +13,7 @@ const NODE_LABELS: Record<NodeKind, string> = {
   question: "Question",
   verse: "Verse",
   note: "Note",
+  definition: "Definition",
 };
 
 /** Right-click menu for nodes (delete / change type) and edges (delete / change kind). */

@@ -11,10 +11,13 @@ export default function FeedbackWidget({
   open,
   onOpenChange,
   railOpen,
+  initialMessage,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   railOpen: boolean;
+  /** Pre-fill the composer (e.g. opened via "Request another version"). */
+  initialMessage?: string;
 }) {
   const [message, setMessage] = useState("");
   const [email, setEmail] = useState("");
@@ -29,9 +32,12 @@ export default function FeedbackWidget({
   useEffect(() => {
     if (open) {
       setState({ phase: "compose" });
+      // Seed the draft when opened with a prefilled intent; leave any
+      // in-progress text alone when opened plainly.
+      if (initialMessage) setMessage(initialMessage);
       setTimeout(() => textareaRef.current?.focus(), 50);
     }
-  }, [open]);
+  }, [open, initialMessage]);
 
   const send = () => {
     startTransition(async () => {
