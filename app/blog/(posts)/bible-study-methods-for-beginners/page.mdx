@@ -1,3 +1,6 @@
+import Image from "next/image";
+import verseMapShot from "@/public/blog/verse-map-philippians-2-5.png";
+
 export const metadata = {
   title: "Bible Study Methods for Beginners: One Passage, Six Ways",
   description:
@@ -32,7 +35,10 @@ export const articleJsonLd = {
   datePublished: "2026-06-11",
   dateModified: "2026-06-11",
   url: POST_URL,
-  image: [`${SITE_URL}/opengraph-image`],
+  image: [
+    `${SITE_URL}/blog/verse-map-philippians-2-5.png`,
+    `${SITE_URL}/opengraph-image`,
+  ],
   mainEntityOfPage: { "@type": "WebPage", "@id": POST_URL },
   author: { "@type": "Organization", name: "Hodos", url: SITE_URL },
   publisher: {
@@ -174,8 +180,19 @@ Verse mapping inverts the usual instinct to cover ground. You write one verse in
 
 Write "Have this in your mind, which was also in Christ Jesus" in the middle of the page. Now branch. The KJV renders it "Let this mind be in you," and comparing the two raises a live question: is this mindset something I build, or something I permit? Branch to the word: Paul's verb for "mind" is the one he used twice in verse 2, and it threads through the letter. Branch to the verses next door: Philippians 2:12–13 holds the same tension, work it out, because God is at work in you. By the time the page fills, one sentence has become a small constellation, and your question sits at the center of it, still alive.
 
-{/* Image suggestion — sample verse map.
-    alt="Verse map of Philippians 2:5 with branches for translation comparison, key words, cross-references, and open questions" */}
+<figure className="my-8 md:-mx-12">
+  <Image
+    src={verseMapShot}
+    alt="Verse map of Philippians 2:5 on a Hodos canvas: the verse at the center with branches for the KJV translation comparison, the Greek word phroneō, cross-references to Philippians 2:2 and 2:12–13, and the open question 'Is this mindset something I build, or something I permit?'"
+    className="rounded-xl border border-rule shadow-sm"
+    sizes="(min-width: 768px) 768px, 100vw"
+    placeholder="blur"
+  />
+  <figcaption className="mt-3 text-center font-sans text-2xs text-ink-muted">
+    This section's example as a real map — the verse at the center, every
+    branch still connected to the question that raised it.
+  </figcaption>
+</figure>
 
 ## 4. Cross-reference study: letting Scripture comment on itself
 
