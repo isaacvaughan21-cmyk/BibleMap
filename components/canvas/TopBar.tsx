@@ -8,6 +8,7 @@ import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import ChangelogDialog from "@/components/ChangelogDialog";
 import { APP_VERSION } from "@/lib/changelog";
 import { BIBLE_VERSIONS } from "@/lib/versions";
+import { cloudSignOut, useAuthUser } from "@/lib/use-auth";
 
 type TopBarProps = {
   railOpen: boolean;
@@ -140,6 +141,7 @@ function OverflowMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const { user } = useAuthUser();
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const canvases = useCanvasStore((s) => s.canvases);
@@ -314,7 +316,7 @@ function OverflowMenu({
             <MenuButton onClick={() => fileRef.current?.click()}>
               Import map…
             </MenuButton>
-            {isGuest && (
+            {isGuest && !user && (
               <MenuButton
                 onClick={() => {
                   try {
@@ -327,6 +329,23 @@ function OverflowMenu({
                 }}
               >
                 Create free account…
+              </MenuButton>
+            )}
+            {user && (
+              <MenuButton
+                onClick={() => {
+                  void cloudSignOut();
+                  try {
+                    localStorage.removeItem("hodos.account");
+                  } catch {
+                    // the gate also reopens via the event below
+                  }
+                  window.dispatchEvent(new Event("hodos:account-changed"));
+                  window.dispatchEvent(new Event("hodos:open-gate"));
+                  setOpen(false);
+                }}
+              >
+                Sign out{user.email ? ` (${user.email})` : ""}
               </MenuButton>
             )}
             <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />

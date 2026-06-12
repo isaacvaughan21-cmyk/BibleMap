@@ -40,6 +40,7 @@ import ImportDialog from "./ImportDialog";
 import VersePicker from "./VersePicker";
 import WelcomeGate from "./WelcomeGate";
 import GuestSavePrompt from "./GuestSavePrompt";
+import CloudSync from "./CloudSync";
 import QuestionNode from "./nodes/QuestionNode";
 import VerseNode from "./nodes/VerseNode";
 import NoteNode from "./nodes/NoteNode";
@@ -528,6 +529,9 @@ function CanvasInner() {
 
       {/* Gentle one-time nudge for guests who've started working */}
       <GuestSavePrompt />
+
+      {/* Mirrors a signed-in user's canvases to the cloud (no-op when off) */}
+      <CloudSync />
 
       {/* Quiet toast */}
       {toast && (

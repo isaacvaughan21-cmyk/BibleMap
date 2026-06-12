@@ -84,6 +84,27 @@ export async function exportData() {
 
 export type HodosExport = Awaited<ReturnType<typeof exportData>>;
 
+/**
+ * Full dataset INCLUDING soft-deleted tombstones — for cloud sync, where a
+ * deletion must propagate to other devices (the live-only export would make a
+ * pull silently resurrect deleted bubbles). `importMerge` already carries each
+ * row's `deletedAt`, so merging a tombstone soft-deletes it on the other side.
+ */
+export async function exportForSync(): Promise<HodosExport> {
+  const [nodes, edges] = await Promise.all([
+    db.nodes.toArray(),
+    db.edges.toArray(),
+  ]);
+  const name = await getMeta<string>("mapName");
+  return {
+    version: 1 as const,
+    exportedAt: new Date().toISOString(),
+    name,
+    nodes,
+    edges,
+  };
+}
+
 /** Replace everything with an imported dataset (hard reset of the tables). */
 export async function importReplace(data: HodosExport) {
   await db.transaction("rw", db.nodes, db.edges, async () => {
