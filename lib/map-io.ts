@@ -11,10 +11,11 @@ const positionSchema = z.object({ x: z.number(), y: z.number() });
 const nodeSchema = z.object({
   id: z.string().min(1),
   mapId: z.string().default(ROOT_MAP_ID),
-  type: z.enum(["question", "verse", "note"]),
+  type: z.enum(["question", "verse", "note", "definition"]),
   content: z.string().default(""),
   verseRef: z.string().optional(),
   verseText: z.string().optional(),
+  definition: z.string().optional(),
   position: positionSchema,
   createdAt: z.number(),
   updatedAt: z.number(),

@@ -21,6 +21,7 @@ export interface DbNode {
   content: string;
   verseRef?: string; // 'JHN 3:16' osis-like
   verseText?: string; // denormalized for offline
+  definition?: string; // definition bubbles — looked-up meaning, denormalized
   position: { x: number; y: number };
   createdAt: number;
   updatedAt: number;

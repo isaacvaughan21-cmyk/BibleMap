@@ -9,8 +9,8 @@ import {
 import { track } from "@/lib/analytics";
 import * as repo from "@/lib/db/repo";
 import { db, ROOT_MAP_ID, type DbEdge, type DbNode } from "@/lib/db/schema";
-import { buildSeed } from "@/lib/db/seed";
 import { parseImport } from "@/lib/map-io";
+import { DEFAULT_VERSION } from "@/lib/versions";
 import { uuidv7 } from "@/lib/uuid";
 import type {
   EdgeKind,
@@ -130,6 +130,13 @@ export interface CanvasStore {
   requestCanvas(id: string): void;
   /** Perform the canvas switch (called by the slide animation). */
   switchCanvas(id: string): Promise<void>;
+  /** Delete a canvas and all of its content (and any maps nested inside it). */
+  deleteCanvas(id: string): Promise<void>;
+
+  /* ---- Settings ---- */
+  /** The Bible translation used for new verse lookups + the study panel. */
+  bibleVersion: string;
+  setBibleVersion(code: string): void;
 }
 
 export const DEFAULT_MAP_NAME = "Untitled map";
@@ -241,7 +248,11 @@ const mapIdById = new Map<string, string>();
 
 function toDbNode(n: HodosNode, now: number): DbNode {
   const isVerse = n.type === "verse";
-  const data = n.data as VerseNodeData & { content?: string };
+  const isDef = n.type === "definition";
+  const data = n.data as VerseNodeData & {
+    content?: string;
+    definition?: string;
+  };
   return {
     id: n.id,
     mapId: mapIdById.get(n.id) ?? activeMapId,
@@ -249,6 +260,7 @@ function toDbNode(n: HodosNode, now: number): DbNode {
     content: isVerse ? "" : (data.content ?? ""),
     verseRef: isVerse ? data.verseRef : undefined,
     verseText: isVerse ? data.verseText : undefined,
+    definition: isDef ? (data.definition ?? "") : undefined,
     position: { x: n.position.x, y: n.position.y },
     createdAt: createdAtById.get(n.id) ?? now,
     updatedAt: now,
@@ -289,6 +301,14 @@ function fromDbNode(r: DbNode): HodosNode {
       data: { verseRef: r.verseRef ?? "", verseText: r.verseText ?? "" },
     };
   }
+  if (r.type === "definition") {
+    return {
+      id: r.id,
+      type: "definition",
+      position: r.position,
+      data: { content: r.content, definition: r.definition ?? "" },
+    };
+  }
   return {
     id: r.id,
     type: r.type,
@@ -323,7 +343,9 @@ function labelFor(node: HodosNode): string {
       ? "Untitled verse"
       : node.type === "question"
         ? "Untitled question"
-        : "Untitled note";
+        : node.type === "definition"
+          ? "Untitled definition"
+          : "Untitled note";
   }
   return trimmed.length > 40 ? `${trimmed.slice(0, 40)}…` : trimmed;
 }
@@ -386,6 +408,32 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       flushTimer = null;
     }
     await flush();
+  }
+
+  /**
+   * Every live node + edge inside a canvas, walking into nested child maps
+   * (a bubble's child map has mapId === the bubble's id). Used to delete a
+   * whole canvas and everything dived into it.
+   */
+  async function collectCanvasContent(
+    rootId: string,
+  ): Promise<{ nodeIds: string[]; edgeIds: string[] }> {
+    const seen = new Set<string>();
+    const queue = [rootId];
+    const nodeIds: string[] = [];
+    const edgeIds: string[] = [];
+    while (queue.length) {
+      const mapId = queue.shift() as string;
+      if (seen.has(mapId)) continue;
+      seen.add(mapId);
+      const { nodes, edges } = await repo.loadLive(mapId);
+      for (const n of nodes) {
+        nodeIds.push(n.id);
+        queue.push(n.id); // each node may host a child map
+      }
+      for (const e of edges) edgeIds.push(e.id);
+    }
+    return { nodeIds, edgeIds };
   }
 
   /** Resolve the anchor (self-mirror) bubble of a map; null = none. */
@@ -463,6 +511,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     pendingNav: null,
     canvases: [{ id: ROOT_MAP_ID, name: DEFAULT_MAP_NAME }],
     activeCanvasId: ROOT_MAP_ID,
+    bibleVersion: DEFAULT_VERSION,
 
     load() {
       if (loadPromise) return loadPromise;
@@ -505,22 +554,12 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
             activeCanvasId: active,
             mapName: activeName,
             hintsDismissed: !!(await repo.getMeta<boolean>("hintsDismissed")),
+            bibleVersion:
+              (await repo.getMeta<string>("bibleVersion")) ?? DEFAULT_VERSION,
           });
 
-          let { nodes, edges } = await repo.loadLive(active);
-          // Seed the onboarding map only on the original root canvas.
-          if (
-            active === ROOT_MAP_ID &&
-            nodes.length === 0 &&
-            !(await repo.getMeta("seeded"))
-          ) {
-            const seed = buildSeed();
-            await repo.upsertNodes(seed.nodes);
-            await repo.upsertEdges(seed.edges);
-            await repo.setMeta("seeded", true);
-            nodes = seed.nodes;
-            edges = seed.edges;
-          }
+          // New users start with a blank canvas (no sample map seeded).
+          const { nodes, edges } = await repo.loadLive(active);
           activeMapId = active;
           registerLoaded(nodes, edges);
           set({
@@ -981,6 +1020,40 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       set({ activeCanvasId: id, mapName: name, anchorNodeId: null });
       if (!ephemeralMode) void repo.setMeta("activeCanvas", id);
       await refreshChildMapIds();
+    },
+
+    async deleteCanvas(id) {
+      if (ephemeralMode) return;
+      const { canvases, activeCanvasId } = get();
+      if (canvases.length <= 1) return; // never strand the user with no canvas
+      const remaining = canvases.filter((c) => c.id !== id);
+      const wasActive = activeCanvasId === id;
+
+      // Settle any live edits first so the soft-delete below can't be undone by
+      // a later debounced flush re-upserting dirty rows.
+      if (wasActive) await flushPending();
+
+      const { nodeIds, edgeIds } = await collectCanvasContent(id);
+      if (nodeIds.length) await repo.softDeleteNodes(nodeIds);
+      if (edgeIds.length) await repo.softDeleteEdges(edgeIds);
+
+      set({ canvases: remaining });
+      void repo.setMeta("canvases", remaining);
+
+      // If we deleted the canvas in view, slide to a neighbour (the existing
+      // canvas transition flushes — now a no-op — loads it, and re-frames).
+      if (wasActive && !get().pendingNav) {
+        set({ pendingNav: { kind: "canvas", id: remaining[0].id } });
+      }
+
+      // Refresh the recovery snapshot so a deleted canvas can't resurface from
+      // it (deleting a non-active canvas never triggers a flush otherwise).
+      void writeSnapshot();
+    },
+
+    setBibleVersion(code) {
+      set({ bibleVersion: code });
+      if (!ephemeralMode) void repo.setMeta("bibleVersion", code);
     },
   };
 });

@@ -42,6 +42,7 @@ import WelcomeGate from "./WelcomeGate";
 import QuestionNode from "./nodes/QuestionNode";
 import VerseNode from "./nodes/VerseNode";
 import NoteNode from "./nodes/NoteNode";
+import DefinitionNode from "./nodes/DefinitionNode";
 import ManualEdge from "./edges/ManualEdge";
 import CrossRefEdge from "./edges/CrossRefEdge";
 import EdgeMarkers from "./edges/EdgeMarkers";
@@ -51,6 +52,7 @@ const nodeTypes = {
   question: QuestionNode,
   verse: VerseNode,
   note: NoteNode,
+  definition: DefinitionNode,
 };
 
 const edgeTypes = {
@@ -65,6 +67,8 @@ function minimapNodeColor(node: Node): string {
       return "var(--gold-soft)";
     case "question":
       return "var(--ink-muted)";
+    case "definition":
+      return "var(--ink-soft)";
     default:
       return "var(--rule)";
   }
@@ -130,6 +134,7 @@ function CanvasInner() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackDraft, setFeedbackDraft] = useState<string | undefined>();
   const [menu, setMenu] = useState<MenuTarget | null>(null);
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [importPending, setImportPending] = useState<HodosExport | null>(null);
@@ -361,10 +366,19 @@ function CanvasInner() {
         railOpen={railOpen}
         onToggleRail={() => setRailOpen((o) => !o)}
         onOpenPalette={() => setPaletteOpen(true)}
-        onFeedback={() => setFeedbackOpen((o) => !o)}
+        onFeedback={() => {
+          setFeedbackDraft(undefined);
+          setFeedbackOpen((o) => !o);
+        }}
         onExport={handleExport}
         onImportFile={handleImportFile}
         onHelp={() => setHelpOpen(true)}
+        onRequestVersion={() => {
+          setFeedbackDraft(
+            "I'd like to study in the ____ translation — please add it to Hodos.",
+          );
+          setFeedbackOpen(true);
+        }}
       />
       <RightRail open={railOpen} selectedVerse={selectedVerse} />
       <CanvasControls railOpen={railOpen} />
@@ -372,6 +386,7 @@ function CanvasInner() {
         open={feedbackOpen}
         onOpenChange={setFeedbackOpen}
         railOpen={railOpen}
+        initialMessage={feedbackDraft}
       />
 
       <main className="absolute inset-0" aria-label="Map canvas">

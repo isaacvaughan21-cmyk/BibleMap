@@ -7,6 +7,7 @@ import { useCanvasStore } from "@/lib/store/canvas-store";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import ChangelogDialog from "@/components/ChangelogDialog";
 import { APP_VERSION } from "@/lib/changelog";
+import { BIBLE_VERSIONS } from "@/lib/versions";
 
 type TopBarProps = {
   railOpen: boolean;
@@ -16,6 +17,7 @@ type TopBarProps = {
   onExport: () => void;
   onImportFile: (file: File) => void;
   onHelp: () => void;
+  onRequestVersion: () => void;
 };
 
 /** Fixed, translucent canvas top bar — same chrome language as the landing nav. */
@@ -27,6 +29,7 @@ export default function TopBar({
   onExport,
   onImportFile,
   onHelp,
+  onRequestVersion,
 }: TopBarProps) {
   return (
     <header className="dive-dim absolute inset-x-0 top-0 z-40 border-b border-rule/60 bg-parchment/70 backdrop-blur-md">
@@ -115,6 +118,7 @@ export default function TopBar({
             onExport={onExport}
             onImportFile={onImportFile}
             onHelp={onHelp}
+            onRequestVersion={onRequestVersion}
           />
         </div>
       </div>
@@ -122,20 +126,26 @@ export default function TopBar({
   );
 }
 
-/** "…" menu — export, import, shortcuts. */
+/** "…" menu — canvases, Bible version, export, import, shortcuts. */
 function OverflowMenu({
   onExport,
   onImportFile,
   onHelp,
+  onRequestVersion,
 }: {
   onExport: () => void;
   onImportFile: (file: File) => void;
   onHelp: () => void;
+  onRequestVersion: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const canvases = useCanvasStore((s) => s.canvases);
+  const deleteCanvas = useCanvasStore((s) => s.deleteCanvas);
+  const bibleVersion = useCanvasStore((s) => s.bibleVersion);
+  const setBibleVersion = useCanvasStore((s) => s.setBibleVersion);
 
   // A guest can upgrade to an account any time — surface it in the menu.
   useEffect(() => {
@@ -196,27 +206,86 @@ function OverflowMenu({
               CANVASES
             </p>
             <div className="max-h-44 overflow-y-auto">
-              {canvases.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={c.id === activeCanvasId}
-                  onClick={() => {
-                    requestCanvas(c.id);
-                    setOpen(false);
-                  }}
-                  className="flex w-full items-center gap-2 px-4 py-1.5 text-left font-sans text-xs text-ink-soft transition-colors hover:bg-parchment-2 hover:text-ink"
-                >
-                  <span
-                    aria-hidden="true"
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                      c.id === activeCanvasId ? "bg-gold" : "bg-rule"
-                    }`}
-                  />
-                  <span className="truncate">{c.name}</span>
-                </button>
-              ))}
+              {canvases.map((c) =>
+                confirmDeleteId === c.id ? (
+                  <div
+                    key={c.id}
+                    className="flex items-center justify-between gap-2 px-4 py-1.5"
+                  >
+                    <span className="truncate font-sans text-2xs text-ink-muted">
+                      Delete “{c.name}”?
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void deleteCanvas(c.id);
+                          setConfirmDeleteId(null);
+                          setOpen(false);
+                        }}
+                        className="font-sans text-2xs font-medium text-danger transition-colors hover:text-ink"
+                      >
+                        Delete
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="font-sans text-2xs text-ink-muted transition-colors hover:text-ink"
+                      >
+                        Cancel
+                      </button>
+                    </span>
+                  </div>
+                ) : (
+                  <div
+                    key={c.id}
+                    className="group flex w-full items-center gap-2 px-4 py-1.5 transition-colors hover:bg-parchment-2"
+                  >
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={c.id === activeCanvasId}
+                      onClick={() => {
+                        requestCanvas(c.id);
+                        setOpen(false);
+                      }}
+                      className="flex min-w-0 flex-1 items-center gap-2 text-left font-sans text-xs text-ink-soft transition-colors hover:text-ink"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          c.id === activeCanvasId ? "bg-gold" : "bg-rule"
+                        }`}
+                      />
+                      <span className="truncate">{c.name}</span>
+                    </button>
+                    {canvases.length > 1 && (
+                      <button
+                        type="button"
+                        aria-label={`Delete ${c.name}`}
+                        onClick={() => setConfirmDeleteId(c.id)}
+                        className="shrink-0 text-ink-muted/50 opacity-0 transition-all hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
+                      >
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M2.5 3.5h9M5.5 3.5V2.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1M3.5 3.5l.5 8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1l.5-8"
+                            stroke="currentColor"
+                            strokeWidth="1.1"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                ),
+              )}
             </div>
             <MenuButton
               onClick={() => {
@@ -253,6 +322,36 @@ function OverflowMenu({
                 Create free account…
               </MenuButton>
             )}
+            <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
+            <p className="px-4 pb-1 pt-0.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
+              BIBLE VERSION
+            </p>
+            <div className="flex flex-wrap gap-1.5 px-4 pb-1 pt-0.5">
+              {BIBLE_VERSIONS.map((v) => (
+                <button
+                  key={v.code}
+                  type="button"
+                  title={v.name}
+                  aria-pressed={v.code === bibleVersion}
+                  onClick={() => setBibleVersion(v.code)}
+                  className={`rounded-full border px-2.5 py-0.5 font-sans text-2xs tracking-eyebrow transition-colors ${
+                    v.code === bibleVersion
+                      ? "border-gold bg-gold/10 text-gold"
+                      : "border-rule text-ink-muted hover:border-gold hover:text-gold"
+                  }`}
+                >
+                  {v.code}
+                </button>
+              ))}
+            </div>
+            <MenuButton
+              onClick={() => {
+                onRequestVersion();
+                setOpen(false);
+              }}
+            >
+              Request another version…
+            </MenuButton>
             <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
             <MenuButton
               onClick={() => {

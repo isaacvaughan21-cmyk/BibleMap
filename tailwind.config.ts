@@ -29,10 +29,16 @@ const config: Config = {
           soft: "var(--gold-soft)",
         },
         rule: "var(--rule)",
+        danger: "var(--danger)",
       },
       fontFamily: {
         // Display serif — wordmark, section H1s, pull-quote
-        serif: ["var(--font-fraunces)", "Cormorant Garamond", "Georgia", "serif"],
+        serif: [
+          "var(--font-fraunces)",
+          "Cormorant Garamond",
+          "Georgia",
+          "serif",
+        ],
         // UI sans — body, eyebrows, buttons
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
       },
@@ -63,8 +69,7 @@ const config: Config = {
       },
       backgroundImage: {
         // 24x24 dotted grid behind every section
-        "dot-grid":
-          "radial-gradient(var(--rule) 1px, transparent 1px)",
+        "dot-grid": "radial-gradient(var(--rule) 1px, transparent 1px)",
       },
       backgroundSize: {
         "dot-grid": "24px 24px",

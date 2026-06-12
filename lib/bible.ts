@@ -1,7 +1,9 @@
 import { BOOKS, type BibleBook } from "./bible-books";
+import { DEFAULT_VERSION } from "./versions";
 
 /**
- * BSB access — per-book JSON under /bible/{osis}.json, lazy-loaded and cached.
+ * Bible access — per-book JSON, lazy-loaded and cached. The default version
+ * (BSB) lives at /bible/{osis}.json; other versions at /bible/{VERSION}/{osis}.json.
  * Canonical reference display form: "John 3:16" (full book name).
  */
 
@@ -10,16 +12,25 @@ export type ParsedRef = { book: BibleBook; chapter: number; verse: number };
 
 const bookCache = new Map<string, Promise<BookData>>();
 
-export function loadBook(code: string): Promise<BookData> {
-  let cached = bookCache.get(code);
+export function loadBook(
+  code: string,
+  version: string = DEFAULT_VERSION,
+): Promise<BookData> {
+  const key = `${version}:${code}`;
+  let cached = bookCache.get(key);
   if (!cached) {
-    cached = fetch(`/bible/${code}.json`).then((res) => {
-      if (!res.ok) throw new Error(`Failed to load ${code} (${res.status})`);
+    const url =
+      version === DEFAULT_VERSION
+        ? `/bible/${code}.json`
+        : `/bible/${version}/${code}.json`;
+    cached = fetch(url).then((res) => {
+      if (!res.ok)
+        throw new Error(`Failed to load ${code} (${version}) (${res.status})`);
       return res.json() as Promise<BookData>;
     });
     // Don't cache failures — a retry should actually retry.
-    cached.catch(() => bookCache.delete(code));
-    bookCache.set(code, cached);
+    cached.catch(() => bookCache.delete(key));
+    bookCache.set(key, cached);
   }
   return cached;
 }
@@ -117,16 +128,20 @@ export function fromOsisId(id: string): ParsedRef | null {
   return { book, chapter: Number(ch), verse: Number(vs) };
 }
 
-export async function getVerse(ref: string): Promise<{ text: string }> {
+export async function getVerse(
+  ref: string,
+  version?: string,
+): Promise<{ text: string }> {
   const parsed = parseRef(ref);
   if (!parsed) throw new Error(`Unrecognized reference: ${ref}`);
-  return getVerseByParsed(parsed);
+  return getVerseByParsed(parsed, version);
 }
 
 export async function getVerseByParsed(
   p: ParsedRef,
+  version?: string,
 ): Promise<{ text: string }> {
-  const book = await loadBook(p.book.code);
+  const book = await loadBook(p.book.code, version);
   const text = book.chapters[p.chapter - 1]?.[p.verse - 1];
   if (!text) throw new Error(`No text for ${formatRef(p)}`);
   return { text };
@@ -136,8 +151,9 @@ export async function getVerseByParsed(
 export async function getPassageText(
   start: ParsedRef,
   endVerse?: ParsedRef,
+  version?: string,
 ): Promise<string> {
-  const book = await loadBook(start.book.code);
+  const book = await loadBook(start.book.code, version);
   const end = endVerse ?? start;
   const parts: string[] = [];
   for (let c = start.chapter; c <= end.chapter; c++) {
@@ -149,6 +165,29 @@ export async function getPassageText(
     }
   }
   return parts.join(" ");
+}
+
+/**
+ * The verses surrounding a reference within its chapter — for the study
+ * panel's "context" tab. Returns up to `radius` verses on each side plus the
+ * verse itself, each flagged whether it's the focus verse.
+ */
+export async function getChapterContext(
+  p: ParsedRef,
+  radius = 4,
+  version?: string,
+): Promise<{ verse: number; text: string; focus: boolean }[]> {
+  const book = await loadBook(p.book.code, version);
+  const verses = book.chapters[p.chapter - 1] ?? [];
+  const from = Math.max(1, p.verse - radius);
+  const to = Math.min(verses.length, p.verse + radius);
+  const out: { verse: number; text: string; focus: boolean }[] = [];
+  for (let v = from; v <= to; v++) {
+    if (verses[v - 1]) {
+      out.push({ verse: v, text: verses[v - 1], focus: v === p.verse });
+    }
+  }
+  return out;
 }
 
 /** Free-text candidates for the picker ("jo" → John, Job, Joel, Jonah …). */
