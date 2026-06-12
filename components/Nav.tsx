@@ -26,8 +26,18 @@ export default function Nav() {
           <span className="h-px w-8 bg-gold/50" />
         </div>
 
-        {/* Right: waitlist link + try-free pill */}
+        {/* Right: journal + waitlist links + try-free pill */}
         <div className="flex items-center gap-6">
+          <Link
+            href="/blog"
+            className="group relative hidden font-sans text-xs tracking-eyebrow text-ink-muted transition-colors hover:text-ink sm:inline-block"
+          >
+            JOURNAL
+            <span
+              aria-hidden="true"
+              className="absolute -bottom-1 left-0 h-px w-0 bg-ink transition-all duration-300 group-hover:w-full"
+            />
+          </Link>
           <Link
             href="#cta"
             className="group relative hidden font-sans text-xs tracking-eyebrow text-gold transition-colors hover:text-ink sm:inline-block"
