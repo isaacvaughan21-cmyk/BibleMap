@@ -1,3 +1,4 @@
+import Link from "next/link";
 import ChangelogDialog from "@/components/ChangelogDialog";
 
 /** Footer — wordmark + Greek, copyright, version history. */
@@ -14,6 +15,10 @@ export default function Footer() {
         </div>
 
         <p className="flex items-center gap-2 font-sans text-2xs text-ink-muted">
+          <Link href="/blog" className="transition-colors hover:text-ink">
+            journal
+          </Link>
+          <span aria-hidden="true">·</span>
           <ChangelogDialog tone="muted" label="open beta" />
           <span aria-hidden="true">·</span>
           <ChangelogDialog tone="muted" />
