@@ -1025,17 +1025,31 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     async deleteCanvas(id) {
       if (ephemeralMode) return;
       const { canvases, activeCanvasId } = get();
-      if (canvases.length <= 1) return; // never strand the user with no canvas
       const remaining = canvases.filter((c) => c.id !== id);
       const wasActive = activeCanvasId === id;
+      const isLast = remaining.length === 0;
 
       // Settle any live edits first so the soft-delete below can't be undone by
       // a later debounced flush re-upserting dirty rows.
-      if (wasActive) await flushPending();
+      if (wasActive || isLast) await flushPending();
 
       const { nodeIds, edgeIds } = await collectCanvasContent(id);
       if (nodeIds.length) await repo.softDeleteNodes(nodeIds);
       if (edgeIds.length) await repo.softDeleteEdges(edgeIds);
+
+      // Deleting your ONLY canvas clears it back to a fresh, blank canvas
+      // (same id) rather than leaving you with nothing.
+      if (isLast) {
+        const cleared = [{ id, name: DEFAULT_MAP_NAME }];
+        set({ canvases: cleared, mapName: DEFAULT_MAP_NAME });
+        void repo.setMeta("canvases", cleared);
+        void repo.setMeta("mapName", DEFAULT_MAP_NAME);
+        applyMap(id, [{ id, label: DEFAULT_MAP_NAME }], [], []);
+        set({ activeCanvasId: id, anchorNodeId: null });
+        await refreshChildMapIds();
+        void writeSnapshot();
+        return;
+      }
 
       set({ canvases: remaining });
       void repo.setMeta("canvases", remaining);

@@ -206,14 +206,15 @@ function OverflowMenu({
               CANVASES
             </p>
             <div className="max-h-44 overflow-y-auto">
-              {canvases.map((c) =>
-                confirmDeleteId === c.id ? (
+              {canvases.map((c) => {
+                const verb = canvases.length === 1 ? "Clear" : "Delete";
+                return confirmDeleteId === c.id ? (
                   <div
                     key={c.id}
                     className="flex items-center justify-between gap-2 px-4 py-1.5"
                   >
                     <span className="truncate font-sans text-2xs text-ink-muted">
-                      Delete “{c.name}”?
+                      {verb} “{c.name}”?
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       <button
@@ -225,7 +226,7 @@ function OverflowMenu({
                         }}
                         className="font-sans text-2xs font-medium text-danger transition-colors hover:text-ink"
                       >
-                        Delete
+                        {verb}
                       </button>
                       <button
                         type="button"
@@ -239,6 +240,10 @@ function OverflowMenu({
                 ) : (
                   <div
                     key={c.id}
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setConfirmDeleteId(c.id);
+                    }}
                     className="group flex w-full items-center gap-2 px-4 py-1.5 transition-colors hover:bg-parchment-2"
                   >
                     <button
@@ -259,34 +264,36 @@ function OverflowMenu({
                       />
                       <span className="truncate">{c.name}</span>
                     </button>
-                    {canvases.length > 1 && (
-                      <button
-                        type="button"
-                        aria-label={`Delete ${c.name}`}
-                        onClick={() => setConfirmDeleteId(c.id)}
-                        className="shrink-0 text-ink-muted/50 opacity-0 transition-all hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
+                    <button
+                      type="button"
+                      aria-label={`${verb} ${c.name}`}
+                      title={`${verb} canvas`}
+                      onClick={() => setConfirmDeleteId(c.id)}
+                      className="shrink-0 text-ink-muted/40 transition-colors hover:text-danger"
+                    >
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 14 14"
+                        fill="none"
+                        aria-hidden="true"
                       >
-                        <svg
-                          width="13"
-                          height="13"
-                          viewBox="0 0 14 14"
-                          fill="none"
-                          aria-hidden="true"
-                        >
-                          <path
-                            d="M2.5 3.5h9M5.5 3.5V2.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1M3.5 3.5l.5 8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1l.5-8"
-                            stroke="currentColor"
-                            strokeWidth="1.1"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </button>
-                    )}
+                        <path
+                          d="M2.5 3.5h9M5.5 3.5V2.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1M3.5 3.5l.5 8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1l.5-8"
+                          stroke="currentColor"
+                          strokeWidth="1.1"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </button>
                   </div>
-                ),
-              )}
+                );
+              })}
             </div>
+            <p className="px-4 pb-0.5 pt-1 font-sans text-[10px] text-ink-muted/60">
+              Right-click a canvas to delete
+            </p>
             <MenuButton
               onClick={() => {
                 createCanvas();

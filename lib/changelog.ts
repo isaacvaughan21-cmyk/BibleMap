@@ -18,6 +18,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.3.1",
+    date: "2026-06-11",
+    title: "Easier canvas deleting",
+    changes: [
+      "Deleting a canvas is clearer now — the trash icon is always visible in the ··· menu, and you can right-click any canvas to delete it.",
+      "Deleting your only canvas now clears it back to a fresh blank one instead of doing nothing.",
+    ],
+  },
+  {
     version: "0.3.0",
     date: "2026-06-11",
     title: "Deeper study tools",
