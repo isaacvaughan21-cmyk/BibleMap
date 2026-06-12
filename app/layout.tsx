@@ -40,6 +40,7 @@ export const metadata: Metadata = {
       "An infinite, zoomable mind map for Bible study. Now in open beta — try it free.",
   },
   robots: { index: true, follow: true },
+  verification: { google: "o0RM_IdEm0awhlV70zZXoXhO81K1SyVPCFJYHvfwKuo" },
 };
 
 export const viewport: Viewport = {
