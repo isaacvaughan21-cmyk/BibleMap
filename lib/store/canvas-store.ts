@@ -132,6 +132,9 @@ export interface CanvasStore {
   switchCanvas(id: string): Promise<void>;
   /** Delete a canvas and all of its content (and any maps nested inside it). */
   deleteCanvas(id: string): Promise<void>;
+  /** Re-read canvases + settings + the active map from the DB (after a cloud
+   *  pull brings new data into IndexedDB). */
+  rehydrate(): Promise<void>;
 
   /* ---- Settings ---- */
   /** The Bible translation used for new verse lookups + the study panel. */
@@ -1068,6 +1071,34 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     setBibleVersion(code) {
       set({ bibleVersion: code });
       if (!ephemeralMode) void repo.setMeta("bibleVersion", code);
+    },
+
+    async rehydrate() {
+      if (ephemeralMode) return;
+      const canvases =
+        (await repo.getMeta<{ id: string; name: string }[]>("canvases")) ??
+        get().canvases;
+      const savedActive = (await repo.getMeta<string>("activeCanvas")) ?? null;
+      const active =
+        savedActive && canvases.some((c) => c.id === savedActive)
+          ? savedActive
+          : (canvases.find((c) => c.id === get().activeCanvasId)?.id ??
+            canvases[0]?.id ??
+            ROOT_MAP_ID);
+      const name =
+        canvases.find((c) => c.id === active)?.name ?? DEFAULT_MAP_NAME;
+      const bibleVersion =
+        (await repo.getMeta<string>("bibleVersion")) ?? get().bibleVersion;
+      const { nodes, edges } = await repo.loadLive(active);
+      applyMap(active, [{ id: active, label: name }], nodes, edges);
+      set({
+        canvases,
+        activeCanvasId: active,
+        mapName: name,
+        bibleVersion,
+        anchorNodeId: null,
+      });
+      await refreshChildMapIds();
     },
   };
 });

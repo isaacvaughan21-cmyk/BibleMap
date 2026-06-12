@@ -4,14 +4,18 @@ import { useEffect, useRef, useState } from "react";
 import { joinBeta } from "@/app/actions/join-beta";
 import { track } from "@/lib/analytics";
 import { useFocusTrap } from "@/lib/use-focus-trap";
+import { isCloudEnabled } from "@/lib/supabase-browser";
+import { cloudSignIn, cloudSignUp } from "@/lib/use-auth";
 
 /**
- * v0 beta sign-up gate — shown over the canvas on first visit.
+ * The sign-up / sign-in gate shown over the canvas.
  *
- * There is no auth backend yet: the email is recorded for the beta list via
- * a server action, the password NEVER leaves this component (no transmit, no
- * store), and the "account" lives in localStorage so the gate shows once.
- * Real sign-in and cloud sync arrive with the account system.
+ * Two modes, chosen by configuration:
+ *  - CLOUD (anon key set): real Supabase Auth accounts — sign up / sign in,
+ *    canvases sync across devices (see CloudSync).
+ *  - LOCAL fallback (no anon key): the email is recorded for the beta list, the
+ *    password stays on-device, and the "account" lives in localStorage.
+ * Either way a local `hodos.account` marker drives the guest-prompt + menu.
  */
 
 const ACCOUNT_KEY = "hodos.account";
@@ -27,11 +31,14 @@ type LocalAccount = {
 };
 
 export default function WelcomeGate() {
+  const cloud = isCloudEnabled();
   const [show, setShow] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [mode, setMode] = useState<"signup" | "signin">("signup");
   const panelRef = useRef<HTMLDivElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
@@ -76,6 +83,7 @@ export default function WelcomeGate() {
     e.preventDefault();
     if (submitting) return;
     setError(null);
+    setNotice(null);
     const email = emailRef.current?.value.trim().toLowerCase() ?? "";
     const password = pwRef.current?.value ?? "";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -83,13 +91,42 @@ export default function WelcomeGate() {
       emailRef.current?.focus();
       return;
     }
-    if (password.length < 8) {
-      setError("Choose a password of at least 8 characters.");
+    // Signing IN just needs a non-empty password; creating one needs 8+.
+    if (mode === "signin" ? password.length < 1 : password.length < 8) {
+      setError(
+        mode === "signin"
+          ? "Enter your password."
+          : "Choose a password of at least 8 characters.",
+      );
       pwRef.current?.focus();
       return;
     }
     setSubmitting(true);
-    // Email only — the password is checked here and never transmitted.
+
+    if (cloud) {
+      // Real account — Supabase Auth. The password is sent over HTTPS and
+      // stored only as a salted hash by Supabase (never by us).
+      const result =
+        mode === "signin"
+          ? await cloudSignIn(email, password)
+          : await cloudSignUp(email, password);
+      if (!result.ok) {
+        setError(result.error);
+        setSubmitting(false);
+        return;
+      }
+      if (result.needsConfirm) {
+        setNotice("Check your email to confirm your account, then sign in.");
+        setMode("signin");
+        setSubmitting(false);
+        return;
+      }
+      enter(email); // session is live; CloudSync pulls this account's maps
+      return;
+    }
+
+    // Local fallback (no cloud configured) — record the email for the beta
+    // list; the password stays on-device.
     const fd = new FormData();
     fd.append("email", email);
     try {
@@ -106,6 +143,21 @@ export default function WelcomeGate() {
   };
 
   if (!show) return null;
+
+  const isSignin = cloud && mode === "signin";
+  const heading = isSignin ? "Welcome back." : "The canvas is yours.";
+  const subtitle = cloud
+    ? isSignin
+      ? "Sign in to pick up your maps on any device."
+      : "Create a free account — your maps sync across every device."
+    : "Create a free account to start mapping Scripture — every question, verse, and connection in one living map.";
+  const submitLabel = submitting
+    ? isSignin
+      ? "Signing you in…"
+      : "Opening your canvas…"
+    : isSignin
+      ? "Sign in"
+      : "Create free account";
 
   const inputCls =
     "w-full rounded-xl border border-rule bg-parchment-2/60 px-4 py-3 font-sans text-sm text-ink placeholder:text-ink-muted/50 focus:border-gold/60 focus:outline-none";
@@ -153,11 +205,10 @@ export default function WelcomeGate() {
         </div>
 
         <h1 className="mt-5 text-center font-serif text-xl leading-snug text-ink">
-          The canvas is yours.
+          {heading}
         </h1>
         <p className="mx-auto mt-3 max-w-xs text-center font-sans text-xs leading-relaxed text-ink-muted">
-          Create a free account to start mapping Scripture — every question,
-          verse, and connection in one living map.
+          {subtitle}
         </p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-3" noValidate>
@@ -193,8 +244,8 @@ export default function WelcomeGate() {
                 // No `name`: even a native form submit could never serialize
                 // the password — it is read via ref and discarded.
                 type={showPw ? "text" : "password"}
-                autoComplete="new-password"
-                placeholder="8+ characters"
+                autoComplete={isSignin ? "current-password" : "new-password"}
+                placeholder={isSignin ? "Your password" : "8+ characters"}
                 className={`${inputCls} pr-16`}
               />
               <button
@@ -209,8 +260,13 @@ export default function WelcomeGate() {
           </div>
 
           {error && (
-            <p role="alert" className="font-sans text-xs text-gold">
+            <p role="alert" className="font-sans text-xs text-danger">
               {error}
+            </p>
+          )}
+          {notice && (
+            <p role="status" className="font-sans text-xs text-gold">
+              {notice}
             </p>
           )}
 
@@ -220,10 +276,10 @@ export default function WelcomeGate() {
             className="group !mt-5 w-full rounded-full bg-gold py-3.5 font-sans text-sm font-medium text-parchment shadow-md shadow-gold/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-ink hover:shadow-lg hover:shadow-ink/15 disabled:opacity-60"
           >
             {submitting ? (
-              "Opening your canvas…"
+              submitLabel
             ) : (
               <>
-                Create free account{" "}
+                {submitLabel}{" "}
                 <span
                   aria-hidden="true"
                   className="inline-block transition-transform duration-300 group-hover:translate-x-1"
@@ -233,12 +289,31 @@ export default function WelcomeGate() {
               </>
             )}
           </button>
+
+          {cloud && (
+            <p className="text-center font-sans text-2xs text-ink-muted">
+              {isSignin ? "New here? " : "Already have an account? "}
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(isSignin ? "signup" : "signin");
+                  setError(null);
+                  setNotice(null);
+                }}
+                className="font-medium text-gold underline-offset-2 transition-colors hover:text-ink hover:underline"
+              >
+                {isSignin ? "Create an account" : "Sign in"}
+              </button>
+            </p>
+          )}
         </form>
 
         <p className="mt-4 text-center font-sans text-2xs leading-relaxed text-ink-muted">
           Free during the open beta · No card required
           <br />
-          Your maps live in your browser
+          {cloud
+            ? "Your maps sync to your account"
+            : "Your maps live in your browser"}
         </p>
 
         <div className="my-5 flex items-center gap-3" aria-hidden="true">
@@ -267,8 +342,9 @@ export default function WelcomeGate() {
         </p>
 
         <p className="mt-5 text-center font-sans text-2xs leading-relaxed text-ink-muted/70">
-          v0 beta — sign-in and cloud sync are on the way; for now your account
-          lives on this device.
+          {cloud
+            ? "Guest maps stay on this device — create an account any time to sync them."
+            : "v0 beta — sign-in and cloud sync are on the way; for now your account lives on this device."}
         </p>
       </div>
     </div>
