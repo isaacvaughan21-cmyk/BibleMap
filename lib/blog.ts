@@ -14,6 +14,14 @@ export type BlogPost = {
 
 export const posts: BlogPost[] = [
   {
+    slug: "how-to-lead-a-small-group-bible-study",
+    title: "How to Lead a Small Group Bible Study (First-Time Guide)",
+    description:
+      "Learn how to lead a small group Bible study: prepare a passage, write discussion questions that work, handle silence, and guide your first meeting well.",
+    datePublished: "2026-06-12",
+    readingTime: "10 min read",
+  },
+  {
     slug: "bible-study-methods-for-beginners",
     title: "Bible Study Methods for Beginners: One Passage, Six Ways",
     description:
