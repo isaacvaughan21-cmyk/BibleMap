@@ -65,6 +65,8 @@ export default function WelcomeGate() {
     } catch {
       // still let them in
     }
+    // Let the guest save-prompt know the account changed (guest ↔ signed up).
+    window.dispatchEvent(new Event("hodos:account-changed"));
     track(email ? "beta_signup" : "beta_guest");
     setLeaving(true);
     setTimeout(() => setShow(false), 560);
