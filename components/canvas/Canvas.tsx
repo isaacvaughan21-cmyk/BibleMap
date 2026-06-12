@@ -39,6 +39,7 @@ import HelpOverlay from "./HelpOverlay";
 import ImportDialog from "./ImportDialog";
 import VersePicker from "./VersePicker";
 import WelcomeGate from "./WelcomeGate";
+import GuestSavePrompt from "./GuestSavePrompt";
 import QuestionNode from "./nodes/QuestionNode";
 import VerseNode from "./nodes/VerseNode";
 import NoteNode from "./nodes/NoteNode";
@@ -524,6 +525,9 @@ function CanvasInner() {
 
       {/* v0 beta sign-up gate — first visit only */}
       <WelcomeGate />
+
+      {/* Gentle one-time nudge for guests who've started working */}
+      <GuestSavePrompt />
 
       {/* Quiet toast */}
       {toast && (

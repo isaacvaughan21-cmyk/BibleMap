@@ -18,6 +18,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.3.2",
+    date: "2026-06-11",
+    title: "Polish: centered what's-new + guest nudge",
+    changes: [
+      "The “What's new” window now opens centered on screen instead of being clipped at the top.",
+      "Exploring as a guest? Once you've started a map, Hodos gently offers to save your work with a free account.",
+    ],
+  },
+  {
     version: "0.3.1",
     date: "2026-06-11",
     title: "Easier canvas deleting",
