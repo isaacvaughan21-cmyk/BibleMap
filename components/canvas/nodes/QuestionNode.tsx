@@ -3,6 +3,7 @@ import type { QuestionNodeType } from "@/lib/types";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
+import NestBadge from "./NestBadge";
 import { floatStyle } from "./float";
 
 /** A question bubble — the seed of a study. Gold ?-glyph + serif text. */
@@ -16,7 +17,11 @@ export default function QuestionNode({
   const setEditing = useCanvasStore((s) => s.setEditing);
 
   return (
-    <div className={editing ? undefined : "floaty"} style={floatStyle(id)}>
+    <div
+      className={`relative ${editing ? "" : "floaty"}`}
+      style={floatStyle(id)}
+    >
+      <NestBadge id={id} />
       <div
         className={`bubble flex max-w-xs items-center gap-3 rounded-full border bg-parchment py-2.5 pl-3 pr-6 ${
           selected ? "bubble-selected border-gold" : "border-rule"

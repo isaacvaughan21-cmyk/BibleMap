@@ -1,9 +1,15 @@
 import { BaseEdge, useInternalNode, type EdgeProps } from "@xyflow/react";
 import { curvedEdgePath, floatingEdgeParams } from "@/lib/edge-routing";
 import { ARROW_GOLD } from "./EdgeMarkers";
+import EdgeEnds from "./EdgeEnds";
 
 /** A scripture cross-reference — dashed gold, slightly heavier, floating anchors. */
-export default function CrossRefEdge({ id, source, target }: EdgeProps) {
+export default function CrossRefEdge({
+  id,
+  source,
+  target,
+  selected,
+}: EdgeProps) {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
   if (!sourceNode || !targetNode) return null;
@@ -22,6 +28,16 @@ export default function CrossRefEdge({ id, source, target }: EdgeProps) {
       {/* endpoint caps — revealed on hover/selection */}
       <circle cx={sx} cy={sy} r={3} className="hodos-edge-cap" />
       <circle cx={tx} cy={ty} r={3} className="hodos-edge-cap" />
+      <EdgeEnds
+        id={id}
+        source={source}
+        target={target}
+        sx={sx}
+        sy={sy}
+        tx={tx}
+        ty={ty}
+        selected={selected}
+      />
     </>
   );
 }

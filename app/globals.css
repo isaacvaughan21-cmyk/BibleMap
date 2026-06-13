@@ -217,6 +217,18 @@
   display: block;
 }
 
+/* Draggable endpoint grips on a selected edge — drop on a bubble to re-attach */
+.hodos-edge-grip {
+  fill: var(--gold);
+  stroke: var(--parchment);
+  stroke-width: 1.5;
+  pointer-events: all;
+  cursor: grab;
+}
+.hodos-edge-grip:active {
+  cursor: grabbing;
+}
+
 /* Handles — hidden until the node is hovered or selected.
    (.react-flow prefix beats the library stylesheet, which Next loads after
    globals.css) */
@@ -348,6 +360,14 @@
 /* Panels (minimap, attribution) sit above the vignette overlay */
 .react-flow__panel {
   z-index: 10;
+}
+
+/* The first verse on a canvas — a soft, persistent gold glow so the study's
+   anchor stands out even when nothing is selected. */
+.verse-primary {
+  box-shadow:
+    0 0 0 1.5px color-mix(in srgb, var(--gold) 55%, transparent),
+    0 6px 20px color-mix(in srgb, var(--gold) 20%, transparent);
 }
 
 /* Minimap — small parchment card above the control cluster */

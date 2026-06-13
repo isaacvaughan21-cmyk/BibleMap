@@ -267,6 +267,7 @@ function toDbNode(n: HodosNode, now: number): DbNode {
     content: isVerse ? "" : (data.content ?? ""),
     verseRef: isVerse ? data.verseRef : undefined,
     verseText: isVerse ? data.verseText : undefined,
+    highlights: isVerse ? data.highlights : undefined,
     definition: isDef ? (data.definition ?? "") : undefined,
     position: { x: n.position.x, y: n.position.y },
     createdAt: createdAtById.get(n.id) ?? now,
@@ -305,7 +306,11 @@ function fromDbNode(r: DbNode): HodosNode {
       id: r.id,
       type: "verse",
       position: r.position,
-      data: { verseRef: r.verseRef ?? "", verseText: r.verseText ?? "" },
+      data: {
+        verseRef: r.verseRef ?? "",
+        verseText: r.verseText ?? "",
+        ...(r.highlights?.length ? { highlights: r.highlights } : {}),
+      },
     };
   }
   if (r.type === "definition") {

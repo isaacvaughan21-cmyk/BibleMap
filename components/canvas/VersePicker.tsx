@@ -32,7 +32,7 @@ export default function VersePicker({
   const [query, setQuery] = useState("");
   const [book, setBook] = useState<BibleBook | null>(null);
   const [chapter, setChapter] = useState<number | null>(null);
-  const [verseCount, setVerseCount] = useState<number | null>(null);
+  const [verses, setVerses] = useState<string[] | null>(null);
   const [loadState, setLoadState] = useState<"idle" | "loading" | "error">(
     "idle",
   );
@@ -58,7 +58,7 @@ export default function VersePicker({
     loadBook(book.code, bibleVersion)
       .then((data) => {
         if (cancelled) return;
-        setVerseCount(data.chapters[chapter - 1]?.length ?? 0);
+        setVerses(data.chapters[chapter - 1] ?? []);
         setLoadState("idle");
       })
       .catch(() => !cancelled && setLoadState("error"));
@@ -199,9 +199,9 @@ export default function VersePicker({
                 type="button"
                 onClick={() => {
                   setLoadState("loading");
-                  loadBook(book.code)
+                  loadBook(book.code, bibleVersion)
                     .then((d) => {
-                      setVerseCount(d.chapters[chapter - 1]?.length ?? 0);
+                      setVerses(d.chapters[chapter - 1] ?? []);
                       setLoadState("idle");
                     })
                     .catch(() => setLoadState("error"));
@@ -213,19 +213,27 @@ export default function VersePicker({
             </div>
           )}
 
-          {book && chapter !== null && loadState === "idle" && verseCount && (
-            <div className="grid grid-cols-8 gap-1.5">
-              {Array.from({ length: verseCount }, (_, i) => (
-                <GridCell
-                  key={i}
-                  onClick={() =>
-                    !committing && commit({ book, chapter, verse: i + 1 })
-                  }
-                >
-                  {i + 1}
-                </GridCell>
+          {book && chapter !== null && loadState === "idle" && verses && (
+            <ul className="space-y-0.5">
+              {verses.map((text, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      !committing && commit({ book, chapter, verse: i + 1 })
+                    }
+                    className="flex w-full items-baseline gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-gold/10"
+                  >
+                    <span className="shrink-0 font-mono text-2xs text-gold">
+                      {i + 1}
+                    </span>
+                    <span className="font-serif text-sm leading-relaxed text-ink-soft">
+                      {text}
+                    </span>
+                  </button>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>

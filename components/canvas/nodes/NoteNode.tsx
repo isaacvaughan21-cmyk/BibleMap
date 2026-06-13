@@ -3,6 +3,7 @@ import type { NoteNodeType } from "@/lib/types";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
+import NestBadge from "./NestBadge";
 import { floatStyle } from "./float";
 
 /** A personal note — borderless, quieter than questions and verses. */
@@ -16,7 +17,11 @@ export default function NoteNode({
   const setEditing = useCanvasStore((s) => s.setEditing);
 
   return (
-    <div className={editing ? undefined : "floaty"} style={floatStyle(id)}>
+    <div
+      className={`relative ${editing ? "" : "floaty"}`}
+      style={floatStyle(id)}
+    >
+      <NestBadge id={id} />
       <div
         className={`bubble max-w-60 rounded-xl border border-transparent bg-parchment-2 px-4 py-3 ${
           selected ? "bubble-selected border-gold" : ""

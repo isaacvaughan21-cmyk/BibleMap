@@ -7,6 +7,7 @@ import { useCanvasStore } from "@/lib/store/canvas-store";
 import { lookupDefinitions, type DefinitionCandidate } from "@/lib/dictionary";
 import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
+import NestBadge from "./NestBadge";
 import { floatStyle } from "./float";
 
 /**
@@ -61,7 +62,11 @@ export default function DefinitionNode({
   };
 
   return (
-    <div className={editing ? undefined : "floaty"} style={floatStyle(id)}>
+    <div
+      className={`relative ${editing ? "" : "floaty"}`}
+      style={floatStyle(id)}
+    >
+      <NestBadge id={id} />
       <div
         className={`bubble w-60 rounded-xl border border-l-[3px] border-l-ink-soft bg-parchment px-4 py-3 ${
           selected ? "bubble-selected border-gold" : "border-rule"
