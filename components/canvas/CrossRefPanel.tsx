@@ -240,12 +240,16 @@ function CrossRefRow({
   const [preview, setPreview] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const key = formatCrossRef(crossRef);
+  // The preview is clamped to two lines; longer verses get a "more" toggle.
+  const isLong = !!preview && preview.length > 100;
 
   useEffect(() => {
     let cancelled = false;
     setPreview(null);
     setFailed(false);
+    setExpanded(false);
     getVerseByParsed(crossRef.target, version)
       .then(({ text }) => !cancelled && setPreview(text))
       .catch(() => !cancelled && setFailed(true));
@@ -302,13 +306,29 @@ function CrossRefRow({
           {added ? "Added ✓" : adding ? "Adding…" : "+ Add to canvas"}
         </button>
       </div>
-      <p className="mt-1 line-clamp-2 font-serif text-xs leading-relaxed text-ink-soft">
+      <p
+        className={`mt-1 font-serif text-xs leading-relaxed text-ink-soft ${
+          expanded ? "" : "line-clamp-2"
+        }`}
+      >
         {failed ? (
           <span className="italic text-ink-muted">Preview unavailable</span>
         ) : (
           (preview ?? "…")
         )}
       </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setExpanded((x) => !x);
+          }}
+          className="mt-0.5 font-sans text-2xs tracking-wide text-gold transition-colors hover:text-ink"
+        >
+          {expanded ? "Show less" : "Show more"}
+        </button>
+      )}
       {clar && (
         <p className="mt-1 font-sans text-2xs italic text-gold/80">
           ({clar.pronoun} → {clar.referent})

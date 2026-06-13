@@ -11,6 +11,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  type Connection,
   type Edge,
   type Node,
 } from "@xyflow/react";
@@ -18,6 +19,7 @@ import { useShallow } from "zustand/react/shallow";
 import "@xyflow/react/dist/style.css";
 
 import { track } from "@/lib/analytics";
+import { getVerseByParsed, parseRef } from "@/lib/bible";
 import { easeInCubic, easeOutQuint, easeInOutCubic } from "@/lib/easing";
 import { takeCrossRefDrag, useCanvasStore } from "@/lib/store/canvas-store";
 import * as repo from "@/lib/db/repo";
@@ -108,6 +110,9 @@ function CanvasInner() {
     setEditing,
     changeNodeType,
     changeEdgeKind,
+    reverseEdge,
+    reconnectEdge,
+    updateNodeData,
     duplicateNode,
     load,
   } = useCanvasStore(
@@ -123,6 +128,9 @@ function CanvasInner() {
       setEditing: s.setEditing,
       changeNodeType: s.changeNodeType,
       changeEdgeKind: s.changeEdgeKind,
+      reverseEdge: s.reverseEdge,
+      reconnectEdge: s.reconnectEdge,
+      updateNodeData: s.updateNodeData,
       duplicateNode: s.duplicateNode,
       load: s.load,
     })),
@@ -144,6 +152,23 @@ function CanvasInner() {
   const [verseDragActive, setVerseDragActive] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
   const addVerseWithCrossRef = useCanvasStore((s) => s.addVerseWithCrossRef);
+
+  /** Re-fetch a verse bubble's text in another translation, keeping its ref. */
+  const changeVerseVersion = useCallback(
+    async (id: string, code: string) => {
+      const node = nodes.find((n) => n.id === id);
+      if (!node || node.type !== "verse") return;
+      const parsed = parseRef(node.data.verseRef);
+      if (!parsed) return;
+      try {
+        const { text } = await getVerseByParsed(parsed, code);
+        updateNodeData(id, { verseText: text });
+      } catch {
+        setToast({ text: `Couldn't load that verse in ${code}.` });
+      }
+    },
+    [nodes, updateNodeData],
+  );
 
   useEffect(() => {
     load();
@@ -408,6 +433,7 @@ function CanvasInner() {
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
+            onReconnect={reconnectEdge}
             setEditing={setEditing}
             onOpenVersePicker={setVersePicker}
           />
@@ -426,6 +452,14 @@ function CanvasInner() {
           }}
           onChangeEdgeKind={(id, kind) => {
             changeEdgeKind(id, kind);
+            closeMenu();
+          }}
+          onChangeVerseVersion={(id, code) => {
+            void changeVerseVersion(id, code);
+            closeMenu();
+          }}
+          onReverseEdge={(id) => {
+            reverseEdge(id);
             closeMenu();
           }}
           onPickVerse={(id) => {
@@ -626,6 +660,7 @@ function FlowSurface(props: {
   onNodesChange: ReturnType<typeof useCanvasStore.getState>["onNodesChange"];
   onEdgesChange: ReturnType<typeof useCanvasStore.getState>["onEdgesChange"];
   onConnect: ReturnType<typeof useCanvasStore.getState>["onConnect"];
+  onReconnect: ReturnType<typeof useCanvasStore.getState>["reconnectEdge"];
   onNodeContextMenu: (e: React.MouseEvent, node: Node) => void;
   onEdgeContextMenu: (e: React.MouseEvent, edge: Edge) => void;
   onPaneContextMenu: (e: React.MouseEvent | MouseEvent) => void;
@@ -935,8 +970,42 @@ function FlowSurface(props: {
   );
 
   /**
+   * The bubble a connection drag STARTED from — it's always the edge's source,
+   * so the arrowhead points at whichever bubble you drag TO (a node exposes
+   * both source and target handles, so React Flow's own source/target ordering
+   * can't be trusted to match the drag direction).
+   */
+  const connectFrom = useRef<string | null>(null);
+  const onConnectStart = useCallback(
+    (_e: unknown, params: { nodeId: string | null }) => {
+      connectFrom.current = params.nodeId;
+    },
+    [],
+  );
+
+  /** Normalize a handle-to-handle connection so the drag origin is the source. */
+  const handleConnect = useCallback(
+    (c: Connection) => {
+      const from = connectFrom.current;
+      if (from && c.source && c.target && c.source !== c.target) {
+        const other = c.source === from ? c.target : c.source;
+        props.onConnect({
+          source: from,
+          target: other,
+          sourceHandle: null,
+          targetHandle: null,
+        });
+      } else {
+        props.onConnect(c);
+      }
+    },
+    [props],
+  );
+
+  /**
    * Dropping a connection on a bubble's BODY (not a handle) still connects —
-   * handle-precision shouldn't be required to draw a line.
+   * handle-precision shouldn't be required to draw a line. The origin bubble is
+   * the source, so the arrow points at the bubble you dragged onto.
    */
   const onConnectEnd = useCallback(
     (
@@ -944,9 +1013,9 @@ function FlowSurface(props: {
       connectionState: {
         isValid: boolean | null;
         fromNode: Node | null;
-        fromHandle: { type: string | null } | null;
       },
     ) => {
+      connectFrom.current = null;
       if (connectionState.isValid) return;
       const point = "changedTouches" in event ? event.changedTouches[0] : event;
       const nodeEl = document
@@ -955,10 +1024,9 @@ function FlowSurface(props: {
       const overId = nodeEl?.getAttribute("data-id");
       const fromId = connectionState.fromNode?.id;
       if (!overId || !fromId || overId === fromId) return;
-      const reversed = connectionState.fromHandle?.type === "target";
       props.onConnect({
-        source: reversed ? overId : fromId,
-        target: reversed ? fromId : overId,
+        source: fromId,
+        target: overId,
         sourceHandle: null,
         targetHandle: null,
       });
@@ -978,7 +1046,9 @@ function FlowSurface(props: {
         edges={props.edges}
         onNodesChange={props.onNodesChange}
         onEdgesChange={props.onEdgesChange}
-        onConnect={props.onConnect}
+        onConnect={handleConnect}
+        onConnectStart={onConnectStart}
+        onReconnect={props.onReconnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         fitView

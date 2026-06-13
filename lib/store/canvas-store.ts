@@ -47,6 +47,10 @@ export interface CanvasStore {
   setEditing(id: string | null): void;
   changeNodeType(id: string, to: NodeKind): void;
   changeEdgeKind(id: string, kind: EdgeKind): void;
+  /** Flip an edge's source and target — reverses the arrowhead. */
+  reverseEdge(id: string): void;
+  /** Re-attach one end of an edge to a different node (drag-to-reconnect). */
+  reconnectEdge(oldEdge: HodosEdge, connection: Connection): void;
   replaceAll(nodes: HodosNode[], edges: HodosEdge[]): void;
   selectAll(): void;
   selectOnly(id: string): void;
@@ -479,6 +483,25 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     });
   }
 
+  /**
+   * An untitled canvas borrows the name of its first meaningful bubble — a
+   * verse contributes just its reference ("John 3:16"), not the verse text.
+   * Only the top level of a canvas is named this way, and only while it's
+   * still "Untitled map" (a deliberate rename is never overwritten).
+   */
+  function maybeAutoName(node: HodosNode) {
+    if (ephemeralMode) return;
+    const s = get();
+    if (s.mapPath.length !== 1) return;
+    if (s.mapName !== DEFAULT_MAP_NAME) return;
+    const name =
+      node.type === "verse"
+        ? (node.data.verseRef || "").trim()
+        : (node.data.content || "").trim();
+    if (!name) return;
+    get().setMapName(name);
+  }
+
   /** Group node + edge removals from one gesture into a single restorable unit. */
   function recordDeletion(nodes: HodosNode[], edges: HodosEdge[]) {
     const prev = get().lastDeletion;
@@ -663,14 +686,16 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
 
     updateNodeData(id, data) {
+      let updated: HodosNode | undefined;
       set({
-        nodes: get().nodes.map((n) =>
-          n.id === id
-            ? ({ ...n, data: { ...n.data, ...data } } as HodosNode)
-            : n,
-        ),
+        nodes: get().nodes.map((n) => {
+          if (n.id !== id) return n;
+          updated = { ...n, data: { ...n.data, ...data } } as HodosNode;
+          return updated;
+        }),
       });
       markNodeDirty(id);
+      if (updated) maybeAutoName(updated);
     },
 
     setEditing(id) {
@@ -708,6 +733,30 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         edges: get().edges.map((e) => (e.id === id ? { ...e, type: kind } : e)),
       });
       dirtyEdgeIds.add(id);
+      scheduleFlush();
+    },
+
+    reverseEdge(id) {
+      set({
+        edges: get().edges.map((e) =>
+          e.id === id ? { ...e, source: e.target, target: e.source } : e,
+        ),
+      });
+      dirtyEdgeIds.add(id);
+      scheduleFlush();
+    },
+
+    reconnectEdge(oldEdge, connection) {
+      if (!connection.source || !connection.target) return;
+      if (connection.source === connection.target) return;
+      set({
+        edges: get().edges.map((e) =>
+          e.id === oldEdge.id
+            ? { ...e, source: connection.source!, target: connection.target! }
+            : e,
+        ),
+      });
+      dirtyEdgeIds.add(oldEdge.id);
       scheduleFlush();
     },
 
@@ -779,6 +828,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       updatedAtById.set(nodeId, Date.now());
       dirtyEdgeIds.add(edge.id);
       scheduleFlush();
+      maybeAutoName(node);
       track("crossref_added", { ref: verseRef });
       return nodeId;
     },

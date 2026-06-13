@@ -38,3 +38,4 @@ next-env.d.ts
 /playwright-report/
 scripts/probe-*.mjs
 scripts/shoot-*.mjs
+dev-server.log

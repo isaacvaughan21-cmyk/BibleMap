@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { NodeKind } from "@/lib/types";
 
 /** Small picker shown on canvas double-click: Question / Verse / Note. */
@@ -16,6 +16,23 @@ export default function CreatePicker({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  // The menu is taller than the click-point clamp can predict, so once it has
+  // rendered we nudge it back inside its container — otherwise a double-click
+  // low on the canvas leaves the last items cut off.
+  const [pos, setPos] = useState({ left: x, top: y });
+
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const parent = el?.offsetParent as HTMLElement | null;
+    if (!el || !parent) return;
+    const margin = 8;
+    const maxLeft = parent.clientWidth - el.offsetWidth - margin;
+    const maxTop = parent.clientHeight - el.offsetHeight - margin;
+    setPos({
+      left: Math.max(margin, Math.min(x, maxLeft)),
+      top: Math.max(margin, Math.min(y, maxTop)),
+    });
+  }, [x, y]);
 
   useEffect(() => {
     ref.current?.querySelector("button")?.focus();
@@ -37,7 +54,7 @@ export default function CreatePicker({
         ref={ref}
         role="menu"
         aria-label="Create a bubble"
-        style={{ left: x, top: y }}
+        style={{ left: pos.left, top: pos.top }}
         className="absolute z-50 w-48 animate-fade-up rounded-xl border border-rule bg-parchment py-1.5 shadow-xl shadow-ink/10"
       >
         <p className="px-4 pb-1 pt-1.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
