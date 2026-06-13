@@ -18,6 +18,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.3.3",
+    date: "2026-06-12",
+    title: "Canvas refinements",
+    changes: [
+      "An untitled map now names itself after your first bubble — a verse contributes just its reference (“John 3:16”), not the whole verse.",
+      "Right-click a verse to show it in another translation; verses can no longer be turned into notes or questions by mistake.",
+      "Definition bubbles now offer a short menu of meanings to pick from, so common words land on the right sense.",
+      "Connections now point at the bubble you drag to, and you can reverse a connection's direction from its right-click menu.",
+      "Long cross-reference verses in the study panel can be expanded with “Show more”.",
+      "Smaller overview map, and the create menu no longer gets clipped near the bottom of the screen.",
+    ],
+  },
+  {
     version: "0.3.2",
     date: "2026-06-11",
     title: "Polish: centered what's-new + guest nudge",
