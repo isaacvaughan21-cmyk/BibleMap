@@ -174,6 +174,23 @@ function CanvasInner() {
     load();
   }, [load]);
 
+  // Diving into a bubble's map (or rising back out) starts fresh — the study
+  // panel for the verse you left shouldn't carry over to the new canvas. The
+  // suppress flag also blocks the post-arrival auto-select (the gold halo on
+  // the bubble you rose out of) from re-opening the rail right away.
+  const navSuppressRail = useRef(false);
+  useEffect(() => {
+    if (diving) {
+      setRailOpen(false);
+      navSuppressRail.current = true;
+    } else if (navSuppressRail.current) {
+      const t = setTimeout(() => {
+        navSuppressRail.current = false;
+      }, 1500);
+      return () => clearTimeout(t);
+    }
+  }, [diving]);
+
   // session_minutes — reported when the tab goes to the background.
   useEffect(() => {
     const start = Date.now();
@@ -234,7 +251,7 @@ function CanvasInner() {
   const selectedVerseKey =
     selectedVerse && selectedVerse.data.verseRef ? selectedVerse.id : null;
   useEffect(() => {
-    if (selectedVerseKey) setRailOpen(true);
+    if (selectedVerseKey && !navSuppressRail.current) setRailOpen(true);
   }, [selectedVerseKey]);
 
   const handleExport = useCallback(async () => {

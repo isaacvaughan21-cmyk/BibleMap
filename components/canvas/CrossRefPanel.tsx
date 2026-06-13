@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
+import { useShallow } from "zustand/react/shallow";
 import {
   formatRef,
   getChapterContext,
   getPassageText,
   getVerseByParsed,
+  osisId,
   parseRef,
   type ParsedRef,
 } from "@/lib/bible";
@@ -120,6 +122,23 @@ function CrossRefsTab({
 }) {
   const addVerseWithCrossRef = useCanvasStore((s) => s.addVerseWithCrossRef);
   const bibleVersion = useCanvasStore((s) => s.bibleVersion);
+  // OSIS ids of the verses this one was cross-referenced FROM (an edge points
+  // here). We hide the back-reference to those "originals" — you placed this
+  // verse to study it, not to be pointed straight back where you came from.
+  const originOsis = useCanvasStore(
+    useShallow((s) => {
+      const set = new Set<string>();
+      for (const e of s.edges) {
+        if (e.type !== "crossref" || e.target !== node.id) continue;
+        const src = s.nodes.find((n) => n.id === e.source);
+        if (src?.type === "verse") {
+          const p = parseRef(src.data.verseRef);
+          if (p) set.add(osisId(p));
+        }
+      }
+      return [...set];
+    }),
+  );
   const { fitView } = useReactFlow();
   const reducedMotion = usePrefersReducedMotion();
   const [state, setState] = useState<
@@ -141,6 +160,12 @@ function CrossRefsTab({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [node.data.verseRef, retryToken]);
+
+  const originSet = new Set(originOsis);
+  const visibleRefs =
+    state.phase === "ready"
+      ? state.refs.filter((r) => !originSet.has(osisId(r.target)))
+      : [];
 
   return (
     <>
@@ -165,15 +190,15 @@ function CrossRefsTab({
         </div>
       )}
 
-      {state.phase === "ready" && state.refs.length === 0 && (
+      {state.phase === "ready" && visibleRefs.length === 0 && (
         <p className="px-5 py-6 text-center font-serif text-sm italic text-ink-muted">
           No classical cross-references for this verse.
         </p>
       )}
 
-      {state.phase === "ready" && state.refs.length > 0 && (
+      {state.phase === "ready" && visibleRefs.length > 0 && (
         <ul className="space-y-1 px-3 pb-3 pt-2">
-          {state.refs.map((r) => {
+          {visibleRefs.map((r) => {
             const key = formatCrossRef(r);
             return (
               <CrossRefRow

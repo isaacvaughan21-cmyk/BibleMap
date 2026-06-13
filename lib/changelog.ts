@@ -18,6 +18,19 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.3.4",
+    date: "2026-06-13",
+    title: "Study & canvas depth",
+    changes: [
+      "Picking a verse now lists the whole chapter so you can read and choose by text, not just by number.",
+      "Highlight words or phrases in a verse — select the text and click “Highlight”.",
+      "The first verse on each canvas now stands out, marking the heart of your study.",
+      "Bubbles that open into their own map now show a small badge, and the study panel closes cleanly as you dive in and back out.",
+      "Drag either end of a connection onto a different bubble to re-route it.",
+      "A verse's study panel no longer points back to the verse it came from.",
+    ],
+  },
+  {
     version: "0.3.3",
     date: "2026-06-12",
     title: "Canvas refinements",

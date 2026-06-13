@@ -6,7 +6,12 @@ export type NodeKind = "question" | "verse" | "note" | "definition";
 export type EdgeKind = "manual" | "crossref";
 
 export type QuestionNodeData = { content: string };
-export type VerseNodeData = { verseRef: string; verseText: string };
+/** highlights = verbatim phrases within verseText the reader marked. */
+export type VerseNodeData = {
+  verseRef: string;
+  verseText: string;
+  highlights?: string[];
+};
 export type NoteNodeData = { content: string };
 /** content = the word; definition = the looked-up meaning (denormalized). */
 export type DefinitionNodeData = { content: string; definition?: string };

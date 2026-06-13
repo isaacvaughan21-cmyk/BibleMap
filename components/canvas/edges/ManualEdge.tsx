@@ -1,9 +1,15 @@
 import { BaseEdge, useInternalNode, type EdgeProps } from "@xyflow/react";
 import { curvedEdgePath, floatingEdgeParams } from "@/lib/edge-routing";
 import { ARROW_RULE } from "./EdgeMarkers";
+import EdgeEnds from "./EdgeEnds";
 
 /** A hand-drawn connection — a gentle hairline curve between the nearest sides. */
-export default function ManualEdge({ id, source, target }: EdgeProps) {
+export default function ManualEdge({
+  id,
+  source,
+  target,
+  selected,
+}: EdgeProps) {
   const sourceNode = useInternalNode(source);
   const targetNode = useInternalNode(target);
   if (!sourceNode || !targetNode) return null;
@@ -22,6 +28,16 @@ export default function ManualEdge({ id, source, target }: EdgeProps) {
       {/* endpoint caps — revealed on hover/selection */}
       <circle cx={sx} cy={sy} r={3} className="hodos-edge-cap" />
       <circle cx={tx} cy={ty} r={3} className="hodos-edge-cap" />
+      <EdgeEnds
+        id={id}
+        source={source}
+        target={target}
+        sx={sx}
+        sy={sy}
+        tx={tx}
+        ty={ty}
+        selected={selected}
+      />
     </>
   );
 }
