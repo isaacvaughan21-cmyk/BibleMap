@@ -3,11 +3,12 @@
 import { useRef, useState } from "react";
 import type { NodeProps } from "@xyflow/react";
 import type { DefinitionNodeType } from "@/lib/types";
-import { useCanvasStore } from "@/lib/store/canvas-store";
+import { useCanvasStore, usePrimaryNodeId } from "@/lib/store/canvas-store";
 import { lookupDefinitions, type DefinitionCandidate } from "@/lib/dictionary";
 import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
 import NestBadge from "./NestBadge";
+import PrimaryBadge from "./PrimaryBadge";
 import { floatStyle } from "./float";
 
 /**
@@ -30,6 +31,7 @@ export default function DefinitionNode({
   // null = no dropdown; [] = searched, nothing found; [...] = choices.
   const [choices, setChoices] = useState<DefinitionCandidate[] | null>(null);
   const reqId = useRef(0);
+  const isPrimary = usePrimaryNodeId() === id;
 
   const lookUp = (raw: string) => {
     const word = raw.trim();
@@ -67,10 +69,11 @@ export default function DefinitionNode({
       style={floatStyle(id)}
     >
       <NestBadge id={id} />
+      <PrimaryBadge show={isPrimary} />
       <div
         className={`bubble w-60 rounded-xl border border-l-[3px] border-l-ink-soft bg-parchment px-4 py-3 ${
           selected ? "bubble-selected border-gold" : "border-rule"
-        }`}
+        } ${isPrimary ? "node-primary" : ""}`}
       >
         <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
           DEFINITION

@@ -362,9 +362,9 @@
   z-index: 10;
 }
 
-/* The first verse on a canvas — a soft, persistent gold glow so the study's
-   anchor stands out even when nothing is selected. */
-.verse-primary {
+/* The first bubble on a canvas (any type) — a soft, persistent gold glow so
+   the study's anchor stands out even when nothing is selected. */
+.node-primary {
   box-shadow:
     0 0 0 1.5px color-mix(in srgb, var(--gold) 55%, transparent),
     0 6px 20px color-mix(in srgb, var(--gold) 20%, transparent);

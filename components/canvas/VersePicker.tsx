@@ -37,6 +37,9 @@ export default function VersePicker({
     "idle",
   );
   const [committing, setCommitting] = useState(false);
+  // "read" = the full text, scroll to find the verse; "grid" = a number grid
+  // for clicking a verse you already know by number.
+  const [verseView, setVerseView] = useState<"read" | "grid">("read");
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -214,26 +217,63 @@ export default function VersePicker({
           )}
 
           {book && chapter !== null && loadState === "idle" && verses && (
-            <ul className="space-y-0.5">
-              {verses.map((text, i) => (
-                <li key={i}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      !committing && commit({ book, chapter, verse: i + 1 })
-                    }
-                    className="flex w-full items-baseline gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-gold/10"
+            <>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
+                  {verses.length} verses
+                </p>
+                <div className="flex shrink-0 gap-0.5 rounded-full border border-rule p-0.5">
+                  <ViewToggle
+                    active={verseView === "read"}
+                    onClick={() => setVerseView("read")}
                   >
-                    <span className="shrink-0 font-mono text-2xs text-gold">
+                    Read
+                  </ViewToggle>
+                  <ViewToggle
+                    active={verseView === "grid"}
+                    onClick={() => setVerseView("grid")}
+                  >
+                    Numbers
+                  </ViewToggle>
+                </div>
+              </div>
+
+              {verseView === "grid" ? (
+                <div className="grid grid-cols-8 gap-1.5">
+                  {verses.map((_, i) => (
+                    <GridCell
+                      key={i}
+                      onClick={() =>
+                        !committing && commit({ book, chapter, verse: i + 1 })
+                      }
+                    >
                       {i + 1}
-                    </span>
-                    <span className="font-serif text-sm leading-relaxed text-ink-soft">
-                      {text}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+                    </GridCell>
+                  ))}
+                </div>
+              ) : (
+                <ul className="space-y-0.5">
+                  {verses.map((text, i) => (
+                    <li key={i}>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          !committing && commit({ book, chapter, verse: i + 1 })
+                        }
+                        className="flex w-full items-baseline gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-gold/10"
+                      >
+                        <span className="shrink-0 font-mono text-2xs text-gold">
+                          {i + 1}
+                        </span>
+                        <span className="font-serif text-sm leading-relaxed text-ink-soft">
+                          {text}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -259,6 +299,29 @@ function Crumb({
       }`}
     >
       {label}
+    </button>
+  );
+}
+
+function ViewToggle({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={`rounded-full px-2.5 py-0.5 font-sans text-2xs transition-colors ${
+        active ? "bg-gold text-parchment" : "text-ink-muted hover:text-ink"
+      }`}
+    >
+      {children}
     </button>
   );
 }

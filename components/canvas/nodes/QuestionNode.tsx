@@ -1,9 +1,10 @@
 import type { NodeProps } from "@xyflow/react";
 import type { QuestionNodeType } from "@/lib/types";
-import { useCanvasStore } from "@/lib/store/canvas-store";
+import { useCanvasStore, usePrimaryNodeId } from "@/lib/store/canvas-store";
 import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
 import NestBadge from "./NestBadge";
+import PrimaryBadge from "./PrimaryBadge";
 import { floatStyle } from "./float";
 
 /** A question bubble — the seed of a study. Gold ?-glyph + serif text. */
@@ -15,6 +16,7 @@ export default function QuestionNode({
   const editing = useCanvasStore((s) => s.editingNodeId) === id;
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const setEditing = useCanvasStore((s) => s.setEditing);
+  const isPrimary = usePrimaryNodeId() === id;
 
   return (
     <div
@@ -22,10 +24,11 @@ export default function QuestionNode({
       style={floatStyle(id)}
     >
       <NestBadge id={id} />
+      <PrimaryBadge show={isPrimary} />
       <div
         className={`bubble flex max-w-xs items-center gap-3 rounded-full border bg-parchment py-2.5 pl-3 pr-6 ${
           selected ? "bubble-selected border-gold" : "border-rule"
-        }`}
+        } ${isPrimary ? "node-primary" : ""}`}
       >
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-gold/40 bg-gold/10">
           <span className="font-serif text-sm leading-none text-gold">?</span>

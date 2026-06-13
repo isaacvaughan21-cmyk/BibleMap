@@ -3,9 +3,10 @@
 import { useState, type ReactNode } from "react";
 import type { NodeProps } from "@xyflow/react";
 import type { VerseNodeType } from "@/lib/types";
-import { useCanvasStore } from "@/lib/store/canvas-store";
+import { useCanvasStore, usePrimaryNodeId } from "@/lib/store/canvas-store";
 import NodeHandles from "./NodeHandles";
 import NestBadge from "./NestBadge";
+import PrimaryBadge from "./PrimaryBadge";
 import { floatStyle } from "./float";
 
 const TRUNCATE_AT = 240;
@@ -66,14 +67,9 @@ export default function VerseNode({
   const [expanded, setExpanded] = useState(false);
   const [pending, setPending] = useState<string | null>(null);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
-  // The first verse (earliest uuid v7 — they sort by creation time) on this map.
-  const isPrimary = useCanvasStore((s) => {
-    let firstId: string | null = null;
-    for (const n of s.nodes)
-      if (n.type === "verse" && (firstId === null || n.id < firstId))
-        firstId = n.id;
-    return firstId === id;
-  });
+  // The first bubble (earliest uuid v7 — they sort by creation time) on this
+  // map, regardless of type, is the study's anchor.
+  const isPrimary = usePrimaryNodeId() === id;
 
   const isLong = data.verseText.length > TRUNCATE_AT;
   const shown =
@@ -105,31 +101,21 @@ export default function VerseNode({
   return (
     <div className="relative floaty" style={floatStyle(id)}>
       <NestBadge id={id} />
+      <PrimaryBadge show={isPrimary} />
       <div
         className={`bubble w-64 rounded-xl border border-l-[3px] border-l-gold bg-parchment px-4 py-3 ${
           selected ? "bubble-selected border-gold" : "border-rule"
-        } ${isPrimary ? "verse-primary" : ""} ${
+        } ${isPrimary ? "node-primary" : ""} ${
           data.verseRef ? "" : "cursor-pointer hover:border-gold/60"
         }`}
       >
-        <div className="flex items-center justify-between gap-2">
-          <p
-            className={`font-mono text-2xs font-medium uppercase tracking-[0.14em] ${
-              data.verseRef ? "text-gold" : "text-gold/50"
-            }`}
-          >
-            {data.verseRef || "Choose a verse…"}
-          </p>
-          {isPrimary && data.verseRef && (
-            <span
-              title="The first verse on this canvas"
-              aria-label="Anchor verse"
-              className="shrink-0 text-2xs text-gold"
-            >
-              ✦
-            </span>
-          )}
-        </div>
+        <p
+          className={`font-mono text-2xs font-medium uppercase tracking-[0.14em] ${
+            data.verseRef ? "text-gold" : "text-gold/50"
+          }`}
+        >
+          {data.verseRef || "Choose a verse…"}
+        </p>
         {data.verseText && (
           <p
             onMouseUp={captureSelection}

@@ -165,6 +165,20 @@ export function getNodeRecency(id: string): number {
 }
 
 /**
+ * Id of the first bubble placed on the current map — the lowest uuid v7 (they
+ * sort by creation time), regardless of bubble type. The first bubble is the
+ * anchor of a study, so it gets a persistent emphasis (see `.node-primary`).
+ */
+export function usePrimaryNodeId(): string | null {
+  return useCanvasStore((s) => {
+    let firstId: string | null = null;
+    for (const n of s.nodes)
+      if (firstId === null || n.id < firstId) firstId = n.id;
+    return firstId;
+  });
+}
+
+/**
  * Drag-and-drop payload for a cross-reference dragged out of the study panel.
  * Module-scoped (not store state) so setting it never re-renders the canvas.
  */
@@ -465,6 +479,39 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       set({ childMapIds: ids });
     } catch {
       set({ childMapIds: new Set() });
+    }
+  }
+
+  /**
+   * Leaving a nested map you dove into but never used: if all that remains is
+   * the seeded anchor (mirroring the bubble you came from) and no edges, throw
+   * the child map away so the parent bubble stops advertising a nested canvas.
+   * Clearing the `opened`/`anchor` markers lets a later dive reseed it cleanly.
+   * Call this AFTER flushing pending edits and BEFORE swapping to the new map.
+   */
+  async function discardCurrentIfEmpty() {
+    const s = get();
+    if (s.mapPath.length <= 1) return; // top-level canvases are never discarded
+    const mapId = s.currentMapId;
+    if (mapId === ROOT_MAP_ID) return;
+    const anchorId = s.anchorNodeId;
+    const onlyAnchor =
+      s.edges.length === 0 &&
+      (s.nodes.length === 0 ||
+        (s.nodes.length === 1 && s.nodes[0].id === anchorId));
+    if (!onlyAnchor) return;
+    try {
+      if (anchorId) {
+        await repo.softDeleteNodes([anchorId]);
+        mapIdById.delete(anchorId);
+        createdAtById.delete(anchorId);
+        updatedAtById.delete(anchorId);
+        dirtyNodeIds.delete(anchorId);
+      }
+      await repo.setMeta(`opened:${mapId}`, false);
+      await repo.setMeta(`anchor:${mapId}`, undefined);
+    } catch (err) {
+      console.error("hodos: failed to discard empty nested map", err);
     }
   }
 
@@ -1024,6 +1071,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         return;
       if (ephemeralMode) return;
       await flushPending();
+      await discardCurrentIfEmpty();
       const target = path[index];
       const { nodes, edges } = await repo.loadLive(target.id);
       applyMap(target.id, path.slice(0, index + 1), nodes, edges);
@@ -1071,6 +1119,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     async switchCanvas(id) {
       if (ephemeralMode) return;
       await flushPending();
+      await discardCurrentIfEmpty();
       const { nodes, edges } = await repo.loadLive(id);
       const name =
         get().canvases.find((c) => c.id === id)?.name ?? DEFAULT_MAP_NAME;

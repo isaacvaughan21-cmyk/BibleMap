@@ -204,14 +204,14 @@ function CrossRefsTab({
               <CrossRefRow
                 key={key}
                 crossRef={r}
-                version={bibleVersion}
+                defaultVersion={bibleVersion}
                 added={addedIds.has(key)}
                 sourceId={node.id}
-                onAdd={async () => {
+                onAdd={async (version) => {
                   const text = await getPassageText(
                     r.target,
                     r.targetEnd,
-                    bibleVersion,
+                    version,
                   );
                   const newId = addVerseWithCrossRef(node.id, key, text);
                   setAddedIds((s) => new Set(s).add(key));
@@ -249,23 +249,32 @@ function CrossRefsTab({
 
 function CrossRefRow({
   crossRef,
-  version,
+  defaultVersion,
   added,
   sourceId,
   onAdd,
   onMarkAdded,
 }: {
   crossRef: CrossRef;
-  version: string;
+  defaultVersion: string;
   added: boolean;
   sourceId: string;
-  onAdd: () => Promise<void>;
+  onAdd: (version: string) => Promise<void>;
   onMarkAdded: () => void;
 }) {
   const [preview, setPreview] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [adding, setAdding] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // This row can be read in a translation of its own — independent of the
+  // canvas-wide version. It follows the global default until the reader picks
+  // one here, after which their choice for this verse sticks.
+  const [version, setVersion] = useState(defaultVersion);
+  const [overridden, setOverridden] = useState(false);
+  const [versionOpen, setVersionOpen] = useState(false);
+  useEffect(() => {
+    if (!overridden) setVersion(defaultVersion);
+  }, [defaultVersion, overridden]);
   const key = formatCrossRef(crossRef);
   // The preview is clamped to two lines; longer verses get a "more" toggle.
   const isLong = !!preview && preview.length > 100;
@@ -317,7 +326,7 @@ function CrossRefRow({
           onClick={async () => {
             setAdding(true);
             try {
-              await onAdd();
+              await onAdd(version);
             } finally {
               setAdding(false);
             }
@@ -359,6 +368,66 @@ function CrossRefRow({
           ({clar.pronoun} → {clar.referent})
         </p>
       )}
+      {/* Read this one verse in a translation of its own. */}
+      <div className="relative mt-1.5 flex items-center gap-1">
+        <span className="font-sans text-[10px] text-ink-muted/70">in</span>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setVersionOpen((o) => !o);
+          }}
+          aria-haspopup="listbox"
+          aria-expanded={versionOpen}
+          className={`rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide transition-colors ${
+            overridden
+              ? "border-gold/50 text-gold"
+              : "border-rule/70 text-ink-muted hover:border-gold hover:text-gold"
+          }`}
+        >
+          {version} ▾
+        </button>
+        {versionOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-10"
+              aria-hidden="true"
+              onClick={(e) => {
+                e.stopPropagation();
+                setVersionOpen(false);
+              }}
+            />
+            <ul
+              role="listbox"
+              className="absolute left-7 top-5 z-20 overflow-hidden rounded-lg border border-rule bg-parchment shadow-md shadow-ink/10"
+            >
+              {BIBLE_VERSIONS.map((v) => (
+                <li key={v.code}>
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={v.code === version}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setVersion(v.code);
+                      setOverridden(v.code !== defaultVersion);
+                      setVersionOpen(false);
+                    }}
+                    className={`flex w-full items-center gap-1.5 whitespace-nowrap px-2.5 py-1 text-left font-sans text-2xs transition-colors hover:bg-parchment-2 ${
+                      v.code === version ? "text-ink" : "text-ink-soft"
+                    }`}
+                  >
+                    <span className="font-mono text-[10px] uppercase tracking-wide text-gold">
+                      {v.code}
+                    </span>
+                    {v.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
       {!added && (
         <p className="mt-1 font-sans text-[10px] text-ink-muted/60 opacity-0 transition-opacity group-hover:opacity-100">
           Drag onto the canvas to place it anywhere
