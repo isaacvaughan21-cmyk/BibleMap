@@ -14,6 +14,14 @@ export type BlogPost = {
 
 export const posts: BlogPost[] = [
   {
+    slug: "verse-mapping-step-by-step-romans-8-28",
+    title: "Verse Mapping: A Step-by-Step Method (Romans 8:28)",
+    description:
+      "Learn verse mapping in 7 steps with a worked example on Romans 8:28 — a real, repeatable Bible-study method you can do on one verse this week.",
+    datePublished: "2026-06-14",
+    readingTime: "10 min read",
+  },
+  {
     slug: "how-to-lead-a-small-group-bible-study",
     title: "How to Lead a Small Group Bible Study (First-Time Guide)",
     description:
