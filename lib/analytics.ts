@@ -21,7 +21,8 @@ export type AnalyticsEvent =
   | "session_minutes"
   | "map_size"
   | "beta_signup"
-  | "beta_guest";
+  | "beta_guest"
+  | "mobile_blocked";
 
 export function track(
   name: AnalyticsEvent,
