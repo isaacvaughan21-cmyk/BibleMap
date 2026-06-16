@@ -4,12 +4,15 @@ import { useEffect, useState } from "react";
 import { useReactFlow } from "@xyflow/react";
 import { useShallow } from "zustand/react/shallow";
 import {
+  formatRange,
   formatRef,
   getChapterContext,
   getPassageText,
   getVerseByParsed,
   osisId,
+  parseRange,
   parseRef,
+  type ParsedRange,
   type ParsedRef,
 } from "@/lib/bible";
 import { formatCrossRef, getCrossRefs, type CrossRef } from "@/lib/crossrefs";
@@ -33,7 +36,11 @@ type Tab = "refs" | "versions" | "context";
  */
 export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
   const [tab, setTab] = useState<Tab>("refs");
-  const parsed = parseRef(node.data.verseRef);
+  // Range-aware: a verse pulled from a cross-reference (or picked as a span)
+  // stores a passage like "Hebrews 7:1–3", which the strict parseRef can't
+  // read. parseRange gives us the start verse for lookups and the full span.
+  const range = parseRange(node.data.verseRef);
+  const parsed = range?.start ?? null;
 
   // A fresh verse selection always starts on cross-refs.
   useEffect(() => {
@@ -44,7 +51,7 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
     <div className="flex h-full flex-col">
       <div className="px-5 pb-2 pt-4">
         <p className="font-mono text-xs uppercase tracking-[0.14em] text-gold">
-          {parsed ? formatRef(parsed) : node.data.verseRef || "—"}
+          {range ? formatRange(range) : node.data.verseRef || "—"}
         </p>
       </div>
 
@@ -68,16 +75,16 @@ export default function CrossRefPanel({ node }: { node: VerseNodeType }) {
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {!parsed ? (
+        {!parsed || !range ? (
           <p className="px-5 py-6 text-center font-serif text-sm italic text-ink-muted">
             Couldn&rsquo;t read this reference.
           </p>
         ) : tab === "refs" ? (
           <CrossRefsTab node={node} parsed={parsed} />
         ) : tab === "versions" ? (
-          <VersionsTab parsed={parsed} />
+          <VersionsTab range={range} />
         ) : (
-          <ContextTab parsed={parsed} />
+          <ContextTab range={range} />
         )}
       </div>
     </div>
@@ -440,7 +447,7 @@ function CrossRefRow({
 /* ------------------------------------------------------------------ */
 /* Versions tab                                                        */
 /* ------------------------------------------------------------------ */
-function VersionsTab({ parsed }: { parsed: ParsedRef }) {
+function VersionsTab({ range }: { range: ParsedRange }) {
   // code → text (string), null = failed, undefined = still loading
   const [texts, setTexts] = useState<Record<string, string | null>>({});
 
@@ -448,10 +455,11 @@ function VersionsTab({ parsed }: { parsed: ParsedRef }) {
     let cancelled = false;
     setTexts({});
     for (const v of BIBLE_VERSIONS) {
-      getVerseByParsed(parsed, v.code)
+      // Whole passage for a span; a lone verse comes back unchanged.
+      getPassageText(range.start, range.end, v.code)
         .then(
-          ({ text }) =>
-            !cancelled && setTexts((t) => ({ ...t, [v.code]: text })),
+          (text) =>
+            !cancelled && setTexts((t) => ({ ...t, [v.code]: text || null })),
         )
         .catch(() => !cancelled && setTexts((t) => ({ ...t, [v.code]: null })));
     }
@@ -459,7 +467,13 @@ function VersionsTab({ parsed }: { parsed: ParsedRef }) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parsed.book.code, parsed.chapter, parsed.verse]);
+  }, [
+    range.start.book.code,
+    range.start.chapter,
+    range.start.verse,
+    range.end?.chapter,
+    range.end?.verse,
+  ]);
 
   return (
     <ul className="space-y-4 px-5 py-4">
@@ -489,25 +503,31 @@ function VersionsTab({ parsed }: { parsed: ParsedRef }) {
 /* ------------------------------------------------------------------ */
 /* Context tab                                                         */
 /* ------------------------------------------------------------------ */
-function ContextTab({ parsed }: { parsed: ParsedRef }) {
+function ContextTab({ range }: { range: ParsedRange }) {
+  const parsed = range.start;
   const bibleVersion = useCanvasStore((s) => s.bibleVersion);
   const [verses, setVerses] = useState<
     { verse: number; text: string; focus: boolean }[] | null
   >(null);
   const [failed, setFailed] = useState(false);
+  // For a same-chapter span, light up every verse it covers.
+  const focusEnd =
+    range.end && range.end.chapter === parsed.chapter
+      ? range.end.verse
+      : undefined;
 
   useEffect(() => {
     let cancelled = false;
     setVerses(null);
     setFailed(false);
-    getChapterContext(parsed, 4, bibleVersion)
+    getChapterContext(parsed, 4, bibleVersion, focusEnd)
       .then((v) => !cancelled && setVerses(v))
       .catch(() => !cancelled && setFailed(true));
     return () => {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parsed.book.code, parsed.chapter, parsed.verse, bibleVersion]);
+  }, [parsed.book.code, parsed.chapter, parsed.verse, focusEnd, bibleVersion]);
 
   return (
     <div className="px-5 py-4">
@@ -521,15 +541,24 @@ function ContextTab({ parsed }: { parsed: ParsedRef }) {
       ) : !verses ? (
         <p className="font-serif text-sm italic text-ink-muted">Reading…</p>
       ) : (
-        <p className="font-serif text-sm leading-relaxed text-ink-soft">
+        <p className="font-serif text-sm leading-loose text-ink-soft">
           {verses.map((v) => (
             <span
               key={v.verse}
               className={
-                v.focus ? "rounded bg-gold/15 px-0.5 text-ink" : undefined
+                // The verse(s) the bubble is about, marked in the brand gold
+                // with a solid outline + bold ink — distinguishable by shape
+                // and contrast, not colour alone (accessible / colourblind).
+                v.focus
+                  ? "box-decoration-clone rounded-sm bg-gold/30 px-1 py-0.5 font-semibold text-ink ring-1 ring-inset ring-gold"
+                  : undefined
               }
             >
-              <sup className="mr-0.5 font-sans text-[9px] text-gold">
+              <sup
+                className={`mr-0.5 font-sans text-[9px] ${
+                  v.focus ? "font-bold text-gold" : "text-gold"
+                }`}
+              >
                 {v.verse}
               </sup>
               {v.text}{" "}

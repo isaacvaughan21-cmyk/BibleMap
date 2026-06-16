@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { NodeProps } from "@xyflow/react";
 import type { VerseNodeType } from "@/lib/types";
 import { useCanvasStore, usePrimaryNodeId } from "@/lib/store/canvas-store";
@@ -15,11 +15,15 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Render text with stored phrases wrapped in clickable <mark> highlights. */
+/**
+ * Render text with stored phrases wrapped in <mark> highlights. A left-click
+ * does nothing (so reading a highlighted phrase doesn't wipe it); a right-click
+ * asks to remove it.
+ */
 function withHighlights(
   text: string,
   highlights: string[] | undefined,
-  onRemove: (phrase: string) => void,
+  onRequestRemove: (phrase: string) => void,
 ): ReactNode {
   const phrases = [...new Set(highlights ?? [])].filter((p) =>
     text.includes(p),
@@ -37,12 +41,13 @@ function withHighlights(
     phrases.includes(part) ? (
       <mark
         key={i}
-        onClick={(e) => {
+        onContextMenu={(e) => {
+          e.preventDefault();
           e.stopPropagation();
-          onRemove(part);
+          onRequestRemove(part);
         }}
-        title="Click to remove highlight"
-        className="nodrag cursor-pointer rounded-sm bg-gold/25 px-0.5 text-ink decoration-gold/40 hover:bg-gold/35"
+        title="Right-click to remove highlight"
+        className="verse-mark nodrag cursor-text"
       >
         {part}
       </mark>
@@ -55,9 +60,13 @@ function withHighlights(
 /**
  * A scripture bubble — gold left border, mono reference, serif verse text.
  * Clicking an empty verse bubble opens the verse picker (wired in Canvas).
- * Long passages truncate at 240 chars with an expand affordance. Selecting
- * text inside the verse offers to highlight it. The first verse placed on a
- * canvas is emphasised so the study's anchor stands out.
+ * Long passages truncate at 240 chars with an expand affordance.
+ *
+ * Highlighting: the verse text is only selectable once the bubble is selected,
+ * so a first drag MOVES the bubble instead of selecting text. Once selected,
+ * drag across a phrase to highlight it; clicking away before confirming drops
+ * the pending highlight. The first verse placed on a canvas is emphasised so
+ * the study's anchor stands out.
  */
 export default function VerseNode({
   id,
@@ -65,7 +74,11 @@ export default function VerseNode({
   selected,
 }: NodeProps<VerseNodeType>) {
   const [expanded, setExpanded] = useState(false);
+  // A selection awaiting confirmation into a stored highlight.
   const [pending, setPending] = useState<string | null>(null);
+  // A stored highlight a right-click has offered to remove.
+  const [removing, setRemoving] = useState<string | null>(null);
+  const removeRef = useRef<HTMLDivElement>(null);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   // The first bubble (earliest uuid v7 — they sort by creation time) on this
   // map, regardless of type, is the study's anchor.
@@ -76,6 +89,36 @@ export default function VerseNode({
     isLong && !expanded
       ? `${data.verseText.slice(0, TRUNCATE_AT).trimEnd()}…`
       : data.verseText;
+
+  // Clicking off the bubble drops an unconfirmed selection (and its gold wash).
+  useEffect(() => {
+    if (!selected) {
+      setPending(null);
+      if (typeof window !== "undefined")
+        window.getSelection()?.removeAllRanges();
+    }
+  }, [selected]);
+
+  // Dismiss the remove prompt on an outside click or Escape.
+  useEffect(() => {
+    if (!removing) return;
+    const onDown = (e: MouseEvent) => {
+      if (!removeRef.current?.contains(e.target as Node)) setRemoving(null);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setRemoving(null);
+    };
+    // Defer so the opening right-click itself isn't caught as "outside".
+    const t = window.setTimeout(() => {
+      document.addEventListener("mousedown", onDown);
+      window.addEventListener("keydown", onKey);
+    }, 0);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener("mousedown", onDown);
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [removing]);
 
   const captureSelection = () => {
     const sel = window.getSelection();
@@ -96,6 +139,7 @@ export default function VerseNode({
     updateNodeData(id, {
       highlights: (data.highlights ?? []).filter((p) => p !== phrase),
     });
+    setRemoving(null);
   };
 
   return (
@@ -118,10 +162,12 @@ export default function VerseNode({
         </p>
         {data.verseText && (
           <p
-            onMouseUp={captureSelection}
-            className="nodrag mt-1.5 select-text font-serif text-sm leading-relaxed text-ink-soft"
+            onMouseUp={selected ? captureSelection : undefined}
+            className={`mt-1.5 font-serif text-sm leading-relaxed text-ink-soft ${
+              selected ? "nodrag select-text" : "select-none"
+            }`}
           >
-            {withHighlights(shown, data.highlights, removeHighlight)}
+            {withHighlights(shown, data.highlights, setRemoving)}
             {isLong && (
               <>
                 {" "}
@@ -151,6 +197,33 @@ export default function VerseNode({
             Highlight “
             {pending.length > 18 ? pending.slice(0, 18) + "…" : pending}”
           </button>
+        )}
+        {removing && (
+          <div
+            ref={removeRef}
+            className="nodrag mt-2 flex items-center gap-1.5"
+          >
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                removeHighlight(removing);
+              }}
+              className="inline-flex items-center gap-1 rounded-full border border-danger/50 bg-danger/10 px-2.5 py-0.5 font-sans text-2xs text-danger transition-colors hover:bg-danger/20"
+            >
+              Remove highlight
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setRemoving(null);
+              }}
+              className="font-sans text-2xs text-ink-muted transition-colors hover:text-ink"
+            >
+              cancel
+            </button>
+          </div>
         )}
         <NodeHandles />
       </div>

@@ -115,6 +115,49 @@ export function formatRef(p: ParsedRef): string {
   return `${p.book.name} ${p.chapter}:${p.verse}`;
 }
 
+/** A reference that may span several sequential verses (same book). */
+export type ParsedRange = { start: ParsedRef; end?: ParsedRef };
+
+/**
+ * Like {@link parseRef} but tolerant of ranges — "Hebrews 7:1–3",
+ * "Heb 7:1-8:2", "John 3". Returns the start verse plus an optional end verse
+ * (always the same book). A single verse comes back with `end` undefined.
+ *
+ * Cross-reference passages and the verse picker's multi-verse selections both
+ * store their reference this way, so the study panel can read them. `parseRef`
+ * is deliberately left strict (single verse only) — callers that key on a lone
+ * verse, like the per-verse version switch, rely on ranges failing there.
+ */
+export function parseRange(input: string): ParsedRange | null {
+  const trimmed = input.trim();
+  // Peel off a trailing "–N" or "–C:N" tail (en-dash, em-dash, or hyphen).
+  const m = trimmed.match(/^(.*?\d)\s*[–—-]\s*(\d+(?::\d+)?)\s*$/);
+  if (!m) {
+    const start = parseRef(trimmed);
+    return start ? { start } : null;
+  }
+  const start = parseRef(m[1]);
+  if (!start) return null;
+  const tail = m[2];
+  if (tail.includes(":")) {
+    const [c, v] = tail.split(":").map(Number);
+    if (c < 1 || c > start.book.chapters || v < 1) return { start };
+    return { start, end: { book: start.book, chapter: c, verse: v } };
+  }
+  const v = Number(tail);
+  if (v < 1) return { start };
+  return { start, end: { book: start.book, chapter: start.chapter, verse: v } };
+}
+
+/** Display form for a (possibly single-verse) range: "John 3:16–18". */
+export function formatRange(r: ParsedRange): string {
+  if (!r.end) return formatRef(r.start);
+  if (r.end.chapter === r.start.chapter) {
+    return `${formatRef(r.start)}–${r.end.verse}`;
+  }
+  return `${formatRef(r.start)}–${r.end.chapter}:${r.end.verse}`;
+}
+
 /** OSIS id used by the TSK lookup: "John.3.16" */
 export function osisId(p: ParsedRef): string {
   return `${p.book.code}.${p.chapter}.${p.verse}`;
@@ -170,21 +213,30 @@ export async function getPassageText(
 /**
  * The verses surrounding a reference within its chapter — for the study
  * panel's "context" tab. Returns up to `radius` verses on each side plus the
- * verse itself, each flagged whether it's the focus verse.
+ * focus verse(s), each flagged whether it's part of the focus. `focusEnd`
+ * (a verse number in the same chapter) extends the focus to a range so a
+ * multi-verse bubble lights up every verse it covers.
  */
 export async function getChapterContext(
   p: ParsedRef,
   radius = 4,
   version?: string,
+  focusEnd?: number,
 ): Promise<{ verse: number; text: string; focus: boolean }[]> {
   const book = await loadBook(p.book.code, version);
   const verses = book.chapters[p.chapter - 1] ?? [];
+  const focusTo = Math.max(p.verse, focusEnd ?? p.verse);
   const from = Math.max(1, p.verse - radius);
-  const to = Math.min(verses.length, p.verse + radius);
+  // Always show the whole focus range, plus `radius` verses of trailing context.
+  const to = Math.min(verses.length, focusTo + radius);
   const out: { verse: number; text: string; focus: boolean }[] = [];
   for (let v = from; v <= to; v++) {
     if (verses[v - 1]) {
-      out.push({ verse: v, text: verses[v - 1], focus: v === p.verse });
+      out.push({
+        verse: v,
+        text: verses[v - 1],
+        focus: v >= p.verse && v <= focusTo,
+      });
     }
   }
   return out;
