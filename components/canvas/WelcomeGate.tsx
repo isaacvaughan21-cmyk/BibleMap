@@ -39,6 +39,9 @@ export default function WelcomeGate() {
   const [showPw, setShowPw] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [mode, setMode] = useState<"signup" | "signin">("signup");
+  // Marketing opt-in, pre-checked: a new sign-up's email is added to the
+  // waitlist (marketing) list unless they clear this.
+  const [optIn, setOptIn] = useState(true);
   const panelRef = useRef<HTMLDivElement>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   const pwRef = useRef<HTMLInputElement>(null);
@@ -79,6 +82,17 @@ export default function WelcomeGate() {
     setTimeout(() => setShow(false), 560);
   };
 
+  // Best-effort add to the waitlist (marketing) list — never blocks sign-up.
+  const joinMarketingList = async (addr: string) => {
+    try {
+      const fd = new FormData();
+      fd.append("email", addr);
+      await joinBeta(fd);
+    } catch {
+      // ignore — the account still gets created
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
@@ -115,6 +129,8 @@ export default function WelcomeGate() {
         setSubmitting(false);
         return;
       }
+      // New account + opted in → add the email to the waitlist list too.
+      if (mode === "signup" && optIn) await joinMarketingList(email);
       if (result.needsConfirm) {
         setNotice("Check your email to confirm your account, then sign in.");
         setMode("signin");
@@ -125,19 +141,21 @@ export default function WelcomeGate() {
       return;
     }
 
-    // Local fallback (no cloud configured) — record the email for the beta
-    // list; the password stays on-device.
-    const fd = new FormData();
-    fd.append("email", email);
-    try {
-      const result = await joinBeta(fd);
-      if (result.status === "invalid") {
-        setError(result.message);
-        setSubmitting(false);
-        return;
+    // Local fallback (no cloud configured) — if opted in, record the email for
+    // the beta/marketing list; the password stays on-device.
+    if (optIn) {
+      const fd = new FormData();
+      fd.append("email", email);
+      try {
+        const result = await joinBeta(fd);
+        if (result.status === "invalid") {
+          setError(result.message);
+          setSubmitting(false);
+          return;
+        }
+      } catch {
+        // beta list is best-effort — never block the door on it
       }
-    } catch {
-      // beta list is best-effort — never block the door on it
     }
     enter(email);
   };
@@ -258,6 +276,21 @@ export default function WelcomeGate() {
               </button>
             </div>
           </div>
+
+          {!isSignin && (
+            <label className="flex cursor-pointer select-none items-start gap-2.5 pt-1">
+              <input
+                type="checkbox"
+                checked={optIn}
+                onChange={(e) => setOptIn(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-gold"
+              />
+              <span className="font-sans text-2xs leading-relaxed text-ink-muted">
+                Send me occasional Hodos updates — new features and Bible-study
+                tips. Unsubscribe anytime.
+              </span>
+            </label>
+          )}
 
           {error && (
             <p role="alert" className="font-sans text-xs text-danger">

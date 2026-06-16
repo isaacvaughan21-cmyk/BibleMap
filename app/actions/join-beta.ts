@@ -21,6 +21,9 @@ export type BetaSignupResult =
   | { status: "ok" }
   | { status: "invalid"; message: string };
 
+/** Recognised sign-up origins; anything else falls back to "app-beta". */
+const ALLOWED_SOURCES = new Set(["app-beta", "mobile-waitlist"]);
+
 function hashIp(ip: string): string {
   const secret = process.env.WAITLIST_RATE_LIMIT_SECRET ?? "dev-salt";
   const day = new Date().toISOString().slice(0, 10); // yyyy-mm-dd
@@ -42,6 +45,14 @@ export async function joinBeta(formData: FormData): Promise<BetaSignupResult> {
   }
   const { email } = parsed.data;
 
+  // Where the sign-up came from — an allowlist keeps the column tidy and
+  // prevents a tampered client from writing arbitrary strings.
+  const sourceRaw = formData.get("source");
+  const source =
+    typeof sourceRaw === "string" && ALLOWED_SOURCES.has(sourceRaw)
+      ? sourceRaw
+      : "app-beta";
+
   const h = headers();
   const ipHash = hashIp(getClientIp(h));
   const userAgent = h.get("user-agent")?.slice(0, 512) ?? null;
@@ -53,7 +64,7 @@ export async function joinBeta(formData: FormData): Promise<BetaSignupResult> {
     const supabase = getServiceClient();
     const { error } = await supabase.from("waitlist").insert({
       email,
-      source: "app-beta",
+      source,
       user_agent: userAgent,
       ip_hash: ipHash,
     });
