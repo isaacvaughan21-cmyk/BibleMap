@@ -38,6 +38,19 @@
     color: var(--ink);
   }
 
+  /* A confirmed highlight in a verse bubble. Uses the same gold-soft as
+     ::selection so a phrase looks identical once you let go as it did while
+     you were dragging across it. */
+  mark.verse-mark {
+    background-color: var(--gold-soft);
+    color: var(--ink);
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+  mark.verse-mark:hover {
+    background-color: color-mix(in srgb, var(--gold-soft) 78%, var(--gold));
+  }
+
   /* Visible focus ring for keyboard users */
   :focus-visible {
     outline: 2px solid var(--gold);

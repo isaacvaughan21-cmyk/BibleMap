@@ -18,6 +18,20 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.3.5",
+    date: "2026-06-15",
+    title: "Verse picking & highlighting",
+    changes: [
+      "Picking a verse now opens on a quick number grid — switch to “Read” any time to choose by the verse text.",
+      "Books are listed by their full names, so you don't have to recognise an abbreviation.",
+      "Select a span of verses at once: switch the picker to “Range”, then click the first and last verse.",
+      "Highlighting is smoother — drag a bubble to move it, and once it's selected, drag across the words to highlight them in gold.",
+      "Click a highlight to read it without losing it; right-click to remove it.",
+      "Opening the study panel on a verse drawn from a cross-reference no longer shows a “couldn't read this reference” error.",
+      "In the study panel's context view, the verse you're studying is now clearly outlined so it's easy to find.",
+    ],
+  },
+  {
     version: "0.3.4",
     date: "2026-06-13",
     title: "Study & canvas depth",
