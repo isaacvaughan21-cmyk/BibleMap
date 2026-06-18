@@ -11,7 +11,6 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
-  type Connection,
   type Edge,
   type Node,
 } from "@xyflow/react";
@@ -1000,29 +999,13 @@ function FlowSurface(props: {
     [],
   );
 
-  /** Normalize a handle-to-handle connection so the drag origin is the source. */
-  const handleConnect = useCallback(
-    (c: Connection) => {
-      const from = connectFrom.current;
-      if (from && c.source && c.target && c.source !== c.target) {
-        const other = c.source === from ? c.target : c.source;
-        props.onConnect({
-          source: from,
-          target: other,
-          sourceHandle: null,
-          targetHandle: null,
-        });
-      } else {
-        props.onConnect(c);
-      }
-    },
-    [props],
-  );
-
   /**
-   * Dropping a connection on a bubble's BODY (not a handle) still connects —
-   * handle-precision shouldn't be required to draw a line. The origin bubble is
-   * the source, so the arrow points at the bubble you dragged onto.
+   * The connection is resolved entirely on DROP, and the bubble physically
+   * under the cursor wins — so a line always lands on the node you point at,
+   * never on a different node whose handle happened to fall inside the snap
+   * radius. The snapped handle (connectionState.toNode) is only a fallback for
+   * a near-miss drop on empty parchment. The drag origin is always the source,
+   * so the arrow points at the bubble you dragged onto.
    */
   const onConnectEnd = useCallback(
     (
@@ -1030,19 +1013,21 @@ function FlowSurface(props: {
       connectionState: {
         isValid: boolean | null;
         fromNode: Node | null;
+        toNode?: Node | null;
       },
     ) => {
+      const from = connectFrom.current ?? connectionState.fromNode?.id ?? null;
       connectFrom.current = null;
-      if (connectionState.isValid) return;
+      if (!from) return;
       const point = "changedTouches" in event ? event.changedTouches[0] : event;
       const nodeEl = document
         .elementFromPoint(point.clientX, point.clientY)
         ?.closest(".react-flow__node");
-      const overId = nodeEl?.getAttribute("data-id");
-      const fromId = connectionState.fromNode?.id;
-      if (!overId || !fromId || overId === fromId) return;
+      const overId =
+        nodeEl?.getAttribute("data-id") ?? connectionState.toNode?.id ?? null;
+      if (!overId || overId === from) return;
       props.onConnect({
-        source: fromId,
+        source: from,
         target: overId,
         sourceHandle: null,
         targetHandle: null,
@@ -1050,6 +1035,11 @@ function FlowSurface(props: {
     },
     [props],
   );
+
+  // Edge creation lives in onConnectEnd (drop-point authoritative); React
+  // Flow's own onConnect would otherwise fire first on a handle snap and draw a
+  // duplicate to the snapped node.
+  const ignoreConnect = useCallback(() => {}, []);
 
   return (
     <div
@@ -1063,7 +1053,7 @@ function FlowSurface(props: {
         edges={props.edges}
         onNodesChange={props.onNodesChange}
         onEdgesChange={props.onEdgesChange}
-        onConnect={handleConnect}
+        onConnect={ignoreConnect}
         onConnectStart={onConnectStart}
         onReconnect={props.onReconnect}
         nodeTypes={nodeTypes}
@@ -1076,7 +1066,7 @@ function FlowSurface(props: {
         deleteKeyCode={["Backspace", "Delete"]}
         multiSelectionKeyCode="Shift"
         selectionKeyCode="Shift"
-        connectionRadius={28}
+        connectionRadius={18}
         connectionLineType={ConnectionLineType.Bezier}
         connectionLineStyle={{
           stroke: "var(--gold)",

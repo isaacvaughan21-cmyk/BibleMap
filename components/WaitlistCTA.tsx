@@ -28,23 +28,6 @@ export default function WaitlistCTA() {
         </Reveal>
 
         <Reveal delay={0.2}>
-          <div className="mx-auto mt-8 max-w-md rounded-xl border border-gold/40 bg-gold-soft/10 px-6 py-5 shadow-lg shadow-gold/5">
-            <p className="font-sans text-2xs tracking-eyebrow text-gold">
-              EARLY ACCESS
-            </p>
-            <p className="mt-2 font-sans text-base leading-relaxed text-ink-soft">
-              The beta is open to everyone — but the first{" "}
-              <span className="font-semibold text-ink">10</span> on the list
-              still get a{" "}
-              <span className="font-semibold text-ink">
-                free lifetime subscription
-              </span>
-              .
-            </p>
-          </div>
-        </Reveal>
-
-        <Reveal delay={0.3}>
           <div className="mt-10">
             <WaitlistForm />
           </div>

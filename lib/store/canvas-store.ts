@@ -704,17 +704,24 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     onConnect(connection) {
       if (!connection.source || !connection.target) return;
       if (connection.source === connection.target) return;
+      // A line drawn between two verse bubbles is a scripture cross-reference —
+      // label it as such automatically. Anything else stays a manual link.
+      const ns = get().nodes;
+      const src = ns.find((n) => n.id === connection.source);
+      const tgt = ns.find((n) => n.id === connection.target);
+      const kind: EdgeKind =
+        src?.type === "verse" && tgt?.type === "verse" ? "crossref" : "manual";
       const edge: HodosEdge = {
         id: uuidv7(),
         source: connection.source,
         target: connection.target,
-        type: "manual",
+        type: kind,
       };
       createdAtById.set(edge.id, Date.now());
       set({ edges: [...get().edges, edge] });
       dirtyEdgeIds.add(edge.id);
       scheduleFlush();
-      track("edge_drawn", { kind: "manual" });
+      track("edge_drawn", { kind });
     },
 
     createNode(type, position) {

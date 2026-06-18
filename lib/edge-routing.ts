@@ -63,33 +63,45 @@ export function floatingEdgeParams(source: InternalNode, target: InternalNode) {
   return { sx: sa.x, sy: sa.y, tx: ta.x, ty: ta.y, sourcePos, targetPos };
 }
 
+/** Outward unit normal of a bubble side — the direction pointing away from it. */
+const SIDE_NORMAL: Record<Position, { x: number; y: number }> = {
+  [Position.Top]: { x: 0, y: -1 },
+  [Position.Bottom]: { x: 0, y: 1 },
+  [Position.Left]: { x: -1, y: 0 },
+  [Position.Right]: { x: 1, y: 0 },
+};
+
+/** A short straight run into the arrow — longer than the arrowhead so the line
+ * meets the dead centre of its back, perpendicular to the bubble's side. */
+const ARROW_RUN = 16;
+
 /**
- * A gently curved edge that STRAIGHTENS into its target. The final control
- * point sits straight back along the chord, so the end tangent runs along the
- * line — the arrowhead stays aligned and the line enters the centre of its
- * back. The first control point bows out perpendicular for the curve.
+ * A smooth curve whose control points sit on the OUTWARD NORMAL of each
+ * bubble's attachment side, so the line leaves the source and arrives at the
+ * target perpendicular to the bubble it touches. The final segment is a short
+ * STRAIGHT run along the target's normal: the arrowhead therefore sits on a
+ * straight line and the edge passes through the centre of its back, never
+ * meeting it off to one side where the curve is still bending.
  */
-export function curvedEdgePath(
-  sx: number,
-  sy: number,
-  tx: number,
-  ty: number,
-): string {
-  const dx = tx - sx;
-  const dy = ty - sy;
-  const dist = Math.hypot(dx, dy) || 1;
-  const ux = dx / dist;
-  const uy = dy / dist;
-  const px = -uy; // unit perpendicular
-  const py = ux;
-  const bow = Math.min(dist * 0.16, 64); // how far the line bows out
-  // First control point: out along the chord, bowed to one side.
-  const c1x = sx + ux * dist * 0.4 + px * bow;
-  const c1y = sy + uy * dist * 0.4 + py * bow;
-  // Second control point: straight back from the end along the chord, so the
-  // approach is straight and the arrow lines up.
-  const straight = Math.min(dist * 0.28, 70);
-  const c2x = tx - ux * straight;
-  const c2y = ty - uy * straight;
-  return `M ${sx},${sy} C ${c1x},${c1y} ${c2x},${c2y} ${tx},${ty}`;
+export function floatingEdgePath(source: InternalNode, target: InternalNode) {
+  const { sx, sy, tx, ty, sourcePos, targetPos } = floatingEdgeParams(
+    source,
+    target,
+  );
+  const sn = SIDE_NORMAL[sourcePos];
+  const tn = SIDE_NORMAL[targetPos];
+  const dist = Math.hypot(tx - sx, ty - sy) || 1;
+  const bow = Math.min(Math.max(dist * 0.4, 30), 140); // control-point reach
+
+  // The curve ends just outside the target side, travelling straight in along
+  // the normal; the trailing line segment carries the arrowhead the rest of
+  // the way so it lands square on the bubble.
+  const ex = tx + tn.x * ARROW_RUN;
+  const ey = ty + tn.y * ARROW_RUN;
+  const c1x = sx + sn.x * bow;
+  const c1y = sy + sn.y * bow;
+  const c2x = ex + tn.x * bow;
+  const c2y = ey + tn.y * bow;
+  const path = `M ${sx},${sy} C ${c1x},${c1y} ${c2x},${c2y} ${ex},${ey} L ${tx},${ty}`;
+  return { path, sx, sy, tx, ty };
 }

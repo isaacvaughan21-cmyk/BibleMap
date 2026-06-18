@@ -1,5 +1,5 @@
 import { BaseEdge, useInternalNode, type EdgeProps } from "@xyflow/react";
-import { curvedEdgePath, floatingEdgeParams } from "@/lib/edge-routing";
+import { floatingEdgePath } from "@/lib/edge-routing";
 import { ARROW_RULE } from "./EdgeMarkers";
 import EdgeEnds from "./EdgeEnds";
 
@@ -14,9 +14,8 @@ export default function ManualEdge({
   const targetNode = useInternalNode(target);
   if (!sourceNode || !targetNode) return null;
 
-  const { sx, sy, tx, ty } = floatingEdgeParams(sourceNode, targetNode);
-  // A gentle curve that straightens into the target so the arrow stays aligned.
-  const path = curvedEdgePath(sx, sy, tx, ty);
+  // A smooth curve that leaves and enters each bubble perpendicular to its side.
+  const { path, sx, sy, tx, ty } = floatingEdgePath(sourceNode, targetNode);
   return (
     <>
       <BaseEdge
