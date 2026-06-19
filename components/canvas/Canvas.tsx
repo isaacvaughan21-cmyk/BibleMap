@@ -20,11 +20,14 @@ import "@xyflow/react/dist/style.css";
 import { track } from "@/lib/analytics";
 import { getVerseByParsed, parseRef } from "@/lib/bible";
 import { easeInCubic, easeOutQuint, easeInOutCubic } from "@/lib/easing";
+import { useRouter } from "next/navigation";
 import { takeCrossRefDrag, useCanvasStore } from "@/lib/store/canvas-store";
 import * as repo from "@/lib/db/repo";
 import { CROSSREF_DRAG_TYPE } from "./CrossRefPanel";
 import type { HodosExport } from "@/lib/db/repo";
 import { downloadExport, parseImport } from "@/lib/map-io";
+import { compileToStudyDoc } from "@/lib/notes/compile-to-study-doc";
+import { setCompiledDoc } from "@/lib/notes/compiled-doc";
 import { useCanvasShortcuts } from "@/lib/shortcuts";
 import type { EdgeKind, NodeKind } from "@/lib/types";
 import TopBar from "./TopBar";
@@ -257,6 +260,26 @@ function CanvasInner() {
     downloadExport(await repo.exportData());
   }, []);
 
+  // Compile the CURRENT map's bubbles into a structured study document and open
+  // the print/PDF view. Reads the live store arrays at call time; the anchor is
+  // the lowest node id (same rule as usePrimaryNodeId), computed here so the
+  // compiler stays a pure function outside React's render path.
+  const router = useRouter();
+  const compileNotes = useCallback(() => {
+    const { nodes: ns, edges: es, mapName } = useCanvasStore.getState();
+    if (ns.length === 0) {
+      setToast({ text: "Add a few bubbles first — nothing to compile yet." });
+      return;
+    }
+    let primaryNodeId: string | null = null;
+    for (const n of ns)
+      if (primaryNodeId === null || n.id < primaryNodeId) primaryNodeId = n.id;
+    setCompiledDoc(
+      compileToStudyDoc({ nodes: ns, edges: es, mapName, primaryNodeId }),
+    );
+    router.push("/notes");
+  }, [router]);
+
   const handleImportFile = useCallback(async (file: File) => {
     try {
       setImportPending(parseImport(await file.text()));
@@ -414,6 +437,7 @@ function CanvasInner() {
           setFeedbackOpen((o) => !o);
         }}
         onExport={handleExport}
+        onCompileNotes={compileNotes}
         onImportFile={handleImportFile}
         onHelp={() => setHelpOpen(true)}
         onRequestVersion={() => {
@@ -546,6 +570,7 @@ function CanvasInner() {
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
+        onCompileNotes={compileNotes}
       />
       <HelpOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
 

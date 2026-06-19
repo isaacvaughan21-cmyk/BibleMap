@@ -15,7 +15,8 @@ import type { HodosNode, NodeKind } from "@/lib/types";
 
 type PaletteItem =
   | { kind: "jump"; node: HodosNode; label: string; sub: string }
-  | { kind: "create"; type: NodeKind; label: string };
+  | { kind: "create"; type: NodeKind; label: string }
+  | { kind: "action"; id: string; label: string; run: () => void };
 
 function nodeLabel(n: HodosNode): { label: string; sub: string } {
   if (n.type === "verse") {
@@ -42,9 +43,11 @@ const CREATE_ITEMS: { type: NodeKind; label: string }[] = [
 export default function CommandPalette({
   open,
   onClose,
+  onCompileNotes,
 }: {
   open: boolean;
   onClose: () => void;
+  onCompileNotes: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -94,12 +97,24 @@ export default function CommandPalette({
         }),
       );
 
+    const actionDefs: PaletteItem[] = [
+      {
+        kind: "action",
+        id: "compile-notes",
+        label: "Compile to notes",
+        run: onCompileNotes,
+      },
+    ];
+    const actions = actionDefs.filter(
+      (a) => !query || fuzzyScore(query, a.label) > 0,
+    );
+
     const creates = CREATE_ITEMS.filter(
       (c) => !query || fuzzyScore(query, c.label) > 0,
     ).map((c): PaletteItem => ({ kind: "create", ...c }));
 
-    return [...jumps, ...creates];
-  }, [nodes, query]);
+    return [...jumps, ...actions, ...creates];
+  }, [nodes, query, onCompileNotes]);
 
   useEffect(() => {
     setActive((a) => Math.min(a, Math.max(items.length - 1, 0)));
@@ -108,7 +123,9 @@ export default function CommandPalette({
   if (!open) return null;
 
   const run = (item: PaletteItem) => {
-    if (item.kind === "create") {
+    if (item.kind === "action") {
+      item.run();
+    } else if (item.kind === "create") {
       const center = screenToFlowPosition({
         x: window.innerWidth / 2,
         y: window.innerHeight / 2,
@@ -147,6 +164,7 @@ export default function CommandPalette({
   };
 
   const jumpItems = items.filter((i) => i.kind === "jump");
+  const actionItems = items.filter((i) => i.kind === "action");
   const createItems = items.filter((i) => i.kind === "create");
 
   return (
@@ -239,8 +257,24 @@ export default function CommandPalette({
             </Section>
           )}
 
-          {createItems.length > 0 && (
+          {(actionItems.length > 0 || createItems.length > 0) && (
             <Section label="ACTIONS">
+              {actionItems.map((item) => (
+                <Row
+                  key={item.kind === "action" ? item.id : ""}
+                  active={items[active] === item}
+                  onClick={() => run(item)}
+                  onHover={() => setActive(items.indexOf(item))}
+                >
+                  <ActionGlyph />
+                  <span className="flex-1 font-sans text-sm text-ink">
+                    {item.label}
+                  </span>
+                  <span className="font-sans text-2xs tracking-eyebrow text-gold/80">
+                    GO
+                  </span>
+                </Row>
+              ))}
               {createItems.map((item) => (
                 <Row
                   key={item.kind === "create" ? item.type : ""}
@@ -330,5 +364,57 @@ function TypeGlyph({ type }: { type: NodeKind }) {
   }
   return (
     <span className="h-5 w-5 shrink-0 rounded-md border border-rule bg-parchment-2" />
+  );
+}
+
+/** A small document glyph for command (action) rows. */
+function ActionGlyph() {
+  return (
+    <span className="flex h-5 w-5 shrink-0 items-center justify-center text-gold">
+      <svg
+        width="13"
+        height="13"
+        viewBox="0 0 14 14"
+        fill="none"
+        aria-hidden="true"
+      >
+        <rect
+          x="2.5"
+          y="1.5"
+          width="9"
+          height="11"
+          rx="1.5"
+          stroke="currentColor"
+          strokeWidth="1.2"
+        />
+        <line
+          x1="4.5"
+          y1="5"
+          x2="9.5"
+          y2="5"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+        <line
+          x1="4.5"
+          y1="7.5"
+          x2="9.5"
+          y2="7.5"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+        <line
+          x1="4.5"
+          y1="10"
+          x2="7.5"
+          y2="10"
+          stroke="currentColor"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
   );
 }

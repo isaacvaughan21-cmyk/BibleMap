@@ -16,6 +16,7 @@ type TopBarProps = {
   onOpenPalette: () => void;
   onFeedback: () => void;
   onExport: () => void;
+  onCompileNotes: () => void;
   onImportFile: (file: File) => void;
   onHelp: () => void;
   onRequestVersion: () => void;
@@ -28,6 +29,7 @@ export default function TopBar({
   onOpenPalette,
   onFeedback,
   onExport,
+  onCompileNotes,
   onImportFile,
   onHelp,
   onRequestVersion,
@@ -117,6 +119,7 @@ export default function TopBar({
 
           <OverflowMenu
             onExport={onExport}
+            onCompileNotes={onCompileNotes}
             onImportFile={onImportFile}
             onHelp={onHelp}
             onRequestVersion={onRequestVersion}
@@ -130,11 +133,13 @@ export default function TopBar({
 /** "…" menu — canvases, Bible version, export, import, shortcuts. */
 function OverflowMenu({
   onExport,
+  onCompileNotes,
   onImportFile,
   onHelp,
   onRequestVersion,
 }: {
   onExport: () => void;
+  onCompileNotes: () => void;
   onImportFile: (file: File) => void;
   onHelp: () => void;
   onRequestVersion: () => void;
@@ -305,6 +310,14 @@ function OverflowMenu({
               + New canvas
             </MenuButton>
             <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
+            <MenuButton
+              onClick={() => {
+                onCompileNotes();
+                setOpen(false);
+              }}
+            >
+              Compile to notes…
+            </MenuButton>
             <MenuButton
               onClick={() => {
                 onExport();

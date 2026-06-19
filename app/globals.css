@@ -455,3 +455,62 @@
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Print — the /notes study document. The screen view is parchment/ink; */
+/* print forces high-contrast black-on-white so it photocopies and     */
+/* "Save as PDF"s legibly while still reading as Hodos (gold survives   */
+/* only as the highlight underline + section accent).                  */
+/* ------------------------------------------------------------------ */
+@media print {
+  :root {
+    --parchment: #ffffff;
+    --parchment-2: #ffffff;
+    --ink: #000000;
+    --ink-soft: #1a1a1a;
+    --ink-muted: #444444;
+    --rule: #cccccc;
+  }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Hide on-screen chrome: action bar, back link, tips, canvas decoration. */
+  .no-print,
+  .dot-grid,
+  .canvas-vignette {
+    display: none !important;
+  }
+  /* Highlights -> bold + gold underline (legible in black & white). */
+  mark.verse-mark {
+    background: transparent !important;
+    color: #000 !important;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: var(--gold);
+  }
+  /* The anchor glow is an on-screen cue only. */
+  .node-primary {
+    box-shadow: none !important;
+  }
+  /* Keep a passage and its attachments together across page breaks. */
+  .study-verse-section,
+  .study-themed-section,
+  .study-attached-block {
+    break-inside: avoid;
+  }
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+  /* Don't expand cross-reference anchors into "(href)". */
+  a[href]::after {
+    content: "";
+  }
+  @page {
+    margin: 18mm 16mm;
+  }
+}
