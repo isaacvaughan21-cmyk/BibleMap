@@ -26,8 +26,11 @@ import * as repo from "@/lib/db/repo";
 import { CROSSREF_DRAG_TYPE } from "./CrossRefPanel";
 import type { HodosExport } from "@/lib/db/repo";
 import { downloadExport, parseImport } from "@/lib/map-io";
-import { compileToStudyDoc } from "@/lib/notes/compile-to-study-doc";
+import { buildOutline } from "@/lib/notes/build-outline";
 import { setCompiledDoc } from "@/lib/notes/compiled-doc";
+import type { AIStudyDoc } from "@/lib/notes/ai-study-doc";
+import { getBrowserClient } from "@/lib/supabase-browser";
+import { useAuthUser } from "@/lib/use-auth";
 import { useCanvasShortcuts } from "@/lib/shortcuts";
 import type { EdgeKind, NodeKind } from "@/lib/types";
 import TopBar from "./TopBar";
@@ -42,7 +45,7 @@ import HintBar from "./HintBar";
 import HelpOverlay from "./HelpOverlay";
 import ImportDialog from "./ImportDialog";
 import VersePicker from "./VersePicker";
-import WelcomeGate from "./WelcomeGate";
+import WelcomeGate, { OPEN_GATE_EVENT } from "./WelcomeGate";
 import GuestSavePrompt from "./GuestSavePrompt";
 import CloudSync from "./CloudSync";
 import QuestionNode from "./nodes/QuestionNode";
@@ -260,25 +263,95 @@ function CanvasInner() {
     downloadExport(await repo.exportData());
   }, []);
 
-  // Compile the CURRENT map's bubbles into a structured study document and open
-  // the print/PDF view. Reads the live store arrays at call time; the anchor is
-  // the lowest node id (same rule as usePrimaryNodeId), computed here so the
-  // compiler stays a pure function outside React's render path.
+  // Generate AI study notes from the CURRENT map. Signed-in users only. The
+  // hierarchy is built client-side (top-level bubble = section, branches =
+  // sub-points), POSTed to the server route that holds the API key and meters
+  // usage, then the structured doc opens at /notes. Reads the live store at call
+  // time; the anchor is the lowest node id (same rule as usePrimaryNodeId).
   const router = useRouter();
-  const compileNotes = useCallback(() => {
+  const { user } = useAuthUser();
+  const [generating, setGenerating] = useState(false);
+  const compileNotes = useCallback(async () => {
+    if (generating) return;
     const { nodes: ns, edges: es, mapName } = useCanvasStore.getState();
     if (ns.length === 0) {
-      setToast({ text: "Add a few bubbles first — nothing to compile yet." });
+      setToast({
+        text: "Add a few bubbles first — nothing to turn into notes yet.",
+      });
       return;
     }
     let primaryNodeId: string | null = null;
     for (const n of ns)
       if (primaryNodeId === null || n.id < primaryNodeId) primaryNodeId = n.id;
-    setCompiledDoc(
-      compileToStudyDoc({ nodes: ns, edges: es, mapName, primaryNodeId }),
-    );
-    router.push("/notes");
-  }, [router]);
+    const outline = buildOutline({
+      nodes: ns,
+      edges: es,
+      mapName,
+      primaryNodeId,
+    });
+
+    const promptSignIn = () =>
+      setToast({
+        text: "Sign in to turn your map into AI study notes.",
+        action: {
+          label: "Sign in",
+          run: () => window.dispatchEvent(new Event(OPEN_GATE_EVENT)),
+        },
+      });
+
+    const client = getBrowserClient();
+    if (!client || !user) {
+      promptSignIn();
+      return;
+    }
+    const {
+      data: { session },
+    } = await client.auth.getSession();
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      promptSignIn();
+      return;
+    }
+
+    setGenerating(true);
+    setToast({ text: "Writing your study notes…" });
+    try {
+      const res = await fetch("/api/ai-notes", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(outline),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => null)) as {
+          error?: { message?: string };
+        } | null;
+        if (res.status === 401) promptSignIn();
+        else
+          setToast({
+            text:
+              j?.error?.message ??
+              "Couldn't generate notes this time. Please try again.",
+          });
+        return;
+      }
+      const { doc } = (await res.json()) as {
+        doc: AIStudyDoc;
+        remaining: number | null;
+      };
+      setCompiledDoc(doc);
+      setToast(null);
+      router.push("/notes");
+    } catch {
+      setToast({
+        text: "Network hiccup — couldn't reach the notes engine. Try again.",
+      });
+    } finally {
+      setGenerating(false);
+    }
+  }, [generating, user, router]);
 
   const handleImportFile = useCallback(async (file: File) => {
     try {

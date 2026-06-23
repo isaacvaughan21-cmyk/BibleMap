@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { getCompiledDoc } from "@/lib/notes/compiled-doc";
-import StudyDocView from "./StudyDocView";
+import AIStudyDocView from "./AIStudyDocView";
 
 /**
  * The /notes screen. Reads the StudyDoc the canvas stashed before navigating,
@@ -15,7 +15,7 @@ export default function NotesScreen() {
   // Peek once on mount — survives React strict-mode's double render.
   const [doc] = useState(() => getCompiledDoc());
 
-  if (!doc || doc.stats.nodeCount === 0) {
+  if (!doc || doc.meta.nodeCount === 0) {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-parchment px-8 text-center">
         <div className="flex items-baseline gap-2">
@@ -70,7 +70,7 @@ export default function NotesScreen() {
         </button>
       </div>
 
-      <StudyDocView doc={doc} />
+      <AIStudyDocView doc={doc} />
 
       <p className="no-print mx-auto max-w-content px-gutter pb-12 font-sans text-2xs text-ink-muted/70 md:px-gutter-lg">
         Tip: in the print dialog choose &ldquo;Save as PDF&rdquo; as the
