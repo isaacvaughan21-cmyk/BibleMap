@@ -250,6 +250,8 @@ export async function POST(req: Request): Promise<NextResponse> {
     });
   } catch (e) {
     const status = (e as { status?: number })?.status;
+    const detail = (e as Error)?.message ?? String(e);
+    console.error("[ai-notes] Claude error:", status, detail);
     if (status === 429 || status === 529) {
       return err(
         503,
@@ -257,11 +259,12 @@ export async function POST(req: Request): Promise<NextResponse> {
         "The notes engine is busy right now — try again in a moment.",
       );
     }
-    console.error("[ai-notes] Claude error:", (e as Error)?.message);
+    // TEMP DEBUG (preview only): echo the upstream status + message so the cause
+    // is visible without digging through Vercel logs. Removed before merge.
     return err(
       502,
       "ai_error",
-      "Couldn't generate notes this time. Please try again.",
+      `Couldn't generate notes (${status ?? "?"}): ${String(detail).slice(0, 300)}`,
     );
   }
 
