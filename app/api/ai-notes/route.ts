@@ -74,6 +74,29 @@ function collectInputIds(body: unknown): Set<string> {
   return ids;
 }
 
+/**
+ * GET — config diagnostic. Returns ONLY booleans (never any secret value) so you
+ * can confirm, in a browser, whether this deployment actually received the env
+ * vars. Open this URL on the deployment you're testing; if anthropicKeyPresent
+ * is false, the key isn't reaching this build (wrong env scope, or not redeployed
+ * since it was added). Gated behind the app flag like everything else.
+ */
+export async function GET(): Promise<NextResponse> {
+  if (process.env.NEXT_PUBLIC_HODOS_APP_ENABLED !== "true") {
+    return err(404, "not_found", "Not found.");
+  }
+  return NextResponse.json({
+    ok: true,
+    model: AI_NOTES_MODEL,
+    anthropicKeyPresent: !!process.env.ANTHROPIC_API_KEY,
+    supabaseConfigured:
+      !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    adminEmailsConfigured: !!process.env.HODOS_ADMIN_EMAILS,
+    freeGenerationsConfigured: !!process.env.HODOS_AI_FREE_GENERATIONS,
+  });
+}
+
 export async function POST(req: Request): Promise<NextResponse> {
   // (0) App-flag gate — match the /app + /notes feature flag.
   if (process.env.NEXT_PUBLIC_HODOS_APP_ENABLED !== "true") {
