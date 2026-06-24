@@ -6,7 +6,6 @@ import type { OutlineGraph } from "@/lib/notes/outline";
 import {
   AI_NOTES_MODEL,
   AI_NOTES_SYSTEM_PROMPT,
-  AI_STUDY_DOC_SCHEMA,
   MAX_NODES,
   MAX_OUTPUT_TOKENS,
   MAX_TOTAL_CHARS,
@@ -95,6 +94,22 @@ export async function GET(): Promise<NextResponse> {
     adminEmailsConfigured: !!process.env.HODOS_ADMIN_EMAILS,
     freeGenerationsConfigured: !!process.env.HODOS_AI_FREE_GENERATIONS,
   });
+}
+
+/** Parse the model's JSON, tolerating a stray markdown fence or surrounding prose. */
+function extractJson(text: string): unknown {
+  let t = text.trim();
+  const fence = t.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+  if (fence) t = fence[1].trim();
+  try {
+    return JSON.parse(t);
+  } catch {
+    // Fall back to the outermost { … } span.
+    const start = t.indexOf("{");
+    const end = t.lastIndexOf("}");
+    if (start >= 0 && end > start) return JSON.parse(t.slice(start, end + 1));
+    throw new Error("no JSON object found");
+  }
 }
 
 export async function POST(req: Request): Promise<NextResponse> {
@@ -227,13 +242,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       model: AI_NOTES_MODEL,
       max_tokens: MAX_OUTPUT_TOKENS,
       thinking: { type: "adaptive" },
-      output_config: {
-        effort: "medium",
-        format: {
-          type: "json_schema",
-          schema: AI_STUDY_DOC_SCHEMA as Record<string, unknown>,
-        },
-      },
+      output_config: { effort: "medium" },
       system: [
         {
           type: "text",
@@ -294,7 +303,7 @@ export async function POST(req: Request): Promise<NextResponse> {
   }
   let rawDoc: unknown;
   try {
-    rawDoc = JSON.parse(textBlock.text);
+    rawDoc = extractJson(textBlock.text);
   } catch {
     console.error("[ai-notes] response was not valid JSON.");
     return err(
