@@ -28,9 +28,6 @@ import type { HodosExport } from "@/lib/db/repo";
 import { downloadExport, parseImport } from "@/lib/map-io";
 import { buildOutline } from "@/lib/notes/build-outline";
 import { setCompiledDoc } from "@/lib/notes/compiled-doc";
-import type { AIStudyDoc } from "@/lib/notes/ai-study-doc";
-import { getBrowserClient } from "@/lib/supabase-browser";
-import { useAuthUser } from "@/lib/use-auth";
 import { useCanvasShortcuts } from "@/lib/shortcuts";
 import type { EdgeKind, NodeKind } from "@/lib/types";
 import TopBar from "./TopBar";
@@ -45,7 +42,7 @@ import HintBar from "./HintBar";
 import HelpOverlay from "./HelpOverlay";
 import ImportDialog from "./ImportDialog";
 import VersePicker from "./VersePicker";
-import WelcomeGate, { OPEN_GATE_EVENT } from "./WelcomeGate";
+import WelcomeGate from "./WelcomeGate";
 import GuestSavePrompt from "./GuestSavePrompt";
 import CloudSync from "./CloudSync";
 import QuestionNode from "./nodes/QuestionNode";
@@ -263,16 +260,13 @@ function CanvasInner() {
     downloadExport(await repo.exportData());
   }, []);
 
-  // Generate AI study notes from the CURRENT map. Signed-in users only. The
-  // hierarchy is built client-side (top-level bubble = section, branches =
-  // sub-points), POSTed to the server route that holds the API key and meters
-  // usage, then the structured doc opens at /notes. Reads the live store at call
-  // time; the anchor is the lowest node id (same rule as usePrimaryNodeId).
+  // Compile the CURRENT map's bubbles into a structured study document and open
+  // the print/PDF view. Deterministic and instant (no AI, no server): the
+  // hierarchy is built client-side — each top-level bubble becomes a section and
+  // the bubbles branching off it nest beneath, by type. Reads the live store at
+  // call time; the anchor is the lowest node id (same rule as usePrimaryNodeId).
   const router = useRouter();
-  const { user } = useAuthUser();
-  const [generating, setGenerating] = useState(false);
-  const compileNotes = useCallback(async () => {
-    if (generating) return;
+  const compileNotes = useCallback(() => {
     const { nodes: ns, edges: es, mapName } = useCanvasStore.getState();
     if (ns.length === 0) {
       setToast({
@@ -283,84 +277,11 @@ function CanvasInner() {
     let primaryNodeId: string | null = null;
     for (const n of ns)
       if (primaryNodeId === null || n.id < primaryNodeId) primaryNodeId = n.id;
-    const outline = buildOutline({
-      nodes: ns,
-      edges: es,
-      mapName,
-      primaryNodeId,
-    });
-
-    const promptSignIn = () =>
-      setToast({
-        text: "Sign in to turn your map into AI study notes.",
-        action: {
-          label: "Sign in",
-          run: () => window.dispatchEvent(new Event(OPEN_GATE_EVENT)),
-        },
-      });
-
-    const client = getBrowserClient();
-    if (!client || !user) {
-      promptSignIn();
-      return;
-    }
-    const {
-      data: { session },
-    } = await client.auth.getSession();
-    const accessToken = session?.access_token;
-    if (!accessToken) {
-      promptSignIn();
-      return;
-    }
-
-    setGenerating(true);
-    setToast({
-      text: "Writing your study notes — this can take up to a minute…",
-    });
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 180_000);
-    try {
-      const res = await fetch("/api/ai-notes", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify(outline),
-        signal: controller.signal,
-      });
-      if (!res.ok) {
-        const j = (await res.json().catch(() => null)) as {
-          error?: { message?: string };
-        } | null;
-        if (res.status === 401) promptSignIn();
-        else
-          setToast({
-            text:
-              j?.error?.message ??
-              "Couldn't generate notes this time. Please try again.",
-          });
-        return;
-      }
-      const { doc } = (await res.json()) as {
-        doc: AIStudyDoc;
-        remaining: number | null;
-      };
-      setCompiledDoc(doc);
-      setToast(null);
-      router.push("/notes");
-    } catch (e) {
-      setToast({
-        text:
-          (e as Error)?.name === "AbortError"
-            ? "That took too long — try a smaller map, or try again."
-            : "Network hiccup — couldn't reach the notes engine. Try again.",
-      });
-    } finally {
-      clearTimeout(timeoutId);
-      setGenerating(false);
-    }
-  }, [generating, user, router]);
+    setCompiledDoc(
+      buildOutline({ nodes: ns, edges: es, mapName, primaryNodeId }),
+    );
+    router.push("/notes");
+  }, [router]);
 
   const handleImportFile = useCallback(async (file: File) => {
     try {
@@ -690,40 +611,8 @@ function CanvasInner() {
       {/* Mirrors a signed-in user's canvases to the cloud (no-op when off) */}
       <CloudSync />
 
-      {/* Persistent indicator while AI notes generate (outlasts the toast). */}
-      {generating && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="pointer-events-none absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 animate-fade-up rounded-full border border-gold/40 bg-parchment px-5 py-2 font-sans text-xs text-ink-soft shadow-lg shadow-ink/10"
-        >
-          <svg
-            className="h-3.5 w-3.5 animate-spin text-gold"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle
-              cx="12"
-              cy="12"
-              r="9"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeOpacity="0.25"
-            />
-            <path
-              d="M21 12a9 9 0 0 0-9-9"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-          </svg>
-          Writing your study notes…
-        </div>
-      )}
-
       {/* Quiet toast */}
-      {toast && !generating && (
+      {toast && (
         <div
           role="status"
           className="absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 animate-fade-up rounded-full border border-rule bg-parchment px-5 py-2 font-sans text-xs text-ink-soft shadow-lg shadow-ink/10"

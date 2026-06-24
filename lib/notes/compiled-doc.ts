@@ -4,14 +4,14 @@
 // doc never re-renders the canvas. Peek (not consume): reading it twice (React
 // strict-mode double mount, an in-place re-print) returns the same doc.
 
-import type { AIStudyDoc } from "./ai-study-doc";
+import type { OutlineGraph } from "./outline";
 
-let compiled: AIStudyDoc | null = null;
+let compiled: OutlineGraph | null = null;
 
-export function setCompiledDoc(doc: AIStudyDoc): void {
+export function setCompiledDoc(doc: OutlineGraph): void {
   compiled = doc;
 }
 
-export function getCompiledDoc(): AIStudyDoc | null {
+export function getCompiledDoc(): OutlineGraph | null {
   return compiled;
 }
