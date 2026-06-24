@@ -245,7 +245,9 @@ export async function POST(req: Request): Promise<NextResponse> {
     message = await anthropic.messages.create({
       model: AI_NOTES_MODEL,
       max_tokens: MAX_OUTPUT_TOKENS,
-      thinking: { type: "adaptive" },
+      // No thinking: the hierarchy is already resolved by the graph, so this is
+      // mostly a transform + light synthesis. Thinking added large latency that
+      // overran the function window; effort alone keeps quality up and is fast.
       output_config: { effort: "medium" },
       system: [
         {

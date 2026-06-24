@@ -314,7 +314,9 @@ function CanvasInner() {
     }
 
     setGenerating(true);
-    setToast({ text: "Writing your study notes…" });
+    setToast({ text: "Writing your study notes — this can take a moment…" });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 90_000);
     try {
       const res = await fetch("/api/ai-notes", {
         method: "POST",
@@ -323,6 +325,7 @@ function CanvasInner() {
           Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(outline),
+        signal: controller.signal,
       });
       if (!res.ok) {
         const j = (await res.json().catch(() => null)) as {
@@ -344,11 +347,15 @@ function CanvasInner() {
       setCompiledDoc(doc);
       setToast(null);
       router.push("/notes");
-    } catch {
+    } catch (e) {
       setToast({
-        text: "Network hiccup — couldn't reach the notes engine. Try again.",
+        text:
+          (e as Error)?.name === "AbortError"
+            ? "That took too long — try a smaller map, or try again."
+            : "Network hiccup — couldn't reach the notes engine. Try again.",
       });
     } finally {
+      clearTimeout(timeoutId);
       setGenerating(false);
     }
   }, [generating, user, router]);
