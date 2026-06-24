@@ -25,6 +25,10 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// Claude generation (with thinking) can take well over the default ~10s function
+// limit. Raise it so the request isn't killed mid-generation. Vercel clamps to
+// the plan ceiling (Fluid/Hobby up to 60s, Pro up to 300s).
+export const maxDuration = 60;
 
 type ErrBody = { error: { code: string; message: string } } & Record<
   string,
