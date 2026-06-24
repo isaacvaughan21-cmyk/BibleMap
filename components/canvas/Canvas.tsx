@@ -314,9 +314,11 @@ function CanvasInner() {
     }
 
     setGenerating(true);
-    setToast({ text: "Writing your study notes — this can take a moment…" });
+    setToast({
+      text: "Writing your study notes — this can take up to a minute…",
+    });
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90_000);
+    const timeoutId = setTimeout(() => controller.abort(), 180_000);
     try {
       const res = await fetch("/api/ai-notes", {
         method: "POST",

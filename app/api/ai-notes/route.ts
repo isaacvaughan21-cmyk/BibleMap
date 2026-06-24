@@ -25,10 +25,9 @@ import {
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Claude generation (with thinking) can take well over the default ~10s function
-// limit. Raise it so the request isn't killed mid-generation. Vercel clamps to
-// the plan ceiling (Fluid/Hobby up to 60s, Pro up to 300s).
-export const maxDuration = 60;
+// A full notes doc is output-bound and can take a couple of minutes. Give it
+// real headroom; Vercel clamps to the plan ceiling (Fluid Pro up to 300s).
+export const maxDuration = 300;
 
 type ErrBody = { error: { code: string; message: string } } & Record<
   string,
@@ -245,10 +244,10 @@ export async function POST(req: Request): Promise<NextResponse> {
     message = await anthropic.messages.create({
       model: AI_NOTES_MODEL,
       max_tokens: MAX_OUTPUT_TOKENS,
-      // No thinking: the hierarchy is already resolved by the graph, so this is
-      // mostly a transform + light synthesis. Thinking added large latency that
-      // overran the function window; effort alone keeps quality up and is fast.
-      output_config: { effort: "medium" },
+      // No thinking + low effort: the hierarchy is already resolved by the graph,
+      // so this is mostly a transform with light synthesis. Low effort keeps the
+      // output terse and the latency down (it was running ~90s+ otherwise).
+      output_config: { effort: "low" },
       system: [
         {
           type: "text",

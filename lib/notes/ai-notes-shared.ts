@@ -52,6 +52,7 @@ HARD RULES (these are absolute)
 
 OUTPUT
 - Respond with a SINGLE JSON object and NOTHING else: no markdown code fences, no commentary before or after — just the raw JSON. It MUST validate against the JSON Schema below. Every property listed in an object's "required" must be present; use null for optional values and [] for empty arrays, exactly as the schema's types allow. Set fields you cannot fill faithfully to null or empty arrays.
+- BE CONCISE. Most text should be the user's own bubble content carried verbatim; add AI commentary (ai_explanation, aiGloss, aiNote, aiAngle, ai_application) only where it genuinely helps, and keep each to one short sentence. Strongly prefer null/empty over filler. A tight, faithful document is the goal — do not pad.
 
 JSON SCHEMA (your output must match this exactly):
 ${JSON.stringify(AI_STUDY_DOC_SCHEMA)}
