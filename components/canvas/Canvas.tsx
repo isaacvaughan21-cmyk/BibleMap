@@ -690,8 +690,40 @@ function CanvasInner() {
       {/* Mirrors a signed-in user's canvases to the cloud (no-op when off) */}
       <CloudSync />
 
+      {/* Persistent indicator while AI notes generate (outlasts the toast). */}
+      {generating && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2.5 animate-fade-up rounded-full border border-gold/40 bg-parchment px-5 py-2 font-sans text-xs text-ink-soft shadow-lg shadow-ink/10"
+        >
+          <svg
+            className="h-3.5 w-3.5 animate-spin text-gold"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="9"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeOpacity="0.25"
+            />
+            <path
+              d="M21 12a9 9 0 0 0-9-9"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+          </svg>
+          Writing your study notes…
+        </div>
+      )}
+
       {/* Quiet toast */}
-      {toast && (
+      {toast && !generating && (
         <div
           role="status"
           className="absolute bottom-6 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 animate-fade-up rounded-full border border-rule bg-parchment px-5 py-2 font-sans text-xs text-ink-soft shadow-lg shadow-ink/10"
