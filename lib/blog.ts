@@ -14,6 +14,14 @@ export type BlogPost = {
 
 export const posts: BlogPost[] = [
   {
+    slug: "how-to-use-cross-references-in-the-bible",
+    title: "How to Use Cross-References in the Bible",
+    description:
+      "Learn how to use cross-references in the Bible: what the margin letters mean, whether they're inspired, and a simple method worked through John 3:14-15.",
+    datePublished: "2026-06-23",
+    readingTime: "10 min read",
+  },
+  {
     slug: "verse-mapping-step-by-step-romans-8-28",
     title: "Verse Mapping: A Step-by-Step Method (Romans 8:28)",
     description:
