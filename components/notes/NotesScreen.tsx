@@ -3,10 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { getCompiledDoc } from "@/lib/notes/compiled-doc";
-import StudyDocView from "./StudyDocView";
+import OutlineView from "./OutlineView";
 
 /**
- * The /notes screen. Reads the StudyDoc the canvas stashed before navigating,
+ * The /notes screen. Reads the outline the canvas stashed before navigating,
  * renders it, and offers "Export PDF" (the browser's native Save-as-PDF). The
  * doc lives in module state for the SPA session; a hard refresh / deep link
  * loses it, so we show a friendly empty state pointing back to the canvas.
@@ -70,7 +70,7 @@ export default function NotesScreen() {
         </button>
       </div>
 
-      <StudyDocView doc={doc} />
+      <OutlineView graph={doc} />
 
       <p className="no-print mx-auto max-w-content px-gutter pb-12 font-sans text-2xs text-ink-muted/70 md:px-gutter-lg">
         Tip: in the print dialog choose &ldquo;Save as PDF&rdquo; as the

@@ -26,7 +26,7 @@ import * as repo from "@/lib/db/repo";
 import { CROSSREF_DRAG_TYPE } from "./CrossRefPanel";
 import type { HodosExport } from "@/lib/db/repo";
 import { downloadExport, parseImport } from "@/lib/map-io";
-import { compileToStudyDoc } from "@/lib/notes/compile-to-study-doc";
+import { buildOutline } from "@/lib/notes/build-outline";
 import { setCompiledDoc } from "@/lib/notes/compiled-doc";
 import { useCanvasShortcuts } from "@/lib/shortcuts";
 import type { EdgeKind, NodeKind } from "@/lib/types";
@@ -261,21 +261,24 @@ function CanvasInner() {
   }, []);
 
   // Compile the CURRENT map's bubbles into a structured study document and open
-  // the print/PDF view. Reads the live store arrays at call time; the anchor is
-  // the lowest node id (same rule as usePrimaryNodeId), computed here so the
-  // compiler stays a pure function outside React's render path.
+  // the print/PDF view. Deterministic and instant (no AI, no server): the
+  // hierarchy is built client-side — each top-level bubble becomes a section and
+  // the bubbles branching off it nest beneath, by type. Reads the live store at
+  // call time; the anchor is the lowest node id (same rule as usePrimaryNodeId).
   const router = useRouter();
   const compileNotes = useCallback(() => {
     const { nodes: ns, edges: es, mapName } = useCanvasStore.getState();
     if (ns.length === 0) {
-      setToast({ text: "Add a few bubbles first — nothing to compile yet." });
+      setToast({
+        text: "Add a few bubbles first — nothing to turn into notes yet.",
+      });
       return;
     }
     let primaryNodeId: string | null = null;
     for (const n of ns)
       if (primaryNodeId === null || n.id < primaryNodeId) primaryNodeId = n.id;
     setCompiledDoc(
-      compileToStudyDoc({ nodes: ns, edges: es, mapName, primaryNodeId }),
+      buildOutline({ nodes: ns, edges: es, mapName, primaryNodeId }),
     );
     router.push("/notes");
   }, [router]);
