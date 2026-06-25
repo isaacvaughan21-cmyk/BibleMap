@@ -18,6 +18,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.4.0",
+    date: "2026-06-24",
+    title: "Editable study notes",
+    changes: [
+      "“Compile to notes” now groups each cross-referenced passage right under its point, so you read it in place instead of chasing a “see also” link.",
+      "Reorder your notes by dragging — a guide line shows exactly where a point will land, and the page scrolls as you drag past the edge. This only changes the document, not your canvas.",
+      "Add a verse, note, question, or definition straight from the notes view; it also drops a matching bubble on your canvas — linked under its topic, or free-floating when you add a new section.",
+    ],
+  },
+  {
     version: "0.3.5",
     date: "2026-06-15",
     title: "Verse picking & highlighting",

@@ -90,6 +90,17 @@ export interface CanvasStore {
   dismissHints(): void;
   /** Clone a bubble (offset, selected). Returns the new id, or null. */
   duplicateNode(id: string): string | null;
+  /**
+   * Create a populated bubble from the notes view. With a `parentId` it's
+   * joined under that bubble by a manual edge (mirroring "a point under a
+   * topic" in the compiled notes); without one it's a free-floating bubble.
+   * Returns the new node id.
+   */
+  addNoteNode(input: {
+    type: NodeKind;
+    data: HodosNode["data"];
+    parentId?: string | null;
+  }): string;
 
   /* ---- Nested maps ---- */
   /** The map currently on screen (ROOT_MAP_ID at the top level). */
@@ -967,6 +978,60 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       markNodeDirty(newId);
       track("bubble_created", { type: src.type as string, via: "duplicate" });
       return newId;
+    },
+
+    addNoteNode({ type, data, parentId }) {
+      const ns = get().nodes;
+      const parent =
+        parentId != null ? ns.find((n) => n.id === parentId) : undefined;
+      // A child lands to the right of its topic, stacked under earlier children;
+      // a free-floating bubble drops below the current map so it never overlaps.
+      let position: { x: number; y: number };
+      if (parent) {
+        const siblings = get().edges.filter(
+          (e) => e.source === parent.id && e.type === "manual",
+        ).length;
+        position = {
+          x: parent.position.x + 380,
+          y: parent.position.y + siblings * 150,
+        };
+      } else if (ns.length) {
+        let maxY = -Infinity;
+        let xAtMax = 0;
+        for (const n of ns)
+          if (n.position.y > maxY) {
+            maxY = n.position.y;
+            xAtMax = n.position.x;
+          }
+        position = { x: xAtMax, y: maxY + 200 };
+      } else {
+        position = { x: 0, y: 0 };
+      }
+
+      const nodeId = uuidv7();
+      const now = Date.now();
+      createdAtById.set(nodeId, now);
+      const node = { id: nodeId, type, position, data } as HodosNode;
+      set({ nodes: [...get().nodes, node] });
+      markNodeDirty(nodeId);
+
+      if (parent) {
+        const edge: HodosEdge = {
+          id: uuidv7(),
+          source: parent.id,
+          target: nodeId,
+          type: "manual",
+        };
+        createdAtById.set(edge.id, now);
+        set({ edges: [...get().edges, edge] });
+        dirtyEdgeIds.add(edge.id);
+        scheduleFlush();
+      }
+
+      // Deliberately NOT auto-naming the map here: a bubble added from the notes
+      // view (often a deep sub-point) shouldn't rename the whole document.
+      track("bubble_created", { type, via: "notes" });
+      return nodeId;
     },
 
     restoreLastDeletion() {

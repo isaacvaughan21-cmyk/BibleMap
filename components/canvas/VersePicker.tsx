@@ -23,9 +23,16 @@ import { useFocusTrap } from "@/lib/use-focus-trap";
 export default function VersePicker({
   nodeId,
   onClose,
+  onCommit,
 }: {
-  nodeId: string;
+  /** Existing verse node to fill. Omit when using `onCommit` to capture a pick. */
+  nodeId?: string;
   onClose: () => void;
+  /**
+   * When provided, the chosen verse is handed back here instead of being
+   * written to a node — lets the notes view create a fresh bubble from the pick.
+   */
+  onCommit?: (data: { verseRef: string; verseText: string }) => void;
 }) {
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   const bibleVersion = useCanvasStore((s) => s.bibleVersion);
@@ -84,11 +91,18 @@ export default function VersePicker({
     };
   }, [book, chapter, bibleVersion]);
 
+  // Write the chosen verse to its destination — an existing node, or back to
+  // the caller via onCommit (the notes add-flow creates a fresh bubble from it).
+  const deliver = (data: { verseRef: string; verseText: string }) => {
+    if (onCommit) onCommit(data);
+    else if (nodeId) updateNodeData(nodeId, data);
+  };
+
   const commit = async (ref: ParsedRef) => {
     setCommitting(true);
     try {
       const { text } = await getVerseByParsed(ref, bibleVersion);
-      updateNodeData(nodeId, { verseRef: formatRef(ref), verseText: text });
+      deliver({ verseRef: formatRef(ref), verseText: text });
       onClose();
     } catch {
       setLoadState("error");
@@ -113,10 +127,7 @@ export default function VersePicker({
       const start: ParsedRef = { book: bk, chapter: ch, verse: a };
       const end: ParsedRef = { book: bk, chapter: ch, verse: b };
       const text = await getPassageText(start, end, bibleVersion);
-      updateNodeData(nodeId, {
-        verseRef: formatRange({ start, end }),
-        verseText: text,
-      });
+      deliver({ verseRef: formatRange({ start, end }), verseText: text });
       onClose();
     } catch {
       setLoadState("error");

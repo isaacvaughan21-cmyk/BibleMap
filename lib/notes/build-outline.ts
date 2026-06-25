@@ -15,6 +15,7 @@ import { formatRange, parseRange } from "@/lib/bible";
 import type {
   BuildOutlineInput,
   OutlineCrossRef,
+  OutlineCrossRefTarget,
   OutlineGraph,
   OutlineNode,
   OutlineNodeKind,
@@ -217,7 +218,10 @@ export function buildOutline(input: BuildOutlineInput): OutlineGraph {
   const parent = new Map<string, string | null>();
   const depth = new Map<string, number>();
   const visited = new Set<string>();
-  const demotedCrossRefs = new Map<string, OutlineCrossRef[]>(); // owner -> back-edge refs
+  // Refs are assembled WITHOUT their denormalized `target` payload; that's
+  // attached in finalizeRefs (after buildHighlights exists), hence RawRef.
+  type RawRef = Omit<OutlineCrossRef, "target">;
+  const demotedCrossRefs = new Map<string, RawRef[]>(); // owner -> back-edge refs
   let cyclesBroken = 0;
 
   const queue: string[] = [...roots].sort(cmpRoot);
@@ -248,8 +252,8 @@ export function buildOutline(input: BuildOutlineInput): OutlineGraph {
   }
 
   // ---- STEP 5 (prep): per-node cross-references (symmetric + demoted) --------
-  const crossRefsOf = new Map<string, OutlineCrossRef[]>();
-  const pushRef = (owner: string, ref: OutlineCrossRef) => {
+  const crossRefsOf = new Map<string, RawRef[]>();
+  const pushRef = (owner: string, ref: RawRef) => {
     const list = crossRefsOf.get(owner) ?? [];
     list.push(ref);
     crossRefsOf.set(owner, list);
@@ -270,7 +274,9 @@ export function buildOutline(input: BuildOutlineInput): OutlineGraph {
       const k = `${r.targetId}|${r.via}`;
       if (seen.has(k)) continue;
       seen.add(k);
-      out.push(r);
+      // Denormalize the target's content so the reading view can group it
+      // inline under the topic rather than linking away to it.
+      out.push({ ...r, target: targetPayload(r.targetId) });
     }
     // crossref before manual, then canonical target order, then id
     out.sort(
@@ -313,6 +319,42 @@ export function buildOutline(input: BuildOutlineInput): OutlineGraph {
       (p, i) => !longestFirst.slice(0, i).some((q) => q.includes(p)),
     );
     return kept.sort((a, b) => text.indexOf(a) - text.indexOf(b));
+  };
+
+  /** Verbatim content of a cross-ref target, for inline rendering (leaf only). */
+  const targetPayload = (id: string): OutlineCrossRefTarget => {
+    const n = nodeById.get(id);
+    if (!n) return { kind: "other" };
+    const d = n.data ?? {};
+    switch (n.type) {
+      case "verse": {
+        const text = str(d.verseText);
+        return {
+          kind: "verse",
+          title: verseLabel.get(id),
+          text: text || undefined,
+          highlights: text ? buildHighlights(text, d.highlights) : undefined,
+        };
+      }
+      case "definition":
+        return {
+          kind: "definition",
+          title: str(d.content).trim() || undefined,
+          text: str(d.definition) || undefined,
+        };
+      case "question":
+        return { kind: "question", text: str(d.content) || undefined };
+      case "note":
+        return { kind: "note", text: str(d.content) || undefined };
+      default: {
+        const body =
+          str(d.content) ||
+          str(d.definition) ||
+          str(d.verseText) ||
+          str(d.verseRef);
+        return { kind: "other", text: body || undefined };
+      }
+    }
   };
 
   const childrenOf = new Map<string, string[]>();

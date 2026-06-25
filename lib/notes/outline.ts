@@ -13,6 +13,18 @@ export type OutlineNodeKind =
   | "definition"
   | "other";
 
+/**
+ * The referenced node's verbatim content, denormalized onto the cross-ref so the
+ * reading view can render the linked passage inline (grouped under the topic)
+ * instead of as a jump link. Leaf only — never its children or its own refs.
+ */
+export interface OutlineCrossRefTarget {
+  kind: OutlineNodeKind;
+  title?: string; // verse: canonical ref; definition: the term
+  text?: string; // verse: verseText; question/note: content; definition: meaning
+  highlights?: string[]; // verse only: reader's marked phrases
+}
+
 /** A lateral (non-tree) link from this node to another node, by id. */
 export interface OutlineCrossRef {
   /** Target node id — always present in this OutlineGraph. */
@@ -24,6 +36,8 @@ export interface OutlineCrossRef {
   via: "crossref" | "manual";
   /** Short human label for the target (verse ref or clipped content snippet). */
   targetLabel: string;
+  /** The target's content, so the reading view can show it inline. */
+  target: OutlineCrossRefTarget;
 }
 
 /** One bubble, with its verbatim payload and its children (branches). */
