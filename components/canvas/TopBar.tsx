@@ -13,6 +13,8 @@ import { cloudSignOut, useAuthUser } from "@/lib/use-auth";
 type TopBarProps = {
   railOpen: boolean;
   onToggleRail: () => void;
+  onAsk: () => void;
+  askOpen: boolean;
   onOpenPalette: () => void;
   onFeedback: () => void;
   onExport: () => void;
@@ -26,6 +28,8 @@ type TopBarProps = {
 export default function TopBar({
   railOpen,
   onToggleRail,
+  onAsk,
+  askOpen,
   onOpenPalette,
   onFeedback,
   onExport,
@@ -78,6 +82,36 @@ export default function TopBar({
             aria-hidden="true"
             className="hidden h-4 w-px bg-rule md:block"
           />
+
+          <button
+            type="button"
+            onClick={onAsk}
+            aria-pressed={askOpen}
+            aria-label={
+              askOpen ? "Close Ask Scripture" : "Ask a question about the Bible"
+            }
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-sans text-2xs tracking-eyebrow transition-colors ${
+              askOpen
+                ? "border-gold bg-gold/10 text-gold"
+                : "border-rule text-ink-muted hover:border-gold hover:text-gold"
+            }`}
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 14 14"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M3 3.2A5 5 0 1 1 7 11H3.2L4.4 9.4A5 5 0 0 1 3 3.2Z"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinejoin="round"
+              />
+            </svg>
+            ASK
+          </button>
 
           <button
             type="button"

@@ -18,6 +18,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.5.0",
+    date: "2026-06-25",
+    title: "Ask Scripture",
+    changes: [
+      "Ask a question about the Bible right on the canvas — open the study panel to “Ask”, type a question, and get an answer drawn only from Scripture, with every point backed by cited verses.",
+      "Ask who wrote a book, who a person in the Bible was, or what the Bible says about a topic; ambiguous names (several Marys or Jameses) are shown as the distinct people.",
+      "Searching a topic? Toggle your verses between the New and Old Testament — and add any cited verse straight onto your canvas, linked under your question.",
+      "Off-topic or opinion questions are gently turned back to what the text actually says, and references are checked against the Bible so a verse never comes back wrong.",
+    ],
+  },
+  {
     version: "0.4.0",
     date: "2026-06-24",
     title: "Editable study notes",

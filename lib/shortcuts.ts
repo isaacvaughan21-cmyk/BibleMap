@@ -17,6 +17,7 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ["⌫"], label: "Delete selection" },
   { keys: ["mod", "A"], label: "Select all" },
   { keys: ["mod", "/"], label: "Toggle study panel" },
+  { keys: ["mod", "J"], label: "Ask Scripture" },
   { keys: ["mod", "F"], label: "Fit map to view" },
   { keys: ["mod", "+"], label: "Zoom in" },
   { keys: ["mod", "−"], label: "Zoom out" },
@@ -28,6 +29,7 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
 export function useCanvasShortcuts(handlers: {
   onPalette: () => void;
   onToggleRail: () => void;
+  onAsk: () => void;
   onHelp: () => void;
 }) {
   const { fitView, zoomIn, zoomOut } = useReactFlow();
@@ -46,6 +48,13 @@ export function useCanvasShortcuts(handlers: {
       if (mod && e.key.toLowerCase() === "k") {
         e.preventDefault();
         handlers.onPalette();
+        return;
+      }
+      // Ask Scripture — works from within the panel's textarea too, so it lands
+      // before the in-field guard.
+      if (mod && e.key.toLowerCase() === "j") {
+        e.preventDefault();
+        handlers.onAsk();
         return;
       }
       if (inField) return;

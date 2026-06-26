@@ -2,21 +2,27 @@
 
 import type { VerseNodeType } from "@/lib/types";
 import CrossRefPanel from "./CrossRefPanel";
+import AskPanel from "./AskPanel";
 
 /**
- * Collapsible 320px study panel. Shows TSK cross-references when a verse
- * bubble is selected; otherwise a quiet hint.
+ * Collapsible 320px study panel. Two modes share the same chrome:
+ *  • Ask Scripture (when `askOpen`) — the Q&A assistant.
+ *  • Study (default) — TSK cross-references for the selected verse, else a hint.
  */
 export default function RightRail({
   open,
+  askOpen = false,
   selectedVerse,
+  onCloseAsk,
 }: {
   open: boolean;
+  askOpen?: boolean;
   selectedVerse: VerseNodeType | null;
+  onCloseAsk?: () => void;
 }) {
   return (
     <aside
-      aria-label="Study panel"
+      aria-label={askOpen ? "Ask Scripture panel" : "Study panel"}
       aria-hidden={!open}
       className={`dive-dim absolute bottom-0 right-0 top-14 z-30 w-80 transform border-l border-rule/70 bg-parchment-2/85 backdrop-blur-md ${
         open
@@ -26,12 +32,14 @@ export default function RightRail({
     >
       <div className="flex h-12 items-center border-b border-rule/70 px-5">
         <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
-          STUDY PANEL
+          {askOpen ? "ASK SCRIPTURE" : "STUDY PANEL"}
         </p>
       </div>
 
       <div className="h-[calc(100%-3rem)]">
-        {selectedVerse && selectedVerse.data.verseRef ? (
+        {askOpen ? (
+          <AskPanel onClose={onCloseAsk} />
+        ) : selectedVerse && selectedVerse.data.verseRef ? (
           <CrossRefPanel key={selectedVerse.id} node={selectedVerse} />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-4 px-10 text-center">

@@ -30,8 +30,11 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# raw source data for scripts/build-bible-data.mjs
-/data/
+# raw source data for scripts/build-bible-data.mjs (large, fetched locally).
+# The committed Q&A retrieval index under data/qa-index/ is the exception —
+# it ships to production (Vercel deploys from git), so keep it tracked.
+/data/*
+!/data/qa-index/
 
 # playwright artifacts
 /test-results/

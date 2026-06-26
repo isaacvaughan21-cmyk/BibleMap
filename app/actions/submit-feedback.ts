@@ -1,9 +1,9 @@
 "use server";
 
-import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { feedbackSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
+import { getClientIp, hashIp } from "@/lib/ip";
 import { getServiceClient } from "@/lib/supabase-server";
 
 export type FeedbackResult =
@@ -11,18 +11,6 @@ export type FeedbackResult =
   | { status: "invalid"; message: string }
   | { status: "rate_limited" }
   | { status: "error" };
-
-function hashIp(ip: string): string {
-  const secret = process.env.WAITLIST_RATE_LIMIT_SECRET ?? "dev-salt";
-  const day = new Date().toISOString().slice(0, 10);
-  return createHash("sha256").update(`${ip}:${secret}:${day}`).digest("hex");
-}
-
-function getClientIp(h: Headers): string {
-  const forwarded = h.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return h.get("x-real-ip") ?? "0.0.0.0";
-}
 
 /** Beta feedback — written to the Supabase `feedback` table (service role only). */
 export async function submitFeedback(input: {

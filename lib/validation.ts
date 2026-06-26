@@ -35,3 +35,13 @@ export const feedbackSchema = z.object({
 });
 
 export type FeedbackInput = z.infer<typeof feedbackSchema>;
+
+export const askSchema = z.object({
+  question: z
+    .string()
+    .trim()
+    .min(3, "Ask a little more — at least a few words.")
+    .max(500, "Keep your question under 500 characters."),
+});
+
+export type AskInput = z.infer<typeof askSchema>;

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "build:qa-index": "node scripts/build-qa-index.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -20,6 +21,7 @@
     ]
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.106.0",
     "@supabase/supabase-js": "^2.45.4",
     "@vercel/analytics": "^2.0.1",
     "@xyflow/react": "^12.11.0",
@@ -28,6 +30,7 @@
     "next": "14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "server-only": "^0.0.1",
     "zod": "^3.23.8",
     "zustand": "^5.0.14"
   },

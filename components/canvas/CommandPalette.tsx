@@ -44,10 +44,12 @@ export default function CommandPalette({
   open,
   onClose,
   onCompileNotes,
+  onAsk,
 }: {
   open: boolean;
   onClose: () => void;
   onCompileNotes: () => void;
+  onAsk: () => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -100,6 +102,12 @@ export default function CommandPalette({
     const actionDefs: PaletteItem[] = [
       {
         kind: "action",
+        id: "ask-scripture",
+        label: "Ask Scripture",
+        run: onAsk,
+      },
+      {
+        kind: "action",
         id: "compile-notes",
         label: "Compile to notes",
         run: onCompileNotes,
@@ -114,7 +122,7 @@ export default function CommandPalette({
     ).map((c): PaletteItem => ({ kind: "create", ...c }));
 
     return [...jumps, ...actions, ...creates];
-  }, [nodes, query, onCompileNotes]);
+  }, [nodes, query, onCompileNotes, onAsk]);
 
   useEffect(() => {
     setActive((a) => Math.min(a, Math.max(items.length - 1, 0)));

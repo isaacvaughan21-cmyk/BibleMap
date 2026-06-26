@@ -143,6 +143,7 @@ function CanvasInner() {
   // While a dive is in flight, the chrome fades back so the canvas is the star
   const diving = useCanvasStore((s) => !!s.pendingNav);
   const [railOpen, setRailOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -184,6 +185,7 @@ function CanvasInner() {
   useEffect(() => {
     if (diving) {
       setRailOpen(false);
+      setAskOpen(false);
       navSuppressRail.current = true;
     } else if (navSuppressRail.current) {
       const t = setTimeout(() => {
@@ -208,6 +210,7 @@ function CanvasInner() {
   useCanvasShortcuts({
     onPalette: () => setPaletteOpen((o) => !o),
     onToggleRail: () => setRailOpen((o) => !o),
+    onAsk: () => setAskOpen((o) => !o),
     onHelp: () => setHelpOpen(true),
   });
 
@@ -380,6 +383,7 @@ function CanvasInner() {
   const onPaneClick = useCallback(() => {
     closeOverlays();
     setRailOpen(false);
+    setAskOpen(false);
   }, [closeOverlays]);
 
   return (
@@ -434,6 +438,8 @@ function CanvasInner() {
       <TopBar
         railOpen={railOpen}
         onToggleRail={() => setRailOpen((o) => !o)}
+        onAsk={() => setAskOpen((o) => !o)}
+        askOpen={askOpen}
         onOpenPalette={() => setPaletteOpen(true)}
         onFeedback={() => {
           setFeedbackDraft(undefined);
@@ -450,7 +456,12 @@ function CanvasInner() {
           setFeedbackOpen(true);
         }}
       />
-      <RightRail open={railOpen} selectedVerse={selectedVerse} />
+      <RightRail
+        open={railOpen || askOpen}
+        askOpen={askOpen}
+        selectedVerse={selectedVerse}
+        onCloseAsk={() => setAskOpen(false)}
+      />
       <CanvasControls railOpen={railOpen} />
       <FeedbackWidget
         open={feedbackOpen}
@@ -574,6 +585,7 @@ function CanvasInner() {
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         onCompileNotes={compileNotes}
+        onAsk={() => setAskOpen(true)}
       />
       <HelpOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
 
