@@ -1,0 +1,117 @@
+{
+  "id": "2026-07-21-who-will-see-god",
+  "date": "2026-07-21",
+  "title": "Who Will See God?",
+  "question": "What is a \"pure\" heart, and how does that purity lead to seeing God?",
+  "anchorRef": "Matthew 5:8",
+  "blurb": "A clean heart is promised the greatest sight of all - God Himself. What does that purity look like, and how is it received?",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "What is a \"pure\" heart, and how does that purity lead to seeing God?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Matthew 5:8",
+      "verseText": "Blessed are the pure in heart, for they will see God."
+    },
+    {
+      "id": "b1",
+      "type": "verse",
+      "position": {
+        "x": 432,
+        "y": -148
+      },
+      "verseRef": "Psalm 24:3–4",
+      "verseText": "Who may ascend the hill of the LORD? Who may stand in His holy place? He who has clean hands and a pure heart, who does not lift up his soul to an idol or swear deceitfully."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 354,
+        "y": 236
+      },
+      "verseRef": "Psalm 51:10",
+      "verseText": "Create in me a clean heart, O God, and renew a right spirit within me."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": 413
+      },
+      "verseRef": "1 John 3:2–3",
+      "verseText": "Beloved, we are now children of God, and what we will be has not yet been revealed. We know that when Christ appears, we will be like Him, for we will see Him as He is. And everyone who has this hope in Him purifies himself, just as Christ is pure."
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -351,
+        "y": 235
+      },
+      "verseRef": "Hebrews 12:14",
+      "verseText": "Pursue peace with everyone, as well as holiness, without which no one will see the Lord."
+    },
+    {
+      "id": "b5",
+      "type": "note",
+      "position": {
+        "x": -437,
+        "y": -149
+      },
+      "content": "Across these verses, the 'pure in heart' are not the flawless but those cleansed by God and set on Him - and the reward is the deepest blessing: seeing God Himself."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b1",
+      "source": "anchor",
+      "target": "b1",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b4",
+      "source": "anchor",
+      "target": "b4",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-q-b5",
+      "source": "q",
+      "target": "b5",
+      "kind": "manual"
+    }
+  ]
+}

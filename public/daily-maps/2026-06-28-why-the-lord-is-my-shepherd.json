@@ -1,0 +1,101 @@
+{
+  "id": "2026-06-28-why-the-lord-is-my-shepherd",
+  "date": "2026-06-28",
+  "title": "Why \"the LORD is my shepherd\"?",
+  "question": "If the LORD is my shepherd, what does He actually do for me that means I shall not want?",
+  "anchorRef": "Psalm 23:1",
+  "blurb": "David calls God his shepherd and lacks nothing. Trace what a shepherd does to see what that promise holds.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "If the LORD is my shepherd, what does He actually do for me that means I shall not want?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Psalm 23:1",
+      "verseText": "A Psalm of David. The LORD is my shepherd; I shall not want."
+    },
+    {
+      "id": "b1",
+      "type": "verse",
+      "position": {
+        "x": 418,
+        "y": 49
+      },
+      "verseRef": "Psalm 23:2–3",
+      "verseText": "He makes me lie down in green pastures; He leads me beside quiet waters. He restores my soul; He guides me in the paths of righteousness for the sake of His name."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 189,
+        "y": 347
+      },
+      "verseRef": "John 10:11",
+      "verseText": "I am the good shepherd. The good shepherd lays down His life for the sheep."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": -191,
+        "y": 351
+      },
+      "verseRef": "Isaiah 40:11",
+      "verseText": "He tends His flock like a shepherd; He gathers the lambs in His arms and carries them close to His heart. He gently leads the nursing ewes."
+    },
+    {
+      "id": "b4",
+      "type": "note",
+      "position": {
+        "x": -419,
+        "y": 49
+      },
+      "content": "\"I shall not want\" doesn't promise every wish, but that with the shepherd providing, the sheep lacks no needed thing."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b1",
+      "source": "anchor",
+      "target": "b1",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
+      "kind": "manual"
+    }
+  ]
+}

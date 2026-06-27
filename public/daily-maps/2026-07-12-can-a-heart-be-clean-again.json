@@ -1,0 +1,116 @@
+{
+  "id": "2026-07-12-can-a-heart-be-clean-again",
+  "date": "2026-07-12",
+  "title": "Can a Heart Be Clean Again?",
+  "question": "When sin has stained the heart, what is David asking God to do that only God can do?",
+  "anchorRef": "Psalm 51:10",
+  "blurb": "David doesn't ask to fix himself; he asks God to create something new in him. What is that prayer really after?",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "When sin has stained the heart, what is David asking God to do that only God can do?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Psalm 51:10",
+      "verseText": "Create in me a clean heart, O God, and renew a right spirit within me."
+    },
+    {
+      "id": "b1",
+      "type": "note",
+      "position": {
+        "x": 432,
+        "y": -148
+      },
+      "content": "David asks God to 'create' a clean heart - a verb of divine making, not self-repair. He knows a clean heart is God's work to do in him, something he cannot manufacture himself."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 354,
+        "y": 236
+      },
+      "verseRef": "Psalm 51:1–2",
+      "verseText": "For the choirmaster. A Psalm of David. When Nathan the prophet came to him after his adultery with Bathsheba. Have mercy on me, O God, according to Your loving devotion; according to Your great compassion, blot out my transgressions. Wash me clean of my iniquity and cleanse me from my sin."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": 413
+      },
+      "verseRef": "Ezekiel 36:26",
+      "verseText": "I will give you a new heart and put a new spirit within you; I will remove your heart of stone and give you a heart of flesh."
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -351,
+        "y": 235
+      },
+      "verseRef": "1 John 1:9",
+      "verseText": "If we confess our sins, He is faithful and just to forgive us our sins and to cleanse us from all unrighteousness."
+    },
+    {
+      "id": "b5",
+      "type": "note",
+      "position": {
+        "x": -437,
+        "y": -149
+      },
+      "content": "David pairs 'a clean heart' with 'a right spirit.' He longs not only to be cleansed of the past but renewed within - steadied and made faithful going forward."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b4",
+      "source": "anchor",
+      "target": "b4",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-q-b5",
+      "source": "q",
+      "target": "b5",
+      "kind": "manual"
+    }
+  ]
+}

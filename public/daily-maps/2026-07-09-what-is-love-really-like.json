@@ -1,0 +1,117 @@
+{
+  "id": "2026-07-09-what-is-love-really-like",
+  "date": "2026-07-09",
+  "title": "What Is Love Really Like?",
+  "question": "What is the love that \"never fails\" actually like, as Scripture describes it?",
+  "anchorRef": "1 Corinthians 13:4–5",
+  "blurb": "Paul paints love not as a feeling but as patient, humble action - trace what it does and where it comes from.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "What is the love that \"never fails\" actually like, as Scripture describes it?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "1 Corinthians 13:4–5",
+      "verseText": "Love is patient, love is kind. It does not envy, it does not boast, it is not proud. It is not rude, it is not self-seeking, it is not easily angered, it keeps no account of wrongs."
+    },
+    {
+      "id": "b1",
+      "type": "note",
+      "position": {
+        "x": 432,
+        "y": -148
+      },
+      "content": "Paul describes love by what it does and refuses to do - patient, kind, not envious, boastful, proud, rude, self-seeking, or angry, keeping no record of wrongs. Love here is action, not mere feeling."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 354,
+        "y": 236
+      },
+      "verseRef": "1 Corinthians 13:8",
+      "verseText": "Love never fails. But where there are prophecies, they will cease; where there are tongues, they will be restrained; where there is knowledge, it will be dismissed."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": 413
+      },
+      "verseRef": "1 John 4:8",
+      "verseText": "Whoever does not love does not know God, because God is love."
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -351,
+        "y": 235
+      },
+      "verseRef": "John 13:34–35",
+      "verseText": "A new commandment I give you: Love one another. As I have loved you, so you also must love one another. By this everyone will know that you are My disciples, if you love one another.”"
+    },
+    {
+      "id": "b5",
+      "type": "verse",
+      "position": {
+        "x": -437,
+        "y": -149
+      },
+      "verseRef": "Romans 5:8",
+      "verseText": "But God proves His love for us in this: While we were still sinners, Christ died for us."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b4",
+      "source": "anchor",
+      "target": "b4",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b5",
+      "source": "anchor",
+      "target": "b5",
+      "kind": "crossref"
+    }
+  ]
+}

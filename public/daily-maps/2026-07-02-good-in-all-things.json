@@ -1,0 +1,116 @@
+{
+  "id": "2026-07-02-good-in-all-things",
+  "date": "2026-07-02",
+  "title": "Good in All Things?",
+  "question": "For whom, and toward what end, does God work all things together for good?",
+  "anchorRef": "Romans 8:28",
+  "blurb": "A promise with an address: trace who it's for and the purpose it's aiming at.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "For whom, and toward what end, does God work all things together for good?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Romans 8:28",
+      "verseText": "And we know that God works all things together for the good of those who love Him, who are called according to His purpose."
+    },
+    {
+      "id": "b1",
+      "type": "note",
+      "position": {
+        "x": 432,
+        "y": -148
+      },
+      "content": "The promise is addressed: it is for \"those who love Him, who are called according to His purpose\" - not a blanket guarantee that every outcome will feel good, but that God bends all things toward good for His people."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 354,
+        "y": 236
+      },
+      "verseRef": "Romans 8:29",
+      "verseText": "For those God foreknew, He also predestined to be conformed to the image of His Son, so that He would be the firstborn among many brothers."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": 413
+      },
+      "verseRef": "Genesis 50:20",
+      "verseText": "As for you, what you intended against me for evil, God intended for good, in order to accomplish a day like this—to preserve the lives of many people."
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -351,
+        "y": 235
+      },
+      "verseRef": "Romans 8:31",
+      "verseText": "What then shall we say in response to these things? If God is for us, who can be against us?"
+    },
+    {
+      "id": "b5",
+      "type": "note",
+      "position": {
+        "x": -437,
+        "y": -149
+      },
+      "content": "\"All things\" includes the suffering Paul has just been describing (8:18) - he is not denying hardship but saying nothing falls outside God's good purpose for His own."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b4",
+      "source": "anchor",
+      "target": "b4",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-q-b5",
+      "source": "q",
+      "target": "b5",
+      "kind": "manual"
+    }
+  ]
+}

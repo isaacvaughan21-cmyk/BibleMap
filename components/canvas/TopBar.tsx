@@ -21,6 +21,7 @@ type TopBarProps = {
   onExport: () => void;
   onCompileNotes: () => void;
   onImportFile: (file: File) => void;
+  onDailyMap: () => void;
   onHelp: () => void;
   onRequestVersion: () => void;
 };
@@ -36,6 +37,7 @@ export default function TopBar({
   onExport,
   onCompileNotes,
   onImportFile,
+  onDailyMap,
   onHelp,
   onRequestVersion,
 }: TopBarProps) {
@@ -156,6 +158,7 @@ export default function TopBar({
             onExport={onExport}
             onCompileNotes={onCompileNotes}
             onImportFile={onImportFile}
+            onDailyMap={onDailyMap}
             onHelp={onHelp}
             onRequestVersion={onRequestVersion}
           />
@@ -170,12 +173,14 @@ function OverflowMenu({
   onExport,
   onCompileNotes,
   onImportFile,
+  onDailyMap,
   onHelp,
   onRequestVersion,
 }: {
   onExport: () => void;
   onCompileNotes: () => void;
   onImportFile: (file: File) => void;
+  onDailyMap: () => void;
   onHelp: () => void;
   onRequestVersion: () => void;
 }) {
@@ -246,6 +251,21 @@ function OverflowMenu({
             aria-label="Map options"
             className="absolute right-0 top-10 z-50 max-h-[calc(100dvh-5rem)] w-56 animate-fade-up overflow-y-auto overscroll-contain rounded-xl border border-rule bg-parchment py-1.5 shadow-xl shadow-ink/10"
           >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onDailyMap();
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2 text-left font-sans text-xs text-ink-soft transition-colors hover:bg-parchment-2 hover:text-ink"
+            >
+              <span aria-hidden="true" className="text-gold">
+                ✦
+              </span>
+              Map of the Day
+            </button>
+            <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
             <p className="px-4 pb-1 pt-1.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
               CANVASES
             </p>

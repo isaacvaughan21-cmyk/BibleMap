@@ -13,6 +13,11 @@ const nextConfig = {
   experimental: {
     outputFileTracingIncludes: {
       "/app": ["./data/qa-index/**", "./public/bible/**"],
+      // The Map-of-the-Day pages read the committed daily maps off the
+      // filesystem (lib/daily-map-server). Trace them into the Lambda so they
+      // don't 404 in production.
+      "/map-of-the-day": ["./public/daily-maps/**"],
+      "/map-of-the-day/[id]": ["./public/daily-maps/**"],
     },
   },
 };

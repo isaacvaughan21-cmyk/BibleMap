@@ -1,0 +1,101 @@
+{
+  "id": "2026-07-03-who-is-the-word",
+  "date": "2026-07-03",
+  "title": "Who Is the Word?",
+  "question": "Who is \"the Word\" who was with God and was God in the beginning?",
+  "anchorRef": "John 1:1",
+  "blurb": "One verse hides a Person in plain sight, present at creation, with God and yet God. Follow the trail Scripture leaves.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "Who is \"the Word\" who was with God and was God in the beginning?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "John 1:1",
+      "verseText": "In the beginning was the Word, and the Word was with God, and the Word was God."
+    },
+    {
+      "id": "b1",
+      "type": "verse",
+      "position": {
+        "x": 418,
+        "y": 49
+      },
+      "verseRef": "John 1:14",
+      "verseText": "The Word became flesh and made His dwelling among us. We have seen His glory, the glory of the one and only Son from the Father, full of grace and truth."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 189,
+        "y": 347
+      },
+      "verseRef": "John 1:3",
+      "verseText": "Through Him all things were made, and without Him nothing was made that has been made."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": -191,
+        "y": 351
+      },
+      "verseRef": "Revelation 19:13",
+      "verseText": "He is dressed in a robe dipped in blood, and His name is The Word of God."
+    },
+    {
+      "id": "b4",
+      "type": "note",
+      "position": {
+        "x": -419,
+        "y": 49
+      },
+      "content": "John opens with 'In the beginning,' the same words that open Genesis 1. The Word is both 'with God' (distinct from Him) and 'was God' (sharing His nature); and since all things were made through Him, He is not among the made things."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b1",
+      "source": "anchor",
+      "target": "b1",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
+      "kind": "manual"
+    }
+  ]
+}

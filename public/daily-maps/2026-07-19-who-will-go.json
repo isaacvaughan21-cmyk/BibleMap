@@ -1,0 +1,116 @@
+{
+  "id": "2026-07-19-who-will-go",
+  "date": "2026-07-19",
+  "title": "Who Will Go?",
+  "question": "What makes Isaiah ready to answer \"Here am I; send me\"?",
+  "anchorRef": "Isaiah 6:8",
+  "blurb": "A holy God asks who will go, and one cleansed man dares to volunteer. What got him there?",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "What makes Isaiah ready to answer \"Here am I; send me\"?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Isaiah 6:8",
+      "verseText": "Then I heard the voice of the Lord saying: “Whom shall I send? Who will go for Us?” And I said: “Here am I. Send me!”"
+    },
+    {
+      "id": "b1",
+      "type": "note",
+      "position": {
+        "x": 432,
+        "y": -148
+      },
+      "content": "Just before this, Isaiah cried 'Woe is me, for I am ruined' when he saw the King, the LORD of Hosts (Isaiah 6:5). His readiness follows being undone, not feeling worthy."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 354,
+        "y": 236
+      },
+      "verseRef": "Isaiah 6:7",
+      "verseText": "And with it he touched my mouth and said: “Now that this has touched your lips, your iniquity is removed and your sin is atoned for.”"
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": 413
+      },
+      "verseRef": "Exodus 3:10",
+      "verseText": "Therefore, go! I am sending you to Pharaoh to bring My people the Israelites out of Egypt.”"
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -351,
+        "y": 235
+      },
+      "verseRef": "Matthew 28:19",
+      "verseText": "Therefore go and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit,"
+    },
+    {
+      "id": "b5",
+      "type": "note",
+      "position": {
+        "x": -437,
+        "y": -149
+      },
+      "content": "God asks 'Who will go for Us?' and Isaiah freely offers himself: 'Here am I. Send me!' His answer is willing surrender, not coercion."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b4",
+      "source": "anchor",
+      "target": "b4",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-q-b5",
+      "source": "q",
+      "target": "b5",
+      "kind": "manual"
+    }
+  ]
+}

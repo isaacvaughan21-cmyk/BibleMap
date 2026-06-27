@@ -1,0 +1,101 @@
+{
+  "id": "2026-07-05-who-is-i-am",
+  "date": "2026-07-05",
+  "title": "Who Is \"I AM\"?",
+  "question": "When God names Himself \"I AM,\" what is He revealing about who He is?",
+  "anchorRef": "Exodus 3:14",
+  "blurb": "At a burning bush, God answers Moses with a name unlike any other - and it still echoes across all of Scripture.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "When God names Himself \"I AM,\" what is He revealing about who He is?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Exodus 3:14",
+      "verseText": "God said to Moses, “I AM WHO I AM. This is what you are to say to the Israelites: ‘I AM has sent me to you.’”"
+    },
+    {
+      "id": "b1",
+      "type": "note",
+      "position": {
+        "x": 418,
+        "y": 49
+      },
+      "content": "God does not say \"I was\" or \"I will be,\" but \"I AM WHO I AM\" - a name of pure, present existence. He simply IS."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 189,
+        "y": 347
+      },
+      "verseRef": "Exodus 3:15",
+      "verseText": "God also told Moses, “Say to the Israelites, ‘The LORD, the God of your fathers—the God of Abraham, the God of Isaac, and the God of Jacob—has sent me to you.’ This is My name forever, and this is how I am to be remembered in every generation."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": -191,
+        "y": 351
+      },
+      "verseRef": "John 8:58",
+      "verseText": "“Truly, truly, I tell you,” Jesus declared, “before Abraham was born, I am!”"
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -419,
+        "y": 49
+      },
+      "verseRef": "Revelation 1:8",
+      "verseText": "“I am the Alpha and the Omega,” says the Lord God, who is and was and is to come—the Almighty."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b4",
+      "source": "anchor",
+      "target": "b4",
+      "kind": "crossref"
+    }
+  ]
+}

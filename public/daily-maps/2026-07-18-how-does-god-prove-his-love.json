@@ -1,0 +1,116 @@
+{
+  "id": "2026-07-18-how-does-god-prove-his-love",
+  "date": "2026-07-18",
+  "title": "How Does God Prove His Love?",
+  "question": "When did God show His love for us, and what did it cost Him?",
+  "anchorRef": "Romans 5:8",
+  "blurb": "God didn't wait for us to clean up first. See the timing and the cost that proved His love.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "When did God show His love for us, and what did it cost Him?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Romans 5:8",
+      "verseText": "But God proves His love for us in this: While we were still sinners, Christ died for us."
+    },
+    {
+      "id": "b1",
+      "type": "note",
+      "position": {
+        "x": 432,
+        "y": -148
+      },
+      "content": "The proof is in the timing: 'while we were still sinners.' God's love came first, before we had earned anything or turned back to Him."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 354,
+        "y": 236
+      },
+      "verseRef": "John 3:16",
+      "verseText": "For God so loved the world that He gave His one and only Son, that everyone who believes in Him shall not perish but have eternal life."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": 413
+      },
+      "verseRef": "1 John 4:10",
+      "verseText": "And love consists in this: not that we loved God, but that He loved us and sent His Son as the atoning sacrifice for our sins."
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -351,
+        "y": 235
+      },
+      "verseRef": "John 15:13",
+      "verseText": "Greater love has no one than this, that he lay down his life for his friends."
+    },
+    {
+      "id": "b5",
+      "type": "note",
+      "position": {
+        "x": -437,
+        "y": -149
+      },
+      "content": "Romans 5:8 sets two things side by side: our condition ('sinners') and God's response ('Christ died for us'). The cross is where His love is demonstrated, not merely declared."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b4",
+      "source": "anchor",
+      "target": "b4",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-q-b5",
+      "source": "q",
+      "target": "b5",
+      "kind": "manual"
+    }
+  ]
+}

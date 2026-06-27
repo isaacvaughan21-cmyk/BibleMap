@@ -18,6 +18,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.9.0",
+    date: "2026-06-27",
+    title: "Map of the Day",
+    changes: [
+      "A fresh study map every day — a verse, the question it raises, and the cross-references that piece it together. Open it from the ··· menu, or read it (and share it) at /map-of-the-day.",
+      "Like what you see? “Save to my canvas” drops the whole map into your own library as a new, fully editable canvas.",
+      "Every verse is drawn straight from Scripture — the same “never a verse that isn’t really there” checking the Ask assistant uses.",
+    ],
+  },
+  {
     version: "0.8.0",
     date: "2026-06-27",
     title: "Undo & easier highlights",

@@ -1,0 +1,101 @@
+{
+  "id": "2026-07-24-fearfully-and-wonderfully-made",
+  "date": "2026-07-24",
+  "title": "Fearfully and Wonderfully Made?",
+  "question": "What does it tell me about God that He made me so carefully, and how should I respond?",
+  "anchorRef": "Psalm 139:14",
+  "blurb": "The same God who knit you together knows you completely - and that truth turns wonder into worship.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "What does it tell me about God that He made me so carefully, and how should I respond?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Psalm 139:14",
+      "verseText": "I praise You, for I am fearfully and wonderfully made. Marvelous are Your works, and I know this very well."
+    },
+    {
+      "id": "b1",
+      "type": "verse",
+      "position": {
+        "x": 418,
+        "y": 49
+      },
+      "verseRef": "Psalm 139:13",
+      "verseText": "For You formed my inmost being; You knit me together in my mother’s womb."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 189,
+        "y": 347
+      },
+      "verseRef": "Genesis 1:27",
+      "verseText": "So God created man in His own image; in the image of God He created him; male and female He created them."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": -191,
+        "y": 351
+      },
+      "verseRef": "Jeremiah 1:5",
+      "verseText": "“Before I formed you in the womb I knew you, and before you were born I set you apart and appointed you as a prophet to the nations.”"
+    },
+    {
+      "id": "b4",
+      "type": "note",
+      "position": {
+        "x": -419,
+        "y": 49
+      },
+      "content": "The psalmist's response to being so made is praise, not pride - 'I praise You.' Recognizing God's craftsmanship leads upward to worship of the Maker."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b1",
+      "source": "anchor",
+      "target": "b1",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
+      "kind": "manual"
+    }
+  ]
+}

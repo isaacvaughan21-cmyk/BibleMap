@@ -42,6 +42,7 @@ import FeedbackWidget from "./FeedbackWidget";
 import HintBar from "./HintBar";
 import HelpOverlay from "./HelpOverlay";
 import ImportDialog from "./ImportDialog";
+import DailyMapModal from "./DailyMapModal";
 import StreakBadge from "./StreakBadge";
 import VersePicker from "./VersePicker";
 import WelcomeGate from "./WelcomeGate";
@@ -161,6 +162,7 @@ function CanvasInner() {
   const [askOpen, setAskOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [dailyOpen, setDailyOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState<string | undefined>();
   const [menu, setMenu] = useState<MenuTarget | null>(null);
@@ -477,6 +479,7 @@ function CanvasInner() {
         onExport={handleExport}
         onCompileNotes={compileNotes}
         onImportFile={handleImportFile}
+        onDailyMap={() => setDailyOpen(true)}
         onHelp={() => setHelpOpen(true)}
         onRequestVersion={() => {
           setFeedbackDraft(
@@ -618,6 +621,14 @@ function CanvasInner() {
         onAsk={() => setAskOpen(true)}
       />
       <HelpOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
+
+      <DailyMapModal
+        open={dailyOpen}
+        onClose={() => setDailyOpen(false)}
+        onSaved={(title) =>
+          setToast({ text: `Saved “${title}” to your canvases.` })
+        }
+      />
 
       {importPending && (
         <ImportDialog

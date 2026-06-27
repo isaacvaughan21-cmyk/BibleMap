@@ -1,0 +1,117 @@
+{
+  "id": "2026-07-26-sent-to-make-disciples",
+  "date": "2026-07-26",
+  "title": "Sent to Make Disciples",
+  "question": "What is the church actually sent to do, and on whose authority?",
+  "anchorRef": "Matthew 28:19",
+  "blurb": "Before He ascended, Jesus gave one marching order. See what He sent His followers to do, and why.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "What is the church actually sent to do, and on whose authority?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Matthew 28:19",
+      "verseText": "Therefore go and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit,"
+    },
+    {
+      "id": "b1",
+      "type": "note",
+      "position": {
+        "x": 432,
+        "y": -148
+      },
+      "content": "The command is \"make disciples\" - the main task. \"Go,\" \"baptizing,\" and \"teaching\" (v.20) describe how it happens. It's not just gaining converts but forming followers."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 354,
+        "y": 236
+      },
+      "verseRef": "Matthew 28:18",
+      "verseText": "Then Jesus came to them and said, “All authority in heaven and on earth has been given to Me."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": 413
+      },
+      "verseRef": "Matthew 28:20",
+      "verseText": "and teaching them to obey all that I have commanded you. And surely I am with you always, even to the end of the age.”"
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -351,
+        "y": 235
+      },
+      "verseRef": "Acts 1:8",
+      "verseText": "But you will receive power when the Holy Spirit comes upon you, and you will be My witnesses in Jerusalem, and in all Judea and Samaria, and to the ends of the earth.”"
+    },
+    {
+      "id": "b5",
+      "type": "verse",
+      "position": {
+        "x": -437,
+        "y": -149
+      },
+      "verseRef": "Mark 16:15",
+      "verseText": "And He said to them, “Go into all the world and preach the gospel to every creature."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-anchor-b2",
+      "source": "anchor",
+      "target": "b2",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b3",
+      "source": "anchor",
+      "target": "b3",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b4",
+      "source": "anchor",
+      "target": "b4",
+      "kind": "crossref"
+    },
+    {
+      "id": "e-anchor-b5",
+      "source": "anchor",
+      "target": "b5",
+      "kind": "crossref"
+    }
+  ]
+}
