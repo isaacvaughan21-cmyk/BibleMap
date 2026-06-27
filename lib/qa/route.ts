@@ -1,6 +1,7 @@
 import { BOOKS } from "@/lib/bible-books";
 import { BOOK_META, type BookMeta } from "./book-meta";
 import { PERSON_META, type PersonMeta } from "./person-meta";
+import { dice } from "./spell";
 import type { Route } from "./types";
 
 /**
@@ -26,6 +27,20 @@ const BOOK_ALIASES: Record<string, string> = {
   revelations: "Rev",
 };
 
+// Lowercase name forms for fuzzy matching: each book's full name plus its last
+// word ("1 Corinthians" → "corinthians", "Song of Solomon" → "solomon").
+const BOOK_FUZZY_TARGETS: { form: string; code: string }[] = [];
+for (const b of BOOKS) {
+  const n = b.name.toLowerCase();
+  BOOK_FUZZY_TARGETS.push({ form: n, code: b.code });
+  const last = n.split(" ").pop() ?? n;
+  if (last !== n && last.length >= 4)
+    BOOK_FUZZY_TARGETS.push({ form: last, code: b.code });
+}
+for (const [alias, code] of Object.entries(BOOK_ALIASES)) {
+  BOOK_FUZZY_TARGETS.push({ form: alias, code });
+}
+
 function findBookCode(text: string): string | null {
   const q = ` ${text
     .toLowerCase()
@@ -45,7 +60,27 @@ function findBookCode(text: string): string | null {
       bestLen = n.length;
     }
   }
-  return bestCode;
+  if (bestCode) return bestCode;
+
+  // Fuzzy fallback for a misspelled book name ("reveltino" → Revelation). Only
+  // reached behind an authorship phrase, so a false match is unlikely.
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 4);
+  let fzCode: string | null = null;
+  let fzScore = 0.5; // minimum similarity to accept
+  for (const w of words) {
+    for (const t of BOOK_FUZZY_TARGETS) {
+      const s = dice(w, t.form);
+      if (s > fzScore) {
+        fzScore = s;
+        fzCode = t.code;
+      }
+    }
+  }
+  return fzCode;
 }
 
 /* ---- Person name index ---- */
@@ -111,7 +146,20 @@ function findPersons(namePhrase: string): PersonMeta[] {
     const hit = personByName.get(tok);
     if (hit && (!best || hit.length < best.length)) best = hit;
   }
-  return best ?? [];
+  if (best) return best;
+
+  // Fuzzy fallback for a misspelled name ("matthwe" → Matthew). Only reached
+  // behind a biography phrase, so a false match is unlikely.
+  let fz: { people: PersonMeta[]; score: number } | null = null;
+  for (const tok of cleaned.split(/\s+/)) {
+    if (NAME_NOISE.has(tok) || tok.length < 4) continue;
+    for (const [key, people] of personByName) {
+      if (key.length < 4) continue;
+      const s = dice(tok, key);
+      if (s >= 0.6 && (!fz || s > fz.score)) fz = { people, score: s };
+    }
+  }
+  return fz?.people ?? [];
 }
 
 /* ---- Off-topic heuristic ---- */

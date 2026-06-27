@@ -107,28 +107,6 @@ export default function AskPanel({ onClose }: { onClose?: () => void }) {
     }, 90);
   }
 
-  function addAll(cites: ValidatedCitation[]) {
-    const hub = ensureHub();
-    const ids = [hub];
-    for (const c of cites) {
-      if (added.has(c.ref)) continue;
-      ids.push(addVerseWithCrossRef(hub, c.ref, c.text));
-    }
-    setAdded((prev) => {
-      const next = new Set(prev);
-      for (const c of cites) next.add(c.ref);
-      return next;
-    });
-    setTimeout(() => {
-      fitView({
-        nodes: ids.map((id) => ({ id })),
-        duration: reducedMotion ? 0 : 500,
-        padding: 0.3,
-        maxZoom: 1,
-      });
-    }, 90);
-  }
-
   return (
     <div className="flex h-full flex-col">
       {/* Question input — pinned above the scrolling answer */}
@@ -210,12 +188,7 @@ export default function AskPanel({ onClose }: { onClose?: () => void }) {
             </button>
           </div>
         ) : result ? (
-          <AnswerView
-            result={result}
-            added={added}
-            onAdd={addOne}
-            onAddAll={addAll}
-          />
+          <AnswerView result={result} added={added} onAdd={addOne} />
         ) : (
           <Idle onPick={(q) => submit(q)} />
         )}
@@ -277,12 +250,10 @@ function AnswerView({
   result,
   added,
   onAdd,
-  onAddAll,
 }: {
   result: AskResult;
   added: Set<string>;
   onAdd: (c: ValidatedCitation) => void;
-  onAddAll: (cs: ValidatedCitation[]) => void;
 }) {
   if (
     result.status === "no_answer" ||
@@ -312,10 +283,6 @@ function AnswerView({
   }
 
   // status === "answered"
-  const allCitations: ValidatedCitation[] = result.figures
-    ? result.figures.flatMap((f) => f.citations)
-    : result.citations;
-
   return (
     <div className="pb-4">
       <p className="whitespace-pre-wrap px-5 pt-4 font-serif text-sm leading-relaxed text-ink-soft">
@@ -339,12 +306,7 @@ function AnswerView({
           ))}
         </div>
       ) : result.citations.length > 0 ? (
-        <CitedVerses
-          citations={result.citations}
-          added={added}
-          onAdd={onAdd}
-          onAddAll={() => onAddAll(allCitations)}
-        />
+        <CitedVerses citations={result.citations} added={added} onAdd={onAdd} />
       ) : null}
     </div>
   );
@@ -383,31 +345,16 @@ function CitedVerses({
   citations,
   added,
   onAdd,
-  onAddAll,
 }: {
   citations: ValidatedCitation[];
   added: Set<string>;
   onAdd: (c: ValidatedCitation) => void;
-  onAddAll: () => void;
 }) {
-  const allAdded = citations.every((c) => added.has(c.ref));
   return (
     <div className="mt-4 border-t border-rule/60 px-3 pt-3">
-      <div className="flex items-center justify-between px-2">
-        <p className="font-sans text-2xs tracking-eyebrow text-ink-muted">
-          CITED VERSES
-        </p>
-        {citations.length > 1 && (
-          <button
-            type="button"
-            onClick={onAddAll}
-            disabled={allAdded}
-            className="font-sans text-2xs text-gold transition-colors hover:text-ink disabled:text-ink-muted/50"
-          >
-            {allAdded ? "All added" : "Add all"}
-          </button>
-        )}
-      </div>
+      <p className="px-2 font-sans text-2xs tracking-eyebrow text-ink-muted">
+        CITED VERSES
+      </p>
       <ul className="mt-1 space-y-1">
         {citations.map((c) => (
           <CitationRow

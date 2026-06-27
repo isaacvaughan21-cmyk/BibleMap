@@ -108,6 +108,16 @@ export const QUERY_STOPWORDS = new Set([
   "mean",
   "means",
   "according",
+  // Authorship framing — not topical content (a stray "who wrote X" shouldn't
+  // search on "wrote"); the router answers real authorship questions instead.
+  "wrote",
+  "write",
+  "writes",
+  "written",
+  "author",
+  "authored",
+  "penned",
+  "composed",
 ]);
 
 /** Lowercase, strip non-letters, drop stopwords + 1-char tokens. */

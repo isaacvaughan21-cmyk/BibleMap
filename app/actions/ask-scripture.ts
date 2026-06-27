@@ -8,7 +8,7 @@ import { getClientIp, hashIp } from "@/lib/ip";
 import { isKnownVersion, DEFAULT_VERSION } from "@/lib/versions";
 import { BOOKS } from "@/lib/bible-books";
 import { classifyQuery } from "@/lib/qa/route";
-import { retrieve } from "@/lib/qa/retriever";
+import { retrieve, spellFixPhrase } from "@/lib/qa/retriever";
 import { validateCitation } from "@/lib/qa/server-bible";
 import {
   ASK_SCHEMA,
@@ -222,10 +222,12 @@ export async function askScripture(input: {
 
     // 5b. No model (key absent or call failed) — never hard-fail.
     if (!answer) {
+      const rawTopic = extractTopic(question);
+      const topicLabel = rawTopic ? await spellFixPhrase(rawTopic) : null;
       const fallback = deterministicFallback(
         cls,
         candidates,
-        question,
+        topicLabel,
         figureRefs,
       );
       if (fallback) return fallback;
@@ -334,7 +336,7 @@ function extractTopic(question: string): string | null {
 function deterministicFallback(
   cls: ReturnType<typeof classifyQuery>,
   candidates: ValidatedCitation[],
-  question: string,
+  topicLabel: string | null,
   figureRefs: ValidatedCitation[][],
 ): AskResult | null {
   if (cls.route === "authorship" && cls.bookHits?.length) {
@@ -389,9 +391,8 @@ function deterministicFallback(
   // Topical (or any route that fell through to retrieval): hand back the verses
   // that match, with a short framing. This is the no-API-key topical answer.
   if (candidates.length > 0) {
-    const topic = extractTopic(question);
-    const answer = topic
-      ? `Here are passages from Scripture that speak about ${topic}. Read them in context to see what the Bible says.`
+    const answer = topicLabel
+      ? `Here are passages from Scripture that speak about ${topicLabel}. Read them in context to see what the Bible says.`
       : "Here are passages from Scripture that relate to your question — read them in context to see what it says.";
     return {
       status: "answered",

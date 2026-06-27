@@ -18,6 +18,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.5.1",
+    date: "2026-06-25",
+    title: "Ask Scripture handles typos",
+    changes: [
+      "The Ask assistant now forgives misspellings — “who wrote reveltino” still finds Revelation, and “what does the bible say about graec” still finds grace.",
+      "When a question doesn’t match anything in Scripture, it now says so plainly instead of returning unrelated verses.",
+    ],
+  },
+  {
     version: "0.5.0",
     date: "2026-06-25",
     title: "Ask Scripture",
