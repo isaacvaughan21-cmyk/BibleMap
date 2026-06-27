@@ -5,13 +5,12 @@ import { useReactFlow } from "@xyflow/react";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
-/**
- * Canvas keyboard shortcuts. Undo/redo is intentionally absent: React Flow
- * ships no built-in history and the build brief forbids a custom one.
- */
+/** Canvas keyboard shortcuts. */
 
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ["mod", "K"], label: "Command palette" },
+  { keys: ["mod", "Z"], label: "Undo" },
+  { keys: ["mod", "⇧", "Z"], label: "Redo" },
   { keys: ["2×click"], label: "Create a bubble (on the canvas)" },
   { keys: ["2×click"], label: "Open a bubble into its own map" },
   { keys: ["⌫"], label: "Delete selection" },
@@ -31,6 +30,8 @@ export function useCanvasShortcuts(handlers: {
   onToggleRail: () => void;
   onAsk: () => void;
   onHelp: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
 }) {
   const { fitView, zoomIn, zoomOut } = useReactFlow();
   const selectAll = useCanvasStore((s) => s.selectAll);
@@ -58,6 +59,24 @@ export function useCanvasShortcuts(handlers: {
         return;
       }
       if (inField) return;
+
+      // Undo / redo (redo = mod+shift+Z or mod+Y). Checked before plain undo
+      // so shift+Z doesn't fall through to it.
+      if (mod && e.key.toLowerCase() === "z" && e.shiftKey) {
+        e.preventDefault();
+        handlers.onRedo();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        handlers.onRedo();
+        return;
+      }
+      if (mod && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        handlers.onUndo();
+        return;
+      }
 
       if (mod && e.key.toLowerCase() === "a") {
         e.preventDefault();

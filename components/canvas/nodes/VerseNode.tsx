@@ -23,15 +23,16 @@ function escapeRegExp(s: string): string {
 }
 
 /**
- * Render text with stored phrases wrapped in <mark> highlights. A left-click
- * does nothing (so reading a highlighted phrase doesn't wipe it); a right-click
- * asks to remove it.
+ * Render text with stored phrases wrapped in <mark> highlights. Clicking a
+ * highlight (once the bubble is selected) opens a small editor to recolour or
+ * remove it; right-click opens the same editor. Reading never wipes a mark.
  */
 function withHighlights(
   text: string,
   highlights: string[] | undefined,
   colors: Record<string, string> | undefined,
-  onRequestRemove: (phrase: string) => void,
+  selected: boolean,
+  onEdit: (phrase: string, el: HTMLElement) => void,
 ): ReactNode {
   const phrases = [...new Set(highlights ?? [])].filter((p) =>
     text.includes(p),
@@ -53,13 +54,19 @@ function withHighlights(
     return (
       <mark
         key={i}
+        onClick={(e) => {
+          // Unselected: let the click select the bubble first. Selected: edit.
+          if (!selected) return;
+          e.stopPropagation();
+          onEdit(part, e.currentTarget);
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          onRequestRemove(part);
+          onEdit(part, e.currentTarget);
         }}
-        title="Right-click to remove highlight"
-        className="verse-mark nodrag cursor-text"
+        title={selected ? "Click to recolour or remove" : undefined}
+        className={`verse-mark nodrag ${selected ? "cursor-pointer" : "cursor-text"}`}
         style={
           hl
             ? ({
@@ -94,9 +101,14 @@ export default function VerseNode({
   const [expanded, setExpanded] = useState(false);
   // A selection awaiting confirmation into a stored highlight.
   const [pending, setPending] = useState<string | null>(null);
-  // A stored highlight a right-click has offered to remove.
-  const [removing, setRemoving] = useState<string | null>(null);
-  const removeRef = useRef<HTMLDivElement>(null);
+  // A stored highlight being edited (recolour / remove), with where to anchor
+  // the little editor popover (offsets relative to the bubble).
+  const [editingHl, setEditingHl] = useState<{
+    phrase: string;
+    top: number;
+    left: number;
+  } | null>(null);
+  const editRef = useRef<HTMLDivElement>(null);
   const updateNodeData = useCanvasStore((s) => s.updateNodeData);
   // The first bubble (earliest uuid v7 — they sort by creation time) on this
   // map, regardless of type, is the study's anchor.
@@ -108,25 +120,27 @@ export default function VerseNode({
       ? `${data.verseText.slice(0, TRUNCATE_AT).trimEnd()}…`
       : data.verseText;
 
-  // Clicking off the bubble drops an unconfirmed selection (and its gold wash).
+  // Clicking off the bubble drops an unconfirmed selection (and its gold wash)
+  // and closes any open highlight editor.
   useEffect(() => {
     if (!selected) {
       setPending(null);
+      setEditingHl(null);
       if (typeof window !== "undefined")
         window.getSelection()?.removeAllRanges();
     }
   }, [selected]);
 
-  // Dismiss the remove prompt on an outside click or Escape.
+  // Dismiss the highlight editor on an outside click or Escape.
   useEffect(() => {
-    if (!removing) return;
+    if (!editingHl) return;
     const onDown = (e: MouseEvent) => {
-      if (!removeRef.current?.contains(e.target as Node)) setRemoving(null);
+      if (!editRef.current?.contains(e.target as Node)) setEditingHl(null);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setRemoving(null);
+      if (e.key === "Escape") setEditingHl(null);
     };
-    // Defer so the opening right-click itself isn't caught as "outside".
+    // Defer so the opening click itself isn't caught as "outside".
     const t = window.setTimeout(() => {
       document.addEventListener("mousedown", onDown);
       window.addEventListener("keydown", onKey);
@@ -136,7 +150,25 @@ export default function VerseNode({
       document.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey);
     };
-  }, [removing]);
+  }, [editingHl]);
+
+  // Open the recolour/remove editor anchored just below the clicked highlight.
+  const openHighlightEditor = (phrase: string, el: HTMLElement) => {
+    setPending(null);
+    setEditingHl({
+      phrase,
+      top: el.offsetTop + el.offsetHeight + 6,
+      left: Math.max(2, Math.min(el.offsetLeft, 44)),
+    });
+  };
+
+  const recolorHighlight = (phrase: string, colorId?: string) => {
+    const colors = { ...(data.highlightColors ?? {}) };
+    if (colorId) colors[phrase] = colorId;
+    else delete colors[phrase];
+    updateNodeData(id, { highlightColors: colors });
+    setEditingHl(null);
+  };
 
   const captureSelection = () => {
     const sel = window.getSelection();
@@ -163,7 +195,7 @@ export default function VerseNode({
       highlights: (data.highlights ?? []).filter((p) => p !== phrase),
       highlightColors: colors,
     });
-    setRemoving(null);
+    setEditingHl(null);
   };
 
   return (
@@ -195,7 +227,8 @@ export default function VerseNode({
               shown,
               data.highlights,
               data.highlightColors,
-              setRemoving,
+              selected,
+              openHighlightEditor,
             )}
             {isLong && (
               <>
@@ -249,30 +282,66 @@ export default function VerseNode({
             ))}
           </div>
         )}
-        {removing && (
+        {/* Highlight editor — recolour swatches + remove, anchored to the mark */}
+        {editingHl && (
           <div
-            ref={removeRef}
-            className="nodrag mt-2 flex items-center gap-1.5"
+            ref={editRef}
+            className="nodrag nowheel absolute z-20 flex items-center gap-1 rounded-full border border-rule bg-parchment px-1.5 py-1 shadow-lg shadow-ink/15"
+            style={{ top: editingHl.top, left: editingHl.left }}
           >
             <button
               type="button"
+              title="Theme colour"
+              aria-label="Recolour to the theme colour"
               onClick={(e) => {
                 e.stopPropagation();
-                removeHighlight(removing);
+                recolorHighlight(editingHl.phrase);
               }}
-              className="inline-flex items-center gap-1 rounded-full border border-danger/50 bg-danger/10 px-2.5 py-0.5 font-sans text-2xs text-danger transition-colors hover:bg-danger/20"
-            >
-              Remove highlight
-            </button>
+              className="h-4 w-4 rounded-full border border-rule transition-transform hover:scale-110"
+              style={{
+                background: "var(--bubble-highlight, var(--gold-soft))",
+              }}
+            />
+            {HIGHLIGHTERS.map((h) => (
+              <button
+                key={h.id}
+                type="button"
+                title={h.name}
+                aria-label={`Recolour ${h.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  recolorHighlight(editingHl.phrase, h.id);
+                }}
+                className="h-4 w-4 rounded-full border border-black/10 transition-transform hover:scale-110"
+                style={{ background: h.color }}
+              />
+            ))}
+            <span aria-hidden="true" className="mx-0.5 h-4 w-px bg-rule" />
             <button
               type="button"
+              title="Remove highlight"
+              aria-label="Remove highlight"
               onClick={(e) => {
                 e.stopPropagation();
-                setRemoving(null);
+                removeHighlight(editingHl.phrase);
               }}
-              className="font-sans text-2xs text-ink-muted transition-colors hover:text-ink"
+              className="flex h-5 w-5 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-danger/10 hover:text-danger"
             >
-              cancel
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 14 14"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M2.5 3.5h9M5.5 3.5V2.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1M3.5 3.5l.5 8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1l.5-8"
+                  stroke="currentColor"
+                  strokeWidth="1.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
           </div>
         )}

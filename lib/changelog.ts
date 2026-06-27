@@ -18,6 +18,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.8.0",
+    date: "2026-06-27",
+    title: "Undo & easier highlights",
+    changes: [
+      "Changed something you didn’t mean to? Press Ctrl/Cmd+Z to undo (Ctrl/Cmd+Shift+Z to redo), or use the new undo and redo buttons by the zoom controls — it covers creating, moving, connecting, deleting, editing, and highlighting.",
+      "Editing a highlight is simpler now: click a highlighted phrase to recolour it or remove it, right where it sits.",
+    ],
+  },
+  {
     version: "0.7.0",
     date: "2026-06-27",
     title: "Colour themes & highlighters",

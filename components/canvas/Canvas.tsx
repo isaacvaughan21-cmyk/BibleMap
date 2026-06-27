@@ -226,6 +226,18 @@ function CanvasInner() {
     onToggleRail: () => setRailOpen((o) => !o),
     onAsk: () => setAskOpen((o) => !o),
     onHelp: () => setHelpOpen(true),
+    onUndo: () =>
+      setToast(
+        useCanvasStore.getState().undo()
+          ? { text: "Undone" }
+          : { text: "Nothing to undo" },
+      ),
+    onRedo: () =>
+      setToast(
+        useCanvasStore.getState().redo()
+          ? { text: "Redone" }
+          : { text: "Nothing to redo" },
+      ),
   });
 
   useEffect(() => {

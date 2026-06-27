@@ -86,6 +86,16 @@ export interface CanvasStore {
     at: number;
   } | null;
   restoreLastDeletion(): void;
+
+  /* ---- Undo / redo ---- */
+  /** Whether there's a step to undo / redo (drives the control buttons). */
+  canUndo: boolean;
+  canRedo: boolean;
+  /** Step back to the state before the last edit. Returns false if empty. */
+  undo(): boolean;
+  /** Re-apply the last undone edit. Returns false if empty. */
+  redo(): boolean;
+
   /** First-run hint bar — shown until dismissed once. */
   hintsDismissed: boolean;
   dismissHints(): void;
@@ -173,6 +183,25 @@ const deletedNodeIds = new Set<string>();
 const deletedEdgeIds = new Set<string>();
 const createdAtById = new Map<string, number>();
 const updatedAtById = new Map<string, number>();
+
+/**
+ * Undo / redo history for the CURRENT map. Each entry is the whole
+ * {nodes, edges} of a map as it was before an edit. The store only ever
+ * replaces these arrays (never mutates them in place), so a snapshot can hold
+ * the live references — no cloning needed. Cleared on every map/canvas switch.
+ */
+type HistorySnap = { nodes: HodosNode[]; edges: HodosEdge[] };
+const undoStack: HistorySnap[] = [];
+const redoStack: HistorySnap[] = [];
+const HISTORY_LIMIT = 60;
+/** True between a drag's first move and its drop — so one drag = one undo step. */
+let midDrag = false;
+
+function clearHistory() {
+  undoStack.length = 0;
+  redoStack.length = 0;
+  midDrag = false;
+}
 
 /** Recency for command-palette ranking. */
 export function getNodeRecency(id: string): number {
@@ -444,6 +473,63 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     scheduleFlush();
   }
 
+  /**
+   * Snapshot the current map onto the undo stack — call BEFORE a mutation, so
+   * undo restores the state as it was just before. A fresh edit invalidates the
+   * redo stack. Selection-only changes don't call this (they aren't edits).
+   */
+  function pushHistory() {
+    if (ephemeralMode) return;
+    const { nodes, edges } = get();
+    undoStack.push({ nodes, edges });
+    if (undoStack.length > HISTORY_LIMIT) undoStack.shift();
+    redoStack.length = 0;
+    if (!get().canUndo || get().canRedo) set({ canUndo: true, canRedo: false });
+  }
+
+  /**
+   * Replace the live map with a history snapshot, reconciling the persistence
+   * bookkeeping: nodes/edges the snapshot drops are soft-deleted; nodes/edges it
+   * brings back (or changes) are re-marked dirty so the next flush writes them
+   * (re-upserting a soft-deleted row without `deletedAt` resurrects it).
+   */
+  function applyHistorySnapshot(snap: HistorySnap) {
+    const now = Date.now();
+    const cur = get();
+    const snapNodeIds = new Set(snap.nodes.map((n) => n.id));
+    const snapEdgeIds = new Set(snap.edges.map((e) => e.id));
+    for (const n of cur.nodes)
+      if (!snapNodeIds.has(n.id)) {
+        deletedNodeIds.add(n.id);
+        dirtyNodeIds.delete(n.id);
+      }
+    for (const e of cur.edges)
+      if (!snapEdgeIds.has(e.id)) {
+        deletedEdgeIds.add(e.id);
+        dirtyEdgeIds.delete(e.id);
+      }
+    for (const n of snap.nodes) {
+      deletedNodeIds.delete(n.id);
+      dirtyNodeIds.add(n.id);
+      updatedAtById.set(n.id, now);
+      mapIdById.set(n.id, activeMapId);
+      if (!createdAtById.has(n.id)) createdAtById.set(n.id, now);
+    }
+    for (const e of snap.edges) {
+      deletedEdgeIds.delete(e.id);
+      dirtyEdgeIds.add(e.id);
+      mapIdById.set(e.id, activeMapId);
+      if (!createdAtById.has(e.id)) createdAtById.set(e.id, now);
+    }
+    set({
+      nodes: snap.nodes,
+      edges: snap.edges,
+      editingNodeId: null,
+      versePickerNodeId: null,
+    });
+    scheduleFlush();
+  }
+
   /** Force a synchronous flush — used before navigating between maps. */
   async function flushPending() {
     if (flushTimer) {
@@ -541,6 +627,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
   ) {
     activeMapId = mapId;
     registerLoaded(nodes, edges);
+    clearHistory();
     set({
       currentMapId: mapId,
       mapPath: path,
@@ -549,6 +636,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       editingNodeId: null,
       lastDeletion: null,
       versePickerNodeId: null,
+      canUndo: false,
+      canRedo: false,
     });
   }
 
@@ -608,6 +697,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     activeCanvasId: ROOT_MAP_ID,
     bibleVersion: DEFAULT_VERSION,
     colorTheme: DEFAULT_THEME,
+    canUndo: false,
+    canRedo: false,
 
     load() {
       if (loadPromise) return loadPromise;
@@ -691,6 +782,20 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       const moved = changes
         .filter((c) => c.type === "position")
         .map((c) => c.id);
+      // History: snapshot before a deletion, or ONCE at the start of a drag
+      // gesture (positions stream while dragging, so coalesce to one step).
+      const draggingNow = changes.some(
+        (c) => c.type === "position" && c.dragging === true,
+      );
+      const dropNow = changes.some(
+        (c) => c.type === "position" && c.dragging === false,
+      );
+      if (removed.length) pushHistory();
+      else if (draggingNow && !midDrag) {
+        pushHistory();
+        midDrag = true;
+      }
+      if (dropNow) midDrag = false;
       const removedNodes = removed.length
         ? get().nodes.filter((n) => removed.includes(n.id))
         : [];
@@ -709,6 +814,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       const removed = changes
         .filter((c) => c.type === "remove")
         .map((c) => c.id);
+      if (removed.length) pushHistory();
       const removedEdges = removed.length
         ? get().edges.filter((e) => removed.includes(e.id))
         : [];
@@ -724,6 +830,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     onConnect(connection) {
       if (!connection.source || !connection.target) return;
       if (connection.source === connection.target) return;
+      pushHistory();
       // A line drawn between two verse bubbles is a scripture cross-reference —
       // label it as such automatically. Anything else stays a manual link.
       const ns = get().nodes;
@@ -745,6 +852,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
 
     createNode(type, position) {
+      pushHistory();
       const id = uuidv7();
       createdAtById.set(id, Date.now());
       const data =
@@ -765,6 +873,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
 
     updateNodeData(id, data) {
+      pushHistory();
       let updated: HodosNode | undefined;
       set({
         nodes: get().nodes.map((n) => {
@@ -782,6 +891,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
 
     changeNodeType(id, to) {
+      pushHistory();
       set({
         nodes: get().nodes.map((n) => {
           if (n.id !== id) return n;
@@ -808,6 +918,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
 
     changeEdgeKind(id, kind) {
+      pushHistory();
       set({
         edges: get().edges.map((e) => (e.id === id ? { ...e, type: kind } : e)),
       });
@@ -816,6 +927,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
 
     reverseEdge(id) {
+      pushHistory();
       set({
         edges: get().edges.map((e) =>
           e.id === id ? { ...e, source: e.target, target: e.source } : e,
@@ -828,6 +940,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     reconnectEdge(oldEdge, connection) {
       if (!connection.source || !connection.target) return;
       if (connection.source === connection.target) return;
+      pushHistory();
       set({
         edges: get().edges.map((e) =>
           e.id === oldEdge.id
@@ -874,6 +987,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
 
     addVerseWithCrossRef(sourceId, verseRef, verseText, explicitPosition) {
+      pushHistory();
       const source = get().nodes.find((n) => n.id === sourceId);
       const siblings = get().edges.filter(
         (e) => e.source === sourceId && e.type === "crossref",
@@ -967,6 +1081,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     duplicateNode(id) {
       const src = get().nodes.find((n) => n.id === id);
       if (!src) return null;
+      pushHistory();
       const newId = uuidv7();
       createdAtById.set(newId, Date.now());
       const clone = {
@@ -990,6 +1105,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
 
     addNoteNode({ type, data, parentId }) {
+      pushHistory();
       const ns = get().nodes;
       const parent =
         parentId != null ? ns.find((n) => n.id === parentId) : undefined;
@@ -1046,6 +1162,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     restoreLastDeletion() {
       const del = get().lastDeletion;
       if (!del) return;
+      pushHistory();
       const nodeIds = new Set(get().nodes.map((n) => n.id));
       const edgeIds = new Set(get().edges.map((e) => e.id));
       const nodes = del.nodes
@@ -1074,6 +1191,26 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         dirtyEdgeIds.add(e.id);
       });
       scheduleFlush();
+    },
+
+    undo() {
+      if (!undoStack.length) return false;
+      const snap = undoStack.pop() as HistorySnap;
+      redoStack.push({ nodes: get().nodes, edges: get().edges });
+      applyHistorySnapshot(snap);
+      set({ canUndo: undoStack.length > 0, canRedo: true });
+      track("history", { action: "undo" });
+      return true;
+    },
+
+    redo() {
+      if (!redoStack.length) return false;
+      const snap = redoStack.pop() as HistorySnap;
+      undoStack.push({ nodes: get().nodes, edges: get().edges });
+      applyHistorySnapshot(snap);
+      set({ canUndo: true, canRedo: redoStack.length > 0 });
+      track("history", { action: "redo" });
+      return true;
     },
 
     /** Re-read everything from Dexie (used after import) — back to the root. */

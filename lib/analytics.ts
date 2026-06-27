@@ -23,7 +23,8 @@ export type AnalyticsEvent =
   | "beta_signup"
   | "beta_guest"
   | "mobile_blocked"
-  | "mobile_notify_signup";
+  | "mobile_notify_signup"
+  | "history";
 
 export function track(
   name: AnalyticsEvent,
