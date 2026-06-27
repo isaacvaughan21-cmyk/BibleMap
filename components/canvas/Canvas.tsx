@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Background,
   BackgroundVariant,
@@ -22,6 +22,7 @@ import { getVerseByParsed, parseRef } from "@/lib/bible";
 import { easeInCubic, easeOutQuint, easeInOutCubic } from "@/lib/easing";
 import { useRouter } from "next/navigation";
 import { takeCrossRefDrag, useCanvasStore } from "@/lib/store/canvas-store";
+import { getTheme, themeStyle, type BubbleTheme } from "@/lib/themes";
 import * as repo from "@/lib/db/repo";
 import { CROSSREF_DRAG_TYPE } from "./CrossRefPanel";
 import type { HodosExport } from "@/lib/db/repo";
@@ -66,8 +67,16 @@ const edgeTypes = {
   crossref: CrossRefEdge,
 };
 
-/** Minimap echoes the node hierarchy: verses gold, questions ink, notes faint. */
-function minimapNodeColor(node: Node): string {
+/**
+ * Minimap echoes the node hierarchy. Under a by-type theme each dot takes its
+ * type's accent so the overview matches the canvas; otherwise the classic
+ * scheme — verses gold, questions ink, notes faint.
+ */
+function minimapNodeColor(node: Node, theme: BubbleTheme): string {
+  if (theme.byType) {
+    const palette = theme.types[node.type as NodeKind];
+    if (palette) return palette.accent;
+  }
   switch (node.type) {
     case "verse":
       return "var(--gold-soft)";
@@ -142,6 +151,11 @@ function CanvasInner() {
   const setVersePicker = useCanvasStore((s) => s.setVersePicker);
   // While a dive is in flight, the chrome fades back so the canvas is the star
   const diving = useCanvasStore((s) => !!s.pendingNav);
+  // Bubble colour theme — drops --btype-* + highlight vars on the wrapper; the
+  // per-type CSS in globals.css only engages when colouring "by type" is on.
+  const colorTheme = useCanvasStore((s) => s.colorTheme);
+  const theme = getTheme(colorTheme);
+  const bubbleThemeStyle = useMemo(() => themeStyle(theme), [theme]);
   const [railOpen, setRailOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -391,6 +405,8 @@ function CanvasInner() {
       ref={wrapperRef}
       className="relative h-dvh w-full overflow-hidden bg-parchment"
       data-diving={diving || undefined}
+      data-bubble-colors={theme.byType ? "type" : "uniform"}
+      style={bubbleThemeStyle}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes(CROSSREF_DRAG_TYPE)) {
           e.preventDefault();
@@ -736,6 +752,7 @@ function FlowSurface(props: {
     fitView,
   } = useReactFlow();
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const minimapTheme = getTheme(useCanvasStore((s) => s.colorTheme));
 
   // ---- Nested-map zoom transition ----
   // The dive is the signature interaction, so it ALWAYS plays — even under
@@ -1132,7 +1149,7 @@ function FlowSurface(props: {
           variant={BackgroundVariant.Dots}
           gap={24}
           size={1.5}
-          color="var(--rule)"
+          color="var(--canvas-dots, var(--rule))"
           style={{ opacity: 0.55 }}
         />
         {/* An overview map only earns its place once there's a map to overview */}
@@ -1142,9 +1159,9 @@ function FlowSurface(props: {
             pannable
             zoomable
             ariaLabel="Map overview"
-            bgColor="var(--parchment-2)"
-            maskColor="color-mix(in srgb, var(--parchment) 78%, transparent)"
-            nodeColor={minimapNodeColor}
+            bgColor="var(--canvas-bg-2, var(--parchment-2))"
+            maskColor="color-mix(in srgb, var(--canvas-bg, var(--parchment)) 78%, transparent)"
+            nodeColor={(n) => minimapNodeColor(n, minimapTheme)}
             nodeStrokeColor="var(--rule)"
             nodeBorderRadius={8}
             className={props.railOpen ? "rail-open" : ""}

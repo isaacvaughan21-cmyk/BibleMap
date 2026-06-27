@@ -8,6 +8,7 @@ import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import ChangelogDialog from "@/components/ChangelogDialog";
 import { APP_VERSION } from "@/lib/changelog";
 import { BIBLE_VERSIONS } from "@/lib/versions";
+import { BUBBLE_THEMES } from "@/lib/themes";
 import { cloudSignOut, useAuthUser } from "@/lib/use-auth";
 
 type TopBarProps = {
@@ -187,6 +188,8 @@ function OverflowMenu({
   const deleteCanvas = useCanvasStore((s) => s.deleteCanvas);
   const bibleVersion = useCanvasStore((s) => s.bibleVersion);
   const setBibleVersion = useCanvasStore((s) => s.setBibleVersion);
+  const colorTheme = useCanvasStore((s) => s.colorTheme);
+  const setColorTheme = useCanvasStore((s) => s.setColorTheme);
 
   // A guest can upgrade to an account any time — surface it in the menu.
   useEffect(() => {
@@ -241,7 +244,7 @@ function OverflowMenu({
           <div
             role="menu"
             aria-label="Map options"
-            className="absolute right-0 top-10 z-50 w-56 animate-fade-up rounded-xl border border-rule bg-parchment py-1.5 shadow-xl shadow-ink/10"
+            className="absolute right-0 top-10 z-50 max-h-[calc(100dvh-5rem)] w-56 animate-fade-up overflow-y-auto overscroll-contain rounded-xl border border-rule bg-parchment py-1.5 shadow-xl shadow-ink/10"
           >
             <p className="px-4 pb-1 pt-1.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
               CANVASES
@@ -425,6 +428,67 @@ function OverflowMenu({
             >
               Request another version…
             </MenuButton>
+            <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
+            <p className="px-4 pb-1 pt-0.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
+              THEMES
+            </p>
+            <div role="radiogroup" aria-label="Theme">
+              {BUBBLE_THEMES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={t.id === colorTheme}
+                  title={t.blurb}
+                  onClick={() => setColorTheme(t.id)}
+                  className="group flex w-full items-center gap-2.5 px-4 py-1.5 text-left transition-colors hover:bg-parchment-2"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`grid h-4 w-4 shrink-0 grid-cols-2 grid-rows-2 overflow-hidden rounded ${
+                      t.id === colorTheme
+                        ? "ring-2 ring-gold"
+                        : "ring-1 ring-inset ring-ink/10"
+                    }`}
+                  >
+                    <span style={{ background: t.types.question.accent }} />
+                    <span style={{ background: t.types.verse.accent }} />
+                    <span style={{ background: t.types.definition.accent }} />
+                    <span style={{ background: t.types.note.accent }} />
+                  </span>
+                  <span
+                    className={`flex-1 font-sans text-xs transition-colors ${
+                      t.id === colorTheme
+                        ? "text-ink"
+                        : "text-ink-soft group-hover:text-ink"
+                    }`}
+                  >
+                    {t.name}
+                  </span>
+                  {t.id === colorTheme && (
+                    <svg
+                      width="11"
+                      height="11"
+                      viewBox="0 0 10 10"
+                      fill="none"
+                      aria-hidden="true"
+                      className="shrink-0 text-gold"
+                    >
+                      <path
+                        d="M1.5 5.5L4 8L8.5 2"
+                        stroke="currentColor"
+                        strokeWidth="1.4"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p className="px-4 pb-1 pt-0.5 font-sans text-[10px] text-ink-muted/60">
+              Classic keeps every bubble parchment &amp; gold.
+            </p>
             <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
             <MenuButton
               onClick={() => {

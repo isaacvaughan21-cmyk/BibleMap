@@ -11,6 +11,12 @@ export type VerseNodeData = {
   verseRef: string;
   verseText: string;
   highlights?: string[];
+  /**
+   * Per-phrase highlighter colour, keyed by the phrase. The value is a
+   * highlighter id (see HIGHLIGHTERS in lib/themes.ts). A phrase missing here
+   * falls back to the active theme's coordinated highlight colour.
+   */
+  highlightColors?: Record<string, string>;
 };
 export type NoteNodeData = { content: string };
 /** content = the word; definition = the looked-up meaning (denormalized). */

@@ -11,6 +11,7 @@ import * as repo from "@/lib/db/repo";
 import { db, ROOT_MAP_ID, type DbEdge, type DbNode } from "@/lib/db/schema";
 import { parseImport } from "@/lib/map-io";
 import { DEFAULT_VERSION } from "@/lib/versions";
+import { DEFAULT_THEME } from "@/lib/themes";
 import { uuidv7 } from "@/lib/uuid";
 import type {
   EdgeKind,
@@ -155,6 +156,9 @@ export interface CanvasStore {
   /** The Bible translation used for new verse lookups + the study panel. */
   bibleVersion: string;
   setBibleVersion(code: string): void;
+  /** Bubble colour theme id (see lib/themes.ts). "classic" = uniform look. */
+  colorTheme: string;
+  setColorTheme(id: string): void;
 }
 
 export const DEFAULT_MAP_NAME = "Untitled map";
@@ -293,6 +297,7 @@ function toDbNode(n: HodosNode, now: number): DbNode {
     verseRef: isVerse ? data.verseRef : undefined,
     verseText: isVerse ? data.verseText : undefined,
     highlights: isVerse ? data.highlights : undefined,
+    highlightColors: isVerse ? data.highlightColors : undefined,
     definition: isDef ? (data.definition ?? "") : undefined,
     position: { x: n.position.x, y: n.position.y },
     createdAt: createdAtById.get(n.id) ?? now,
@@ -335,6 +340,7 @@ function fromDbNode(r: DbNode): HodosNode {
         verseRef: r.verseRef ?? "",
         verseText: r.verseText ?? "",
         ...(r.highlights?.length ? { highlights: r.highlights } : {}),
+        ...(r.highlightColors ? { highlightColors: r.highlightColors } : {}),
       },
     };
   }
@@ -601,6 +607,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     canvases: [{ id: ROOT_MAP_ID, name: DEFAULT_MAP_NAME }],
     activeCanvasId: ROOT_MAP_ID,
     bibleVersion: DEFAULT_VERSION,
+    colorTheme: DEFAULT_THEME,
 
     load() {
       if (loadPromise) return loadPromise;
@@ -645,6 +652,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
             hintsDismissed: !!(await repo.getMeta<boolean>("hintsDismissed")),
             bibleVersion:
               (await repo.getMeta<string>("bibleVersion")) ?? DEFAULT_VERSION,
+            colorTheme:
+              (await repo.getMeta<string>("colorTheme")) ?? DEFAULT_THEME,
           });
 
           // New users start with a blank canvas (no sample map seeded).
@@ -1249,6 +1258,11 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       if (!ephemeralMode) void repo.setMeta("bibleVersion", code);
     },
 
+    setColorTheme(id) {
+      set({ colorTheme: id });
+      if (!ephemeralMode) void repo.setMeta("colorTheme", id);
+    },
+
     async rehydrate() {
       if (ephemeralMode) return;
       const canvases =
@@ -1265,6 +1279,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         canvases.find((c) => c.id === active)?.name ?? DEFAULT_MAP_NAME;
       const bibleVersion =
         (await repo.getMeta<string>("bibleVersion")) ?? get().bibleVersion;
+      const colorTheme =
+        (await repo.getMeta<string>("colorTheme")) ?? get().colorTheme;
       const { nodes, edges } = await repo.loadLive(active);
       applyMap(active, [{ id: active, label: name }], nodes, edges);
       set({
@@ -1272,6 +1288,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         activeCanvasId: active,
         mapName: name,
         bibleVersion,
+        colorTheme,
         anchorNodeId: null,
       });
       await refreshChildMapIds();

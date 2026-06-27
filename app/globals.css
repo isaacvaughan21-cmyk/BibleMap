@@ -33,22 +33,31 @@
     overflow-x: clip;
   }
 
+  /* Selection + highlight colour follow the active bubble theme (lib/themes.ts
+     drops --bubble-highlight on the canvas wrapper). Off the canvas — and for
+     the Classic theme — they fall back to the historical gold-soft. */
   ::selection {
-    background-color: var(--gold-soft);
+    background-color: var(--bubble-highlight, var(--gold-soft));
     color: var(--ink);
   }
 
-  /* A confirmed highlight in a verse bubble. Uses the same gold-soft as
-     ::selection so a phrase looks identical once you let go as it did while
-     you were dragging across it. */
+  /* A confirmed highlight in a verse bubble. A chosen highlighter pen sets
+     --mark / --mark-strong inline; with no choice it falls back to the active
+     theme's highlight (which itself falls back to gold-soft off-canvas). */
   mark.verse-mark {
-    background-color: var(--gold-soft);
+    background-color: var(--mark, var(--bubble-highlight, var(--gold-soft)));
     color: var(--ink);
     border-radius: 2px;
     padding: 0 1px;
   }
   mark.verse-mark:hover {
-    background-color: color-mix(in srgb, var(--gold-soft) 78%, var(--gold));
+    background-color: var(
+      --mark-strong,
+      var(
+        --bubble-highlight-strong,
+        color-mix(in srgb, var(--gold-soft) 78%, var(--gold))
+      )
+    );
   }
 
   /* Visible focus ring for keyboard users */
@@ -136,12 +145,13 @@
     transform: translateY(-1px);
   }
 
-  /* Soft vignette over the canvas — same depth cue as the landing demo. */
+  /* Soft vignette over the canvas — same depth cue as the landing demo.
+     Fades toward the active theme's edge tone (lib/themes.ts). */
   .canvas-vignette {
     background: radial-gradient(
       ellipse at center,
       transparent 55%,
-      var(--parchment-2) 125%
+      var(--canvas-bg-2, var(--parchment-2)) 125%
     );
   }
 
@@ -242,20 +252,96 @@
   cursor: grabbing;
 }
 
-/* Handles — hidden until the node is hovered or selected.
+/* Handles — the dots you drag from to draw a connection. Hidden until the node
+   is hovered or selected. Sized a little larger than the library default so
+   they're an easy target for the connect gesture. The gold/parchment here pick
+   up each bubble's themed tokens automatically (handles live inside the node).
    (.react-flow prefix beats the library stylesheet, which Next loads after
    globals.css) */
 .react-flow .react-flow__handle {
-  height: 9px;
-  width: 9px;
-  border: 1.5px solid var(--gold);
+  height: 13px;
+  width: 13px;
+  border: 2px solid var(--gold);
   background: var(--parchment);
   opacity: 0;
-  transition: opacity 0.18s ease;
+  transition:
+    opacity 0.18s ease,
+    background-color 0.18s ease;
 }
 .react-flow__node:hover .react-flow__handle,
 .react-flow__node.selected .react-flow__handle {
   opacity: 1;
+}
+/* Fill the handle on hover — confirms it's the grabbable connect target.
+   (No transform here: React Flow positions handles with transform.) */
+.react-flow .react-flow__handle:hover {
+  background: var(--gold);
+}
+
+/* The canvas backdrop follows the active theme's background (lib/themes.ts
+   drops --canvas-bg on the wrapper). Un-layered, so it beats the bg-parchment
+   utility on the same element; falls back to parchment off-theme. */
+[data-bubble-colors] {
+  background-color: var(--canvas-bg, var(--parchment));
+}
+
+/* ------------------------------------------------------------------ */
+/* Per-type bubble colours.                                            */
+/* A theme (lib/themes.ts) drops --btype-<type>-{surface,accent} on the */
+/* canvas wrapper. When colouring "by type" is on the wrapper also gets  */
+/* data-bubble-colors="type", and each node remaps its brand tokens to   */
+/* its slice of the palette — so the surface, border, verse reference,   */
+/* question glyph, selection halo and handles all retint together with   */
+/* no per-component changes. Un-layered, so these beat Tailwind utilities.*/
+/* ------------------------------------------------------------------ */
+[data-bubble-colors="type"] .react-flow__node-question {
+  --parchment: var(--btype-question-surface);
+  --parchment-2: var(--btype-question-surface);
+  --gold: var(--btype-question-accent);
+  --gold-soft: color-mix(in srgb, var(--btype-question-accent) 42%, #fff);
+  --rule: color-mix(
+    in srgb,
+    var(--btype-question-accent) 30%,
+    var(--btype-question-surface)
+  );
+}
+[data-bubble-colors="type"] .react-flow__node-verse {
+  --parchment: var(--btype-verse-surface);
+  --parchment-2: var(--btype-verse-surface);
+  --gold: var(--btype-verse-accent);
+  --gold-soft: color-mix(in srgb, var(--btype-verse-accent) 42%, #fff);
+  --rule: color-mix(
+    in srgb,
+    var(--btype-verse-accent) 30%,
+    var(--btype-verse-surface)
+  );
+}
+[data-bubble-colors="type"] .react-flow__node-note {
+  --parchment: var(--btype-note-surface);
+  --parchment-2: var(--btype-note-surface);
+  --gold: var(--btype-note-accent);
+  --gold-soft: color-mix(in srgb, var(--btype-note-accent) 42%, #fff);
+  --rule: color-mix(
+    in srgb,
+    var(--btype-note-accent) 30%,
+    var(--btype-note-surface)
+  );
+}
+[data-bubble-colors="type"] .react-flow__node-definition {
+  --parchment: var(--btype-definition-surface);
+  --parchment-2: var(--btype-definition-surface);
+  --gold: var(--btype-definition-accent);
+  --gold-soft: color-mix(in srgb, var(--btype-definition-accent) 42%, #fff);
+  --rule: color-mix(
+    in srgb,
+    var(--btype-definition-accent) 30%,
+    var(--btype-definition-surface)
+  );
+}
+/* The definition bubble's signature left rule is ink (not gold), so it isn't
+   covered by the token remap above — point it at the type accent directly. */
+[data-bubble-colors="type"] .react-flow__node-definition .bubble {
+  border-left-color: var(--btype-definition-accent);
 }
 
 /* Node wrapper cursors */

@@ -18,6 +18,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.7.0",
+    date: "2026-06-27",
+    title: "Colour themes & highlighters",
+    changes: [
+      "Give your study a new look — open the ··· menu and pick a Theme. Classic keeps the parchment-and-gold look, while Pastel, Meadow, Ocean, Sunset, and Berry give each kind of bubble its own colour, with a matching canvas background.",
+      "Highlight a verse in the colour you choose: select a phrase and pick from six highlighter pens, or the theme’s own colour.",
+      "The dots you drag to connect bubbles are a little larger now, so they’re easier to grab.",
+    ],
+  },
+  {
     version: "0.6.0",
     date: "2026-06-27",
     title: "New Living Translation",

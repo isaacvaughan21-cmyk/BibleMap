@@ -1,9 +1,16 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import type { NodeProps } from "@xyflow/react";
 import type { VerseNodeType } from "@/lib/types";
 import { useCanvasStore, usePrimaryNodeId } from "@/lib/store/canvas-store";
+import { getHighlighter, HIGHLIGHTERS } from "@/lib/themes";
 import NodeHandles from "./NodeHandles";
 import NestBadge from "./NestBadge";
 import PrimaryBadge from "./PrimaryBadge";
@@ -23,6 +30,7 @@ function escapeRegExp(s: string): string {
 function withHighlights(
   text: string,
   highlights: string[] | undefined,
+  colors: Record<string, string> | undefined,
   onRequestRemove: (phrase: string) => void,
 ): ReactNode {
   const phrases = [...new Set(highlights ?? [])].filter((p) =>
@@ -37,8 +45,12 @@ function withHighlights(
       .join("|")})`,
     "g",
   );
-  return text.split(re).map((part, i) =>
-    phrases.includes(part) ? (
+  return text.split(re).map((part, i) => {
+    if (!phrases.includes(part)) return <span key={i}>{part}</span>;
+    // A chosen highlighter sets the mark colour inline; no choice (or an
+    // unknown id) falls back to the theme highlight via the CSS variables.
+    const hl = getHighlighter(colors?.[part]);
+    return (
       <mark
         key={i}
         onContextMenu={(e) => {
@@ -48,13 +60,19 @@ function withHighlights(
         }}
         title="Right-click to remove highlight"
         className="verse-mark nodrag cursor-text"
+        style={
+          hl
+            ? ({
+                "--mark": hl.color,
+                "--mark-strong": hl.strong,
+              } as CSSProperties)
+            : undefined
+        }
       >
         {part}
       </mark>
-    ) : (
-      <span key={i}>{part}</span>
-    ),
-  );
+    );
+  });
 }
 
 /**
@@ -127,17 +145,23 @@ export default function VerseNode({
     else setPending(null);
   };
 
-  const addHighlight = (phrase: string) => {
+  const addHighlight = (phrase: string, colorId?: string) => {
     const next = [...(data.highlights ?? [])];
     if (!next.includes(phrase)) next.push(phrase);
-    updateNodeData(id, { highlights: next });
+    const colors = { ...(data.highlightColors ?? {}) };
+    if (colorId) colors[phrase] = colorId;
+    else delete colors[phrase]; // theme default — no stored colour
+    updateNodeData(id, { highlights: next, highlightColors: colors });
     setPending(null);
     window.getSelection()?.removeAllRanges();
   };
 
   const removeHighlight = (phrase: string) => {
+    const colors = { ...(data.highlightColors ?? {}) };
+    delete colors[phrase];
     updateNodeData(id, {
       highlights: (data.highlights ?? []).filter((p) => p !== phrase),
+      highlightColors: colors,
     });
     setRemoving(null);
   };
@@ -167,7 +191,12 @@ export default function VerseNode({
               selected ? "nodrag select-text" : "select-none"
             }`}
           >
-            {withHighlights(shown, data.highlights, setRemoving)}
+            {withHighlights(
+              shown,
+              data.highlights,
+              data.highlightColors,
+              setRemoving,
+            )}
             {isLong && (
               <>
                 {" "}
@@ -186,17 +215,39 @@ export default function VerseNode({
           </p>
         )}
         {pending && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              addHighlight(pending);
-            }}
-            className="nodrag mt-2 inline-flex items-center gap-1 rounded-full border border-gold/50 bg-gold/10 px-2.5 py-0.5 font-sans text-2xs text-gold transition-colors hover:bg-gold/20"
-          >
-            Highlight “
-            {pending.length > 18 ? pending.slice(0, 18) + "…" : pending}”
-          </button>
+          <div className="nodrag mt-2 flex flex-wrap items-center gap-1.5">
+            <span className="font-sans text-2xs text-ink-muted">
+              Highlight:
+            </span>
+            {/* Theme colour (the default) */}
+            <button
+              type="button"
+              title="Theme colour"
+              aria-label="Highlight in the theme colour"
+              onClick={(e) => {
+                e.stopPropagation();
+                addHighlight(pending);
+              }}
+              className="h-4 w-4 rounded-full border border-rule shadow-sm transition-transform hover:scale-110"
+              style={{
+                background: "var(--bubble-highlight, var(--gold-soft))",
+              }}
+            />
+            {HIGHLIGHTERS.map((h) => (
+              <button
+                key={h.id}
+                type="button"
+                title={h.name}
+                aria-label={`Highlight ${h.name}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  addHighlight(pending, h.id);
+                }}
+                className="h-4 w-4 rounded-full border border-black/10 shadow-sm transition-transform hover:scale-110"
+                style={{ background: h.color }}
+              />
+            ))}
+          </div>
         )}
         {removing && (
           <div

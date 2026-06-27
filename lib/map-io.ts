@@ -15,6 +15,8 @@ const nodeSchema = z.object({
   content: z.string().default(""),
   verseRef: z.string().optional(),
   verseText: z.string().optional(),
+  highlights: z.array(z.string()).optional(),
+  highlightColors: z.record(z.string()).optional(),
   definition: z.string().optional(),
   position: positionSchema,
   createdAt: z.number(),
