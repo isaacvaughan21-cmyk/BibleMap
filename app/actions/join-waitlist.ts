@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { waitlistSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getServiceClient } from "@/lib/supabase-server";
+import { addToAudience } from "@/lib/resend-audience";
 
 export type WaitlistResult =
   | { status: "success" }
@@ -32,7 +33,7 @@ function getClientIp(h: Headers): string {
 
 export async function joinWaitlist(
   _prev: WaitlistResult | null,
-  formData: FormData
+  formData: FormData,
 ): Promise<WaitlistResult> {
   // 1. Validate.
   const parsed = waitlistSchema.safeParse({ email: formData.get("email") });
@@ -63,11 +64,18 @@ export async function joinWaitlist(
 
     if (error) {
       // Postgres unique_violation
-      if (error.code === "23505") return { status: "duplicate" };
+      if (error.code === "23505") {
+        // Already on the list — make sure they're in the marketing audience
+        // too (covers anyone who joined before Resend was wired up). Idempotent.
+        await addToAudience(email);
+        return { status: "duplicate" };
+      }
       console.error("[waitlist] insert error:", error.message);
       return { status: "error" };
     }
 
+    // Joining the launch list IS the marketing opt-in → sync to Resend.
+    await addToAudience(email);
     return { status: "success" };
   } catch (err) {
     console.error("[waitlist] unexpected error:", err);

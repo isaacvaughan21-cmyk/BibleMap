@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { waitlistSchema } from "@/lib/validation";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { getServiceClient } from "@/lib/supabase-server";
+import { addToAudience } from "@/lib/resend-audience";
 
 /**
  * Beta sign-up — v0 has no real auth backend yet, so this records the email
@@ -78,5 +79,10 @@ export async function joinBeta(formData: FormData): Promise<BetaSignupResult> {
       err instanceof Error ? err.message : err,
     );
   }
+
+  // This action only runs for an explicit marketing opt-in (the sign-up UIs
+  // gate on a consent checkbox / "notify me" intent), so mirror the email into
+  // the Resend audience. Best-effort and idempotent — never blocks entry.
+  await addToAudience(email);
   return { status: "ok" };
 }

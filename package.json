@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "build:qa-index": "node scripts/build-qa-index.mjs",
+    "sync:audience": "node --env-file=.env.local scripts/sync-resend-audience.mjs",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -30,6 +31,7 @@
     "next": "14.2.35",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "resend": "^6.16.0",
     "server-only": "^0.0.1",
     "zod": "^3.23.8",
     "zustand": "^5.0.14"
