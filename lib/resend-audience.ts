@@ -12,9 +12,10 @@ import { Resend } from "resend";
  *   - a no-op when RESEND_API_KEY / RESEND_AUDIENCE_ID aren't set (e.g. local
  *     dev), so the app behaves identically with or without Resend configured.
  *
- * It never re-subscribes someone who unsubscribed: we only ever create a new
- * contact (existing ones are left untouched), so a prior `unsubscribed: true`
- * set via a Broadcast stands.
+ * It never re-subscribes someone who unsubscribed: `contacts.create` UPSERTS
+ * (and would reset `unsubscribed` to false), so we look the contact up first
+ * and leave any existing contact completely untouched — a prior unsubscribe set
+ * via a Broadcast always stands.
  */
 export async function addToAudience(email: string): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -23,13 +24,17 @@ export async function addToAudience(email: string): Promise<void> {
 
   try {
     const resend = new Resend(apiKey);
+
+    // Already a contact? Leave them exactly as-is (preserves any unsubscribe).
+    const existing = await resend.contacts.get({ audienceId, email });
+    if (existing.data) return;
+
     const { error } = await resend.contacts.create({
       audienceId,
       email,
       unsubscribed: false,
     });
-    // "already exists" is the happy path for a returning sign-up — ignore it.
-    if (error && !/exist/i.test(error.message ?? "")) {
+    if (error) {
       console.error("[resend-audience] add failed:", error.message);
     }
   } catch (err) {

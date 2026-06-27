@@ -15,10 +15,11 @@
  * compose & send newsletters from the Resend dashboard as Broadcasts (which
  * carry a built-in, compliant unsubscribe link).
  *
- * The script is idempotent: re-running it only adds people who aren't already
- * in the audience. Contacts that already exist are reported as "skipped", and
- * anyone who previously unsubscribed via a Broadcast is NEVER re-subscribed
- * (we never touch the `unsubscribed` flag on an existing contact).
+ * The script is idempotent: it looks each contact up first and only creates
+ * the ones missing, so people already in the audience are reported as "skipped"
+ * and left untouched. Anyone who previously unsubscribed via a Broadcast is
+ * NEVER re-subscribed (`contacts.create` upserts — so we must not call it for an
+ * existing contact, or it would reset their `unsubscribed` flag).
  *
  * Required env (put these in .env.local — see .env.example):
  *   NEXT_PUBLIC_SUPABASE_URL
@@ -124,22 +125,27 @@ const emails = [...all];
 for (let i = 0; i < emails.length; i++) {
   const email = emails[i];
   try {
-    const { error } = await resend.contacts.create({
+    // Look up first — never re-create an existing contact (create upserts and
+    // would reset a prior unsubscribe).
+    const existing = await resend.contacts.get({
       audienceId: AUDIENCE_ID,
       email,
-      unsubscribed: false,
     });
-    if (error) {
-      // Resend returns an error when the contact already exists in the audience.
-      if (/exist/i.test(error.message ?? "")) {
-        skipped++;
-      } else {
+    if (existing.data) {
+      skipped++;
+    } else {
+      const { error } = await resend.contacts.create({
+        audienceId: AUDIENCE_ID,
+        email,
+        unsubscribed: false,
+      });
+      if (error) {
         failed++;
         if (errorSamples.length < 5)
           errorSamples.push(`${email}: ${error.message}`);
+      } else {
+        created++;
       }
-    } else {
-      created++;
     }
   } catch (err) {
     failed++;
