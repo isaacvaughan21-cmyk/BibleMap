@@ -13,6 +13,15 @@ import { parseImport } from "@/lib/map-io";
 import { DEFAULT_VERSION } from "@/lib/versions";
 import { DEFAULT_THEME } from "@/lib/themes";
 import { uuidv7 } from "@/lib/uuid";
+import {
+  advanceStreak,
+  celebrationFor,
+  EMPTY_STREAK,
+  isMilestone,
+  localDayKey,
+  reconcileStreak,
+  type StreakState,
+} from "@/lib/streak";
 import type {
   EdgeKind,
   HodosEdge,
@@ -169,6 +178,23 @@ export interface CanvasStore {
   /** Bubble colour theme id (see lib/themes.ts). "classic" = uniform look. */
   colorTheme: string;
   setColorTheme(id: string): void;
+
+  /* ---- Daily streak ---- */
+  /**
+   * Consecutive days the reader has placed at least one bubble. Reconciled
+   * against the calendar on load, advanced whenever a new bubble is created.
+   */
+  streak: StreakState;
+  /**
+   * Transient "words of encouragement" shown the moment a placement carries the
+   * streak into a new day. The badge renders it, then calls dismiss to clear it.
+   */
+  streakCelebration: {
+    count: number;
+    message: string;
+    milestone: boolean;
+  } | null;
+  dismissStreakCelebration(): void;
 }
 
 export const DEFAULT_MAP_NAME = "Untitled map";
@@ -474,6 +500,33 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
   }
 
   /**
+   * Count a freshly placed bubble toward the daily streak. The first bubble of a
+   * new calendar day extends (or restarts) the streak and pops a line of
+   * encouragement; later bubbles the same day are a no-op. Synthetic stress
+   * maps never touch the streak.
+   */
+  function noteBubblePlaced() {
+    if (ephemeralMode) return;
+    const today = localDayKey();
+    const reconciled = reconcileStreak(get().streak, today);
+    const { next, changed } = advanceStreak(reconciled, today);
+    if (!changed) {
+      if (reconciled !== get().streak) set({ streak: reconciled });
+      return;
+    }
+    set({
+      streak: next,
+      streakCelebration: {
+        count: next.count,
+        message: celebrationFor(next.count),
+        milestone: isMilestone(next.count),
+      },
+    });
+    void repo.setMeta("streak", next);
+    track("streak_advanced", { count: next.count, best: next.best });
+  }
+
+  /**
    * Snapshot the current map onto the undo stack — call BEFORE a mutation, so
    * undo restores the state as it was just before. A fresh edit invalidates the
    * redo stack. Selection-only changes don't call this (they aren't edits).
@@ -699,6 +752,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     colorTheme: DEFAULT_THEME,
     canUndo: false,
     canRedo: false,
+    streak: EMPTY_STREAK,
+    streakCelebration: null,
 
     load() {
       if (loadPromise) return loadPromise;
@@ -736,6 +791,14 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
           const activeName =
             canvases.find((c) => c.id === active)?.name ?? legacyName;
 
+          // Streak — drop it to 0 if a day (or more) lapsed since the last
+          // bubble, and persist the reset so it can't resurrect on next load.
+          const storedStreak =
+            (await repo.getMeta<StreakState>("streak")) ?? EMPTY_STREAK;
+          const reconciledStreak = reconcileStreak(storedStreak, localDayKey());
+          if (reconciledStreak !== storedStreak)
+            void repo.setMeta("streak", reconciledStreak);
+
           set({
             canvases,
             activeCanvasId: active,
@@ -745,6 +808,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
               (await repo.getMeta<string>("bibleVersion")) ?? DEFAULT_VERSION,
             colorTheme:
               (await repo.getMeta<string>("colorTheme")) ?? DEFAULT_THEME,
+            streak: reconciledStreak,
           });
 
           // New users start with a blank canvas (no sample map seeded).
@@ -868,6 +932,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         editingNodeId: id,
       });
       markNodeDirty(id);
+      noteBubblePlaced();
       track("bubble_created", { type });
       return id;
     },
@@ -1022,6 +1087,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       dirtyEdgeIds.add(edge.id);
       scheduleFlush();
       maybeAutoName(node);
+      noteBubblePlaced();
       track("crossref_added", { ref: verseRef });
       return nodeId;
     },
@@ -1100,6 +1166,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         ],
       });
       markNodeDirty(newId);
+      noteBubblePlaced();
       track("bubble_created", { type: src.type as string, via: "duplicate" });
       return newId;
     },
@@ -1153,6 +1220,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         scheduleFlush();
       }
 
+      noteBubblePlaced();
       // Deliberately NOT auto-naming the map here: a bubble added from the notes
       // view (often a deep sub-point) shouldn't rename the whole document.
       track("bubble_created", { type, via: "notes" });
@@ -1398,6 +1466,10 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     setColorTheme(id) {
       set({ colorTheme: id });
       if (!ephemeralMode) void repo.setMeta("colorTheme", id);
+    },
+
+    dismissStreakCelebration() {
+      set({ streakCelebration: null });
     },
 
     async rehydrate() {

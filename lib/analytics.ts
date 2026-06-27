@@ -24,7 +24,8 @@ export type AnalyticsEvent =
   | "beta_guest"
   | "mobile_blocked"
   | "mobile_notify_signup"
-  | "history";
+  | "history"
+  | "streak_advanced";
 
 export function track(
   name: AnalyticsEvent,

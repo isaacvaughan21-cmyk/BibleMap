@@ -42,6 +42,7 @@ import FeedbackWidget from "./FeedbackWidget";
 import HintBar from "./HintBar";
 import HelpOverlay from "./HelpOverlay";
 import ImportDialog from "./ImportDialog";
+import StreakBadge from "./StreakBadge";
 import VersePicker from "./VersePicker";
 import WelcomeGate from "./WelcomeGate";
 import GuestSavePrompt from "./GuestSavePrompt";
@@ -491,6 +492,7 @@ function CanvasInner() {
         onCloseAsk={() => setAskOpen(false)}
       />
       <CanvasControls railOpen={railOpen} />
+      {loaded && !loadError && <StreakBadge />}
       <FeedbackWidget
         open={feedbackOpen}
         onOpenChange={setFeedbackOpen}
