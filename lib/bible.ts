@@ -1,9 +1,11 @@
 import { BOOKS, type BibleBook } from "./bible-books";
-import { DEFAULT_VERSION } from "./versions";
+import { DEFAULT_VERSION, isLiveVersion } from "./versions";
 
 /**
  * Bible access — per-book JSON, lazy-loaded and cached. The default version
- * (BSB) lives at /bible/{osis}.json; other versions at /bible/{VERSION}/{osis}.json.
+ * (BSB) lives at /bible/{osis}.json; other bundled versions at
+ * /bible/{VERSION}/{osis}.json. Live (licensed) versions like NLT are fetched
+ * per-chapter through /api/nlt instead — see {@link loadChapter}.
  * Canonical reference display form: "John 3:16" (full book name).
  */
 
@@ -31,6 +33,38 @@ export function loadBook(
     // Don't cache failures — a retry should actually retry.
     cached.catch(() => bookCache.delete(key));
     bookCache.set(key, cached);
+  }
+  return cached;
+}
+
+const chapterCache = new Map<string, Promise<string[]>>();
+
+/**
+ * One chapter's verses (`string[]`, index = verse − 1). Bundled versions slice
+ * the cached whole-book JSON; live versions (NLT) fetch just that chapter from
+ * /api/nlt — we never pull a whole copyrighted book to the client.
+ */
+export function loadChapter(
+  code: string,
+  chapter: number,
+  version: string = DEFAULT_VERSION,
+): Promise<string[]> {
+  const key = `${version}:${code}:${chapter}`;
+  let cached = chapterCache.get(key);
+  if (!cached) {
+    cached = isLiveVersion(version)
+      ? fetch(`/api/nlt?book=${code}&chapter=${chapter}`).then((res) => {
+          if (!res.ok)
+            throw new Error(
+              `Failed to load ${code} ${chapter} (${version}) (${res.status})`,
+            );
+          return (res.json() as Promise<{ verses: string[] }>).then(
+            (d) => d.verses,
+          );
+        })
+      : loadBook(code, version).then((b) => b.chapters[chapter - 1] ?? []);
+    cached.catch(() => chapterCache.delete(key));
+    chapterCache.set(key, cached);
   }
   return cached;
 }
@@ -184,8 +218,8 @@ export async function getVerseByParsed(
   p: ParsedRef,
   version?: string,
 ): Promise<{ text: string }> {
-  const book = await loadBook(p.book.code, version);
-  const text = book.chapters[p.chapter - 1]?.[p.verse - 1];
+  const verses = await loadChapter(p.book.code, p.chapter, version);
+  const text = verses[p.verse - 1];
   if (!text) throw new Error(`No text for ${formatRef(p)}`);
   return { text };
 }
@@ -196,11 +230,10 @@ export async function getPassageText(
   endVerse?: ParsedRef,
   version?: string,
 ): Promise<string> {
-  const book = await loadBook(start.book.code, version);
   const end = endVerse ?? start;
   const parts: string[] = [];
   for (let c = start.chapter; c <= end.chapter; c++) {
-    const verses = book.chapters[c - 1] ?? [];
+    const verses = await loadChapter(start.book.code, c, version);
     const from = c === start.chapter ? start.verse : 1;
     const to = c === end.chapter ? end.verse : verses.length;
     for (let v = from; v <= to; v++) {
@@ -223,8 +256,7 @@ export async function getChapterContext(
   version?: string,
   focusEnd?: number,
 ): Promise<{ verse: number; text: string; focus: boolean }[]> {
-  const book = await loadBook(p.book.code, version);
-  const verses = book.chapters[p.chapter - 1] ?? [];
+  const verses = await loadChapter(p.book.code, p.chapter, version);
   const focusTo = Math.max(p.verse, focusEnd ?? p.verse);
   const from = Math.max(1, p.verse - radius);
   // Always show the whole focus range, plus `radius` verses of trailing context.

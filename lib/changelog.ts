@@ -18,6 +18,15 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.6.0",
+    date: "2026-06-27",
+    title: "New Living Translation",
+    changes: [
+      "Read and study in the New Living Translation — pick it from the version menu just like any other translation.",
+      "It works everywhere the other versions do: the verse picker, the side-by-side versions tab, surrounding context, and per-verse switching.",
+    ],
+  },
+  {
     version: "0.5.1",
     date: "2026-06-25",
     title: "Ask Scripture handles typos",

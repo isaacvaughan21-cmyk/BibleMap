@@ -19,7 +19,7 @@ import { formatCrossRef, getCrossRefs, type CrossRef } from "@/lib/crossrefs";
 import { setCrossRefDrag, useCanvasStore } from "@/lib/store/canvas-store";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { pronounClarifier } from "@/lib/verse-referents";
-import { BIBLE_VERSIONS } from "@/lib/versions";
+import { BIBLE_VERSIONS, versionCredit } from "@/lib/versions";
 import type { VerseNodeType } from "@/lib/types";
 
 /** dataTransfer marker so the canvas can tell a verse drag from a file drag. */
@@ -250,6 +250,12 @@ function CrossRefsTab({
         </a>{" "}
         (CC-BY)
       </p>
+
+      {versionCredit(bibleVersion) && (
+        <p className="border-t border-rule/60 px-5 py-3 font-sans text-2xs leading-relaxed text-ink-muted/80">
+          {versionCredit(bibleVersion)}
+        </p>
+      )}
     </>
   );
 }
@@ -564,6 +570,11 @@ function ContextTab({ range }: { range: ParsedRange }) {
               {v.text}{" "}
             </span>
           ))}
+        </p>
+      )}
+      {verses && versionCredit(bibleVersion) && (
+        <p className="mt-3 border-t border-rule/50 pt-2 font-sans text-[9px] leading-snug text-ink-muted/70">
+          {versionCredit(bibleVersion)}
         </p>
       )}
     </div>
