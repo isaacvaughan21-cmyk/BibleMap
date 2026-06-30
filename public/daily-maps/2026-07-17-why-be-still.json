@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 432,
-        "y": -148
+        "x": 322,
+        "y": 212
       },
       "verseRef": "Psalm 46:1",
       "verseText": "For the choirmaster. Of the sons of Korah. According to Alamoth. A song. God is our refuge and strength, an ever-present help in times of trouble."
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 0,
+        "y": 373
       },
       "verseRef": "Exodus 14:14",
       "verseText": "The LORD will fight for you; you need only to be still.”"
@@ -50,29 +50,11 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": -329,
+        "y": 217
       },
       "verseRef": "Isaiah 30:15",
       "verseText": "For the Lord GOD, the Holy One of Israel, has said: “By repentance and rest you would be saved; your strength would lie in quiet confidence—but you were not willing.”"
-    },
-    {
-      "id": "b4",
-      "type": "note",
-      "position": {
-        "x": -351,
-        "y": 235
-      },
-      "content": "Being still is not passivity but trust: it is paired with 'know that I am God.' The stillness flows from recognizing who He is."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "The verse twice declares 'I will be exalted' - over the nations and over the earth. We can rest because the outcome is His to secure, not ours."
     }
   ],
   "edges": [
@@ -83,33 +65,21 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b4",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b4",
+      "target": "b1",
       "kind": "manual"
     },
     {
-      "id": "e-q-b5",
+      "id": "e-q-b2",
       "source": "q",
-      "target": "b5",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

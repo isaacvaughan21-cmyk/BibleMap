@@ -28,49 +28,40 @@
     },
     {
       "id": "b1",
-      "type": "note",
-      "position": {
-        "x": 432,
-        "y": -148
-      },
-      "content": "The command is \"make disciples\" - the main task. \"Go,\" \"baptizing,\" and \"teaching\" (v.20) describe how it happens. It's not just gaining converts but forming followers."
-    },
-    {
-      "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 418,
+        "y": 49
       },
       "verseRef": "Matthew 28:18",
       "verseText": "Then Jesus came to them and said, “All authority in heaven and on earth has been given to Me."
     },
     {
-      "id": "b3",
+      "id": "b2",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": 189,
+        "y": 347
       },
       "verseRef": "Matthew 28:20",
       "verseText": "and teaching them to obey all that I have commanded you. And surely I am with you always, even to the end of the age.”"
     },
     {
-      "id": "b4",
+      "id": "b3",
       "type": "verse",
       "position": {
-        "x": -351,
-        "y": 235
+        "x": -191,
+        "y": 351
       },
       "verseRef": "Acts 1:8",
       "verseText": "But you will receive power when the Holy Spirit comes upon you, and you will be My witnesses in Jerusalem, and in all Judea and Samaria, and to the ends of the earth.”"
     },
     {
-      "id": "b5",
+      "id": "b4",
       "type": "verse",
       "position": {
-        "x": -437,
-        "y": -149
+        "x": -419,
+        "y": 49
       },
       "verseRef": "Mark 16:15",
       "verseText": "And He said to them, “Go into all the world and preach the gospel to every creature."
@@ -90,28 +81,22 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b2",
-      "source": "anchor",
+      "id": "e-q-b2",
+      "source": "q",
       "target": "b2",
-      "kind": "crossref"
+      "kind": "manual"
     },
     {
-      "id": "e-anchor-b3",
-      "source": "anchor",
+      "id": "e-q-b3",
+      "source": "q",
       "target": "b3",
-      "kind": "crossref"
+      "kind": "manual"
     },
     {
-      "id": "e-anchor-b4",
-      "source": "anchor",
+      "id": "e-q-b4",
+      "source": "q",
       "target": "b4",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b5",
-      "source": "anchor",
-      "target": "b5",
-      "kind": "crossref"
+      "kind": "manual"
     }
   ]
 }

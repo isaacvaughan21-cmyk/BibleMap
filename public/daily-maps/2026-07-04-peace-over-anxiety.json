@@ -28,51 +28,33 @@
     },
     {
       "id": "b1",
-      "type": "note",
-      "position": {
-        "x": 432,
-        "y": -148
-      },
-      "content": "The verse names the exchange directly: not just \"stop worrying,\" but turn anxiety into prayer, petition, and thanksgiving—and God answers with a peace that guards heart and mind."
-    },
-    {
-      "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 322,
+        "y": 212
       },
       "verseRef": "1 Peter 5:7",
       "verseText": "Cast all your anxiety on Him, because He cares for you."
     },
     {
-      "id": "b3",
+      "id": "b2",
       "type": "verse",
       "position": {
         "x": 0,
-        "y": 413
+        "y": 373
       },
       "verseRef": "Matthew 6:34",
       "verseText": "Therefore do not worry about tomorrow, for tomorrow will worry about itself. Today has enough trouble of its own."
     },
     {
-      "id": "b4",
+      "id": "b3",
       "type": "verse",
       "position": {
-        "x": -351,
-        "y": 235
+        "x": -329,
+        "y": 217
       },
       "verseRef": "John 14:27",
       "verseText": "Peace I leave with you; My peace I give to you. I do not give to you as the world gives. Do not let your hearts be troubled; do not be afraid."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "This peace \"surpasses all understanding\"—it isn't reasoned out by figuring things out, but given by God to guard our hearts and minds \"in Christ Jesus.\""
     }
   ],
   "edges": [
@@ -89,27 +71,15 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b4",
-      "source": "anchor",
-      "target": "b4",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b5",
+      "id": "e-q-b2",
       "source": "q",
-      "target": "b5",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

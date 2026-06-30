@@ -28,51 +28,33 @@
     },
     {
       "id": "b1",
-      "type": "note",
-      "position": {
-        "x": 432,
-        "y": -148
-      },
-      "content": "The trust is total ('all your heart') and it is paired with a refusal: do not lean on your own understanding. Both halves describe one posture of dependence on God."
-    },
-    {
-      "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 322,
+        "y": 212
       },
       "verseRef": "Jeremiah 17:7–8",
       "verseText": "But blessed is the man who trusts in the LORD, whose confidence is in Him. He is like a tree planted by the waters that sends out its roots toward the stream. It does not fear when the heat comes, and its leaves are always green. It does not worry in a year of drought, nor does it cease to produce fruit."
     },
     {
-      "id": "b3",
+      "id": "b2",
       "type": "verse",
       "position": {
         "x": 0,
-        "y": 413
+        "y": 373
       },
       "verseRef": "Psalm 37:5",
       "verseText": "Commit your way to the LORD; trust in Him, and He will do it."
     },
     {
-      "id": "b4",
+      "id": "b3",
       "type": "verse",
       "position": {
-        "x": -351,
-        "y": 235
+        "x": -329,
+        "y": 217
       },
       "verseRef": "Isaiah 55:8–9",
       "verseText": "“For My thoughts are not your thoughts, neither are your ways My ways,” declares the LORD. “For as the heavens are higher than the earth, so My ways are higher than your ways and My thoughts than your thoughts."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "The promise is not an easy road but a straight one: when we acknowledge Him in all our ways, He makes our paths straight."
     }
   ],
   "edges": [
@@ -89,27 +71,15 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b4",
-      "source": "anchor",
-      "target": "b4",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b5",
+      "id": "e-q-b2",
       "source": "q",
-      "target": "b5",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

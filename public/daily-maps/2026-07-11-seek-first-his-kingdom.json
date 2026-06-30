@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 418,
-        "y": 49
+        "x": 322,
+        "y": 212
       },
       "verseRef": "Matthew 6:31–32",
       "verseText": "Therefore do not worry, saying, ‘What shall we eat?’ or ‘What shall we drink?’ or ‘What shall we wear?’ For the Gentiles strive after all these things, and your heavenly Father knows that you need them."
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 189,
-        "y": 347
+        "x": 0,
+        "y": 373
       },
       "verseRef": "Matthew 6:21",
       "verseText": "For where your treasure is, there your heart will be also."
@@ -50,20 +50,11 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": -191,
-        "y": 351
+        "x": -329,
+        "y": 217
       },
       "verseRef": "Matthew 6:24",
       "verseText": "No one can serve two masters: Either he will hate the one and love the other, or he will be devoted to the one and despise the other. You cannot serve both God and money."
-    },
-    {
-      "id": "b4",
-      "type": "note",
-      "position": {
-        "x": -419,
-        "y": 49
-      },
-      "content": "Jesus does not say money and needs do not matter; He says the order matters. Put the kingdom and His righteousness first, and the 'all these things' fall into place under the Father's care."
     }
   ],
   "edges": [
@@ -74,27 +65,21 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b4",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b4",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

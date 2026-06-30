@@ -28,51 +28,33 @@
     },
     {
       "id": "b1",
-      "type": "note",
-      "position": {
-        "x": 432,
-        "y": -148
-      },
-      "content": "These words were sent in a letter to people already carried away into exile in Babylon (Jeremiah 29:1, 4). God's promise of a future and a hope was spoken into hardship, not the absence of it."
-    },
-    {
-      "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 322,
+        "y": 212
       },
       "verseRef": "Jeremiah 29:12–13",
       "verseText": "Then you will call upon Me and come and pray to Me, and I will listen to you. You will seek Me and find Me when you search for Me with all your heart."
     },
     {
-      "id": "b3",
+      "id": "b2",
       "type": "verse",
       "position": {
         "x": 0,
-        "y": 413
+        "y": 373
       },
       "verseRef": "Jeremiah 29:10",
       "verseText": "For this is what the LORD says: “When Babylon’s seventy years are complete, I will attend to you and confirm My promise to restore you to this place."
     },
     {
-      "id": "b4",
+      "id": "b3",
       "type": "verse",
       "position": {
-        "x": -351,
-        "y": 235
+        "x": -329,
+        "y": 217
       },
       "verseRef": "Romans 8:28",
       "verseText": "And we know that God works all things together for the good of those who love Him, who are called according to His purpose."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "The plans are God's ('the plans I have for you'). The hope rests on what He knows and intends, not on the people's circumstances or their ability to see the way out."
     }
   ],
   "edges": [
@@ -89,27 +71,15 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b4",
-      "source": "anchor",
-      "target": "b4",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b5",
+      "id": "e-q-b2",
       "source": "q",
-      "target": "b5",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

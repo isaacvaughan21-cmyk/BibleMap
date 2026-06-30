@@ -28,51 +28,33 @@
     },
     {
       "id": "b1",
-      "type": "note",
-      "position": {
-        "x": 432,
-        "y": -148
-      },
-      "content": "Just before this, Isaiah cried 'Woe is me, for I am ruined' when he saw the King, the LORD of Hosts (Isaiah 6:5). His readiness follows being undone, not feeling worthy."
-    },
-    {
-      "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 322,
+        "y": 212
       },
       "verseRef": "Isaiah 6:7",
       "verseText": "And with it he touched my mouth and said: “Now that this has touched your lips, your iniquity is removed and your sin is atoned for.”"
     },
     {
-      "id": "b3",
+      "id": "b2",
       "type": "verse",
       "position": {
         "x": 0,
-        "y": 413
+        "y": 373
       },
       "verseRef": "Exodus 3:10",
       "verseText": "Therefore, go! I am sending you to Pharaoh to bring My people the Israelites out of Egypt.”"
     },
     {
-      "id": "b4",
+      "id": "b3",
       "type": "verse",
       "position": {
-        "x": -351,
-        "y": 235
+        "x": -329,
+        "y": 217
       },
       "verseRef": "Matthew 28:19",
       "verseText": "Therefore go and make disciples of all nations, baptizing them in the name of the Father and of the Son and of the Holy Spirit,"
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "God asks 'Who will go for Us?' and Isaiah freely offers himself: 'Here am I. Send me!' His answer is willing surrender, not coercion."
     }
   ],
   "edges": [
@@ -89,27 +71,15 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b4",
-      "source": "anchor",
-      "target": "b4",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b5",
+      "id": "e-q-b2",
       "source": "q",
-      "target": "b5",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

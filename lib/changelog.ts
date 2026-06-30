@@ -22,8 +22,8 @@ export const CHANGELOG: Release[] = [
     date: "2026-06-27",
     title: "Map of the Day",
     changes: [
-      "A fresh study map every day — a verse, the question it raises, and the cross-references that piece it together. Open it from the ··· menu, or read it (and share it) at /map-of-the-day.",
-      "Like what you see? “Save to my canvas” drops the whole map into your own library as a new, fully editable canvas.",
+      "A fresh starter map every day — a verse, the question it raises, and a few related verses to explore. Open it from the ··· menu, or read it (and share it) at /map-of-the-day.",
+      "It’s yours to build on: “Save to my canvas” drops the question and verses into your own library as a new, fully editable canvas, where you draw the connections and add your own thoughts.",
       "Every verse is drawn straight from Scripture — the same “never a verse that isn’t really there” checking the Ask assistant uses.",
     ],
   },

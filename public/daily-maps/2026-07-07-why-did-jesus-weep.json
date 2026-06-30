@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 432,
-        "y": -148
+        "x": 418,
+        "y": 49
       },
       "verseRef": "John 11:33",
       "verseText": "When Jesus saw her weeping, and the Jews who had come with her also weeping, He was deeply moved in spirit and troubled."
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 189,
+        "y": 347
       },
       "verseRef": "Romans 12:15",
       "verseText": "Rejoice with those who rejoice; weep with those who weep."
@@ -50,8 +50,8 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": -191,
+        "y": 351
       },
       "verseRef": "Hebrews 4:15",
       "verseText": "For we do not have a high priest who is unable to sympathize with our weaknesses, but we have one who was tempted in every way that we are, yet was without sin."
@@ -60,20 +60,11 @@
       "id": "b4",
       "type": "verse",
       "position": {
-        "x": -351,
-        "y": 235
+        "x": -419,
+        "y": 49
       },
       "verseRef": "John 11:25",
       "verseText": "Jesus said to her, “I am the resurrection and the life. Whoever believes in Me will live, even though he dies."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "His weeping was not despair or doubt. He already knew Lazarus would rise (John 11:11, 11:43-44); His tears reveal that real grief and certain hope can live together."
     }
   ],
   "edges": [
@@ -84,33 +75,27 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b4",
-      "source": "anchor",
-      "target": "b4",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b5",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b5",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
       "kind": "manual"
     }
   ]

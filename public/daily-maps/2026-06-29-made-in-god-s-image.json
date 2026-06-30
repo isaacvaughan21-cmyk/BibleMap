@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 432,
-        "y": -148
+        "x": 418,
+        "y": 49
       },
       "verseRef": "Genesis 1:26",
       "verseText": "Then God said, “Let Us make man in Our image, after Our likeness, to rule over the fish of the sea and the birds of the air, over the livestock, and over all the earth itself and every creature that crawls upon it.”"
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 189,
+        "y": 347
       },
       "verseRef": "Genesis 9:6",
       "verseText": "Whoever sheds the blood of man, by man his blood will be shed; for in His own image God has made mankind."
@@ -50,8 +50,8 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": -191,
+        "y": 351
       },
       "verseRef": "Genesis 5:1–2",
       "verseText": "This is the book of the generations of Adam. In the day that God created man, He made him in His own likeness. Male and female He created them, and He blessed them. And in the day they were created, He called them “man.”"
@@ -60,20 +60,11 @@
       "id": "b4",
       "type": "verse",
       "position": {
-        "x": -351,
-        "y": 235
+        "x": -419,
+        "y": 49
       },
       "verseRef": "Genesis 1:28",
       "verseText": "God blessed them and said to them, “Be fruitful and multiply, and fill the earth and subdue it; rule over the fish of the sea and the birds of the air and every creature that crawls upon the earth.”"
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "The anchor states it three ways for emphasis: created in His image, in the image of God, male and female. Both man and woman together carry the image, by God's own making - not their own."
     }
   ],
   "edges": [
@@ -84,33 +75,27 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b4",
-      "source": "anchor",
-      "target": "b4",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b5",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b5",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
       "kind": "manual"
     }
   ]

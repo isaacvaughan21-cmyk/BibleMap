@@ -28,51 +28,33 @@
     },
     {
       "id": "b1",
-      "type": "note",
-      "position": {
-        "x": 432,
-        "y": -148
-      },
-      "content": "The proof is in the timing: 'while we were still sinners.' God's love came first, before we had earned anything or turned back to Him."
-    },
-    {
-      "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 322,
+        "y": 212
       },
       "verseRef": "John 3:16",
       "verseText": "For God so loved the world that He gave His one and only Son, that everyone who believes in Him shall not perish but have eternal life."
     },
     {
-      "id": "b3",
+      "id": "b2",
       "type": "verse",
       "position": {
         "x": 0,
-        "y": 413
+        "y": 373
       },
       "verseRef": "1 John 4:10",
       "verseText": "And love consists in this: not that we loved God, but that He loved us and sent His Son as the atoning sacrifice for our sins."
     },
     {
-      "id": "b4",
+      "id": "b3",
       "type": "verse",
       "position": {
-        "x": -351,
-        "y": 235
+        "x": -329,
+        "y": 217
       },
       "verseRef": "John 15:13",
       "verseText": "Greater love has no one than this, that he lay down his life for his friends."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "Romans 5:8 sets two things side by side: our condition ('sinners') and God's response ('Christ died for us'). The cross is where His love is demonstrated, not merely declared."
     }
   ],
   "edges": [
@@ -89,27 +71,15 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b4",
-      "source": "anchor",
-      "target": "b4",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b5",
+      "id": "e-q-b2",
       "source": "q",
-      "target": "b5",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

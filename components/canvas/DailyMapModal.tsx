@@ -154,6 +154,10 @@ export default function DailyMapModal({
               <div className="mt-5 h-[360px] overflow-hidden rounded-xl border border-rule bg-parchment">
                 <DailyMapView map={map} />
               </div>
+              <p className="mt-3 text-center font-sans text-2xs text-ink-muted/80">
+                A question and a few verses to start — save it and draw the
+                connections yourself.
+              </p>
             </>
           )}
         </div>

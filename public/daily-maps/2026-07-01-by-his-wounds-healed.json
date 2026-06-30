@@ -28,49 +28,40 @@
     },
     {
       "id": "b1",
-      "type": "note",
-      "position": {
-        "x": 432,
-        "y": -148
-      },
-      "content": "The verse runs on a swap: 'our transgressions,' 'our iniquities,' the peace and healing that come to us are set against 'He was pierced,' 'He was crushed,' and the punishment that 'was upon Him.' His suffering is taken in place of ours."
-    },
-    {
-      "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 418,
+        "y": 49
       },
       "verseRef": "1 Peter 2:24",
       "verseText": "He Himself bore our sins in His body on the tree, so that we might die to sin and live to righteousness. “By His stripes you are healed.”"
     },
     {
-      "id": "b3",
+      "id": "b2",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": 189,
+        "y": 347
       },
       "verseRef": "2 Corinthians 5:21",
       "verseText": "God made Him who knew no sin to be sin on our behalf, so that in Him we might become the righteousness of God."
     },
     {
-      "id": "b4",
+      "id": "b3",
       "type": "verse",
       "position": {
-        "x": -351,
-        "y": 235
+        "x": -191,
+        "y": 351
       },
       "verseRef": "Romans 5:1",
       "verseText": "Therefore, since we have been justified through faith, we have peace with God through our Lord Jesus Christ,"
     },
     {
-      "id": "b5",
+      "id": "b4",
       "type": "verse",
       "position": {
-        "x": -437,
-        "y": -149
+        "x": -419,
+        "y": 49
       },
       "verseRef": "Isaiah 53:6",
       "verseText": "We all like sheep have gone astray, each one has turned to his own way; and the LORD has laid upon Him the iniquity of us all."
@@ -90,28 +81,22 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b2",
-      "source": "anchor",
+      "id": "e-q-b2",
+      "source": "q",
       "target": "b2",
-      "kind": "crossref"
+      "kind": "manual"
     },
     {
-      "id": "e-anchor-b3",
-      "source": "anchor",
+      "id": "e-q-b3",
+      "source": "q",
       "target": "b3",
-      "kind": "crossref"
+      "kind": "manual"
     },
     {
-      "id": "e-anchor-b4",
-      "source": "anchor",
+      "id": "e-q-b4",
+      "source": "q",
       "target": "b4",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b5",
-      "source": "anchor",
-      "target": "b5",
-      "kind": "crossref"
+      "kind": "manual"
     }
   ]
 }

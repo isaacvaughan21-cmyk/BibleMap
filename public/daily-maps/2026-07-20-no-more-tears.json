@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 432,
-        "y": -148
+        "x": 418,
+        "y": 49
       },
       "verseRef": "Isaiah 25:8",
       "verseText": "He will swallow up death forever. The Lord GOD will wipe away the tears from every face and remove the disgrace of His people from the whole earth. For the LORD has spoken."
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 189,
+        "y": 347
       },
       "verseRef": "Revelation 7:17",
       "verseText": "For the Lamb in the center of the throne will be their shepherd. ‘He will lead them to springs of living water,’ and ‘God will wipe away every tear from their eyes.’”"
@@ -50,27 +50,18 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": -191,
+        "y": 351
       },
       "verseRef": "1 Corinthians 15:54",
       "verseText": "When the perishable has been clothed with the imperishable and the mortal with immortality, then the saying that is written will come to pass: “Death has been swallowed up in victory.”"
     },
     {
       "id": "b4",
-      "type": "note",
-      "position": {
-        "x": -351,
-        "y": 235
-      },
-      "content": "The list is total: no death, no mourning, no crying, no pain. The reason given is that \"the former things have passed away\" - the old order itself is gone."
-    },
-    {
-      "id": "b5",
       "type": "verse",
       "position": {
-        "x": -437,
-        "y": -149
+        "x": -419,
+        "y": 49
       },
       "verseRef": "Revelation 21:5",
       "verseText": "And the One seated on the throne said, “Behold, I make all things new.” Then He said, “Write this down, for these words are faithful and true.”"
@@ -84,34 +75,28 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
+      "id": "e-q-b1",
+      "source": "q",
       "target": "b1",
-      "kind": "crossref"
+      "kind": "manual"
     },
     {
-      "id": "e-anchor-b2",
-      "source": "anchor",
+      "id": "e-q-b2",
+      "source": "q",
       "target": "b2",
-      "kind": "crossref"
+      "kind": "manual"
     },
     {
-      "id": "e-anchor-b3",
-      "source": "anchor",
+      "id": "e-q-b3",
+      "source": "q",
       "target": "b3",
-      "kind": "crossref"
+      "kind": "manual"
     },
     {
       "id": "e-q-b4",
       "source": "q",
       "target": "b4",
       "kind": "manual"
-    },
-    {
-      "id": "e-anchor-b5",
-      "source": "anchor",
-      "target": "b5",
-      "kind": "crossref"
     }
   ]
 }

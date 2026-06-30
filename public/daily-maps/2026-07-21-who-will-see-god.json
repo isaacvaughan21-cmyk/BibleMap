@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 432,
-        "y": -148
+        "x": 418,
+        "y": 49
       },
       "verseRef": "Psalm 24:3–4",
       "verseText": "Who may ascend the hill of the LORD? Who may stand in His holy place? He who has clean hands and a pure heart, who does not lift up his soul to an idol or swear deceitfully."
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 189,
+        "y": 347
       },
       "verseRef": "Psalm 51:10",
       "verseText": "Create in me a clean heart, O God, and renew a right spirit within me."
@@ -50,8 +50,8 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": -191,
+        "y": 351
       },
       "verseRef": "1 John 3:2–3",
       "verseText": "Beloved, we are now children of God, and what we will be has not yet been revealed. We know that when Christ appears, we will be like Him, for we will see Him as He is. And everyone who has this hope in Him purifies himself, just as Christ is pure."
@@ -60,20 +60,11 @@
       "id": "b4",
       "type": "verse",
       "position": {
-        "x": -351,
-        "y": 235
+        "x": -419,
+        "y": 49
       },
       "verseRef": "Hebrews 12:14",
       "verseText": "Pursue peace with everyone, as well as holiness, without which no one will see the Lord."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "Across these verses, the 'pure in heart' are not the flawless but those cleansed by God and set on Him - and the reward is the deepest blessing: seeing God Himself."
     }
   ],
   "edges": [
@@ -84,33 +75,27 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b4",
-      "source": "anchor",
-      "target": "b4",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b5",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b5",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
       "kind": "manual"
     }
   ]

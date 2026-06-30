@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 432,
-        "y": -148
+        "x": 322,
+        "y": 212
       },
       "verseRef": "Matthew 11:29",
       "verseText": "Take My yoke upon you and learn from Me, for I am gentle and humble in heart, and you will find rest for your souls."
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 0,
+        "y": 373
       },
       "verseRef": "Matthew 11:30",
       "verseText": "For My yoke is easy and My burden is light.”"
@@ -50,29 +50,11 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": -329,
+        "y": 217
       },
       "verseRef": "John 7:37",
       "verseText": "On the last and greatest day of the feast, Jesus stood up and called out in a loud voice, “If anyone is thirsty, let him come to Me and drink."
-    },
-    {
-      "id": "b4",
-      "type": "note",
-      "position": {
-        "x": -351,
-        "y": 235
-      },
-      "content": "Notice who is invited: 'all you who are weary and burdened' - no qualifier but exhaustion itself. The condition for coming is simply that you need rest."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "Jesus says 'I will give you rest' - rest is a gift He hands over, not a wage we earn. The action He asks of us is only to 'come.'"
     }
   ],
   "edges": [
@@ -83,33 +65,21 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b4",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b4",
+      "target": "b1",
       "kind": "manual"
     },
     {
-      "id": "e-q-b5",
+      "id": "e-q-b2",
       "source": "q",
-      "target": "b5",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

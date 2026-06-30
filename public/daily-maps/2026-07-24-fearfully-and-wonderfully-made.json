@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 418,
-        "y": 49
+        "x": 322,
+        "y": 212
       },
       "verseRef": "Psalm 139:13",
       "verseText": "For You formed my inmost being; You knit me together in my mother’s womb."
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 189,
-        "y": 347
+        "x": 0,
+        "y": 373
       },
       "verseRef": "Genesis 1:27",
       "verseText": "So God created man in His own image; in the image of God He created him; male and female He created them."
@@ -50,20 +50,11 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": -191,
-        "y": 351
+        "x": -329,
+        "y": 217
       },
       "verseRef": "Jeremiah 1:5",
       "verseText": "“Before I formed you in the womb I knew you, and before you were born I set you apart and appointed you as a prophet to the nations.”"
-    },
-    {
-      "id": "b4",
-      "type": "note",
-      "position": {
-        "x": -419,
-        "y": 49
-      },
-      "content": "The psalmist's response to being so made is praise, not pride - 'I praise You.' Recognizing God's craftsmanship leads upward to worship of the Maker."
     }
   ],
   "edges": [
@@ -74,27 +65,21 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b4",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b4",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 432,
-        "y": -148
+        "x": 322,
+        "y": 212
       },
       "verseRef": "Romans 5:8",
       "verseText": "But God proves His love for us in this: While we were still sinners, Christ died for us."
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 0,
+        "y": 373
       },
       "verseRef": "1 John 4:9",
       "verseText": "This is how God’s love was revealed among us: God sent His one and only Son into the world, so that we might live through Him."
@@ -50,29 +50,11 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": -329,
+        "y": 217
       },
       "verseRef": "John 3:17",
       "verseText": "For God did not send His Son into the world to condemn the world, but to save the world through Him."
-    },
-    {
-      "id": "b4",
-      "type": "note",
-      "position": {
-        "x": -351,
-        "y": 235
-      },
-      "content": "The verse pairs a gift ('He gave His one and only Son') with an invitation ('everyone who believes'). The love is God's; the response is ours."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "Two destinies sit side by side: 'shall not perish' versus 'have eternal life.' Belief in the Son is what moves a person from one to the other."
     }
   ],
   "edges": [
@@ -83,33 +65,21 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b4",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b4",
+      "target": "b1",
       "kind": "manual"
     },
     {
-      "id": "e-q-b5",
+      "id": "e-q-b2",
       "source": "q",
-      "target": "b5",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 432,
-        "y": -148
+        "x": 322,
+        "y": 212
       },
       "verseRef": "John 14:9",
       "verseText": "Jesus replied, “Philip, I have been with you all this time, and still you do not know Me? Anyone who has seen Me has seen the Father. How can you say, ‘Show us the Father’?"
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 0,
+        "y": 373
       },
       "verseRef": "Acts 4:12",
       "verseText": "Salvation exists in no one else, for there is no other name under heaven given to men by which we must be saved.”"
@@ -50,29 +50,11 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": -329,
+        "y": 217
       },
       "verseRef": "1 Timothy 2:5",
       "verseText": "For there is one God, and there is one mediator between God and men, the man Christ Jesus,"
-    },
-    {
-      "id": "b4",
-      "type": "note",
-      "position": {
-        "x": -351,
-        "y": 235
-      },
-      "content": "Jesus does not say He shows the way or teaches truth; He says He IS the way, the truth, and the life, so reaching the Father is about a Person, not a path or program."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "The three terms hold together: He is the way to the Father precisely because He is also the truth and the life, and no one comes to the Father except through Him."
     }
   ],
   "edges": [
@@ -83,33 +65,21 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b4",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b4",
+      "target": "b1",
       "kind": "manual"
     },
     {
-      "id": "e-q-b5",
+      "id": "e-q-b2",
       "source": "q",
-      "target": "b5",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

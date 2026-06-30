@@ -68,7 +68,7 @@ export default function DailyMapScreen({
         <DailyMapView map={map} />
       </div>
       <p className="mt-2 text-center font-sans text-2xs text-ink-muted/80">
-        Drag to pan · scroll the bubbles · pinch or use the controls to zoom
+        A few verses to start — the connections are yours to draw
       </p>
 
       {/* Actions */}
@@ -92,9 +92,10 @@ export default function DailyMapScreen({
 
       {/* Grounding note */}
       <p className="mx-auto mt-6 max-w-xl text-center font-sans text-2xs leading-relaxed text-ink-muted/80">
-        Every verse on this map is drawn straight from the {map.version} text of
-        Scripture. The questions and observations are here to help you look
-        closer — not to replace your own reading.
+        This is a starting point, not a finished study: a question and a few
+        verses, each drawn straight from the {map.version} text of Scripture.
+        Save it to your canvas and trace the connections — and your own thoughts
+        — yourself.
       </p>
 
       {/* Archive */}

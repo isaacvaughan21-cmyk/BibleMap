@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 432,
-        "y": -148
+        "x": 322,
+        "y": 212
       },
       "verseRef": "Hosea 6:6",
       "verseText": "For I desire mercy, not sacrifice, and the knowledge of God rather than burnt offerings."
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 354,
-        "y": 236
+        "x": 0,
+        "y": 373
       },
       "verseRef": "Matthew 23:23",
       "verseText": "Woe to you, scribes and Pharisees, you hypocrites! You pay tithes of mint, dill, and cumin. But you have disregarded the weightier matters of the law: justice, mercy, and faithfulness. You should have practiced the latter, without neglecting the former."
@@ -50,29 +50,11 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": 0,
-        "y": 413
+        "x": -329,
+        "y": 217
       },
       "verseRef": "Zechariah 7:9",
       "verseText": "“This is what the LORD of Hosts says: ‘Administer true justice. Show loving devotion and compassion to one another."
-    },
-    {
-      "id": "b4",
-      "type": "note",
-      "position": {
-        "x": -351,
-        "y": 235
-      },
-      "content": "The verse pairs action with attitude: 'act justly' is what we do, 'love mercy' is what we delight in, and 'walk humbly' is how we relate to God Himself."
-    },
-    {
-      "id": "b5",
-      "type": "note",
-      "position": {
-        "x": -437,
-        "y": -149
-      },
-      "content": "Micah 6 begins with God asking what offerings He wants (v.6-7); verse 8 answers that He wants a changed life, not more sacrifices."
     }
   ],
   "edges": [
@@ -83,33 +65,21 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b4",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b4",
+      "target": "b1",
       "kind": "manual"
     },
     {
-      "id": "e-q-b5",
+      "id": "e-q-b2",
       "source": "q",
-      "target": "b5",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

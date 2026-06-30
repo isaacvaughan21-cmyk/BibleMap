@@ -30,8 +30,8 @@
       "id": "b1",
       "type": "verse",
       "position": {
-        "x": 418,
-        "y": 49
+        "x": 322,
+        "y": 212
       },
       "verseRef": "John 1:14",
       "verseText": "The Word became flesh and made His dwelling among us. We have seen His glory, the glory of the one and only Son from the Father, full of grace and truth."
@@ -40,8 +40,8 @@
       "id": "b2",
       "type": "verse",
       "position": {
-        "x": 189,
-        "y": 347
+        "x": 0,
+        "y": 373
       },
       "verseRef": "John 1:3",
       "verseText": "Through Him all things were made, and without Him nothing was made that has been made."
@@ -50,20 +50,11 @@
       "id": "b3",
       "type": "verse",
       "position": {
-        "x": -191,
-        "y": 351
+        "x": -329,
+        "y": 217
       },
       "verseRef": "Revelation 19:13",
       "verseText": "He is dressed in a robe dipped in blood, and His name is The Word of God."
-    },
-    {
-      "id": "b4",
-      "type": "note",
-      "position": {
-        "x": -419,
-        "y": 49
-      },
-      "content": "John opens with 'In the beginning,' the same words that open Genesis 1. The Word is both 'with God' (distinct from Him) and 'was God' (sharing His nature); and since all things were made through Him, He is not among the made things."
     }
   ],
   "edges": [
@@ -74,27 +65,21 @@
       "kind": "manual"
     },
     {
-      "id": "e-anchor-b1",
-      "source": "anchor",
-      "target": "b1",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b2",
-      "source": "anchor",
-      "target": "b2",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-anchor-b3",
-      "source": "anchor",
-      "target": "b3",
-      "kind": "crossref"
-    },
-    {
-      "id": "e-q-b4",
+      "id": "e-q-b1",
       "source": "q",
-      "target": "b4",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
       "kind": "manual"
     }
   ]

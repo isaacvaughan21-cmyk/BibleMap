@@ -258,8 +258,12 @@ function layout(branchCount) {
 /* ------------------------------- build ----------------------------------- */
 
 function buildMap(spec, date) {
-  const branches = spec.branches ?? [];
-  const pos = layout(branches.length);
+  // A daily map is a STARTER kit, not a finished study: the question plus a
+  // few verse bubbles around it. We deliberately do NOT render any authored
+  // commentary — only the question and Scripture — so the reader draws the
+  // connections (and their own observations) themselves.
+  const verseBranches = (spec.branches ?? []).filter((b) => b.kind === "verse");
+  const pos = layout(verseBranches.length);
 
   const anchor = validate(spec.anchorRef);
 
@@ -269,6 +273,8 @@ function buildMap(spec, date) {
   const edges = [];
 
   // Order matters: question first → earliest id → emphasised anchor on save.
+  // The question is the hub; every starter verse hangs off it with a light
+  // (manual) link, leaving the verse-to-verse cross-references for the reader.
   nodes.push({
     id: "q",
     type: "question",
@@ -289,36 +295,17 @@ function buildMap(spec, date) {
     kind: "manual",
   });
 
-  branches.forEach((b, i) => {
+  verseBranches.forEach((b, i) => {
     const id = `b${i + 1}`;
-    if (b.kind === "verse") {
-      const v = validate(b.ref);
-      nodes.push({
-        id,
-        type: "verse",
-        position: pos.branches[i],
-        verseRef: v.ref,
-        verseText: v.text,
-      });
-      // Verse↔verse links are cross-references that illuminate the anchor.
-      edges.push({
-        id: `e-anchor-${id}`,
-        source: "anchor",
-        target: id,
-        kind: "crossref",
-      });
-    } else {
-      const text = (b.text ?? "").trim();
-      if (!text) throw new Error(`Empty note branch in "${spec.title}"`);
-      nodes.push({
-        id,
-        type: "note",
-        position: pos.branches[i],
-        content: text,
-      });
-      // Observations branch from the question being explored.
-      edges.push({ id: `e-q-${id}`, source: "q", target: id, kind: "manual" });
-    }
+    const v = validate(b.ref);
+    nodes.push({
+      id,
+      type: "verse",
+      position: pos.branches[i],
+      verseRef: v.ref,
+      verseText: v.text,
+    });
+    edges.push({ id: `e-q-${id}`, source: "q", target: id, kind: "manual" });
   });
 
   const id = `${date}-${slugify(spec.title)}`;
