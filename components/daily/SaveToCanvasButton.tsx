@@ -42,10 +42,10 @@ export default function SaveToCanvasButton({
       }
     >
       {saving ? (
-        "Saving to your canvas…"
+        "Opening your canvas…"
       ) : (
         <>
-          Save to my canvas
+          Open in my canvas
           <span
             aria-hidden="true"
             className="inline-block transition-transform duration-300 group-hover:translate-x-1"

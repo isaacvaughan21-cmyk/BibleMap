@@ -209,18 +209,32 @@ function OverflowMenu({
   const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
   const createCanvas = useCanvasStore((s) => s.createCanvas);
   const requestCanvas = useCanvasStore((s) => s.requestCanvas);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
     };
+    // Close when a pointer press lands anywhere outside the menu. A fixed
+    // overlay won't do here: the top bar's `backdrop-blur` makes it the
+    // containing block for fixed children, so `inset-0` only covers the bar
+    // itself — not the canvas below, where most outside clicks land.
+    const onPointerDown = (e: PointerEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onPointerDown);
+    };
   }, [open]);
 
   return (
-    <div className="relative">
+    <div ref={rootRef} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -241,11 +255,6 @@ function OverflowMenu({
 
       {open && (
         <>
-          <div
-            className="fixed inset-0 z-40"
-            onClick={() => setOpen(false)}
-            aria-hidden="true"
-          />
           <div
             role="menu"
             aria-label="Map options"

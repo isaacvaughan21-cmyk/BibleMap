@@ -71,17 +71,10 @@ export default function DailyMapScreen({
         A few verses to start — the connections are yours to draw
       </p>
 
-      {/* Actions */}
-      <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+      {/* Action — one button: copy the day's map into a fresh canvas on the
+          reader's own account and open straight onto it. */}
+      <div className="mt-8 flex justify-center">
         <SaveToCanvasButton map={map} />
-        <a
-          href="/app"
-          target="_blank"
-          rel="noopener"
-          className="inline-flex items-center gap-2 rounded-full border border-rule px-6 py-3 font-sans text-sm text-ink-soft transition-colors hover:border-gold hover:text-gold"
-        >
-          Open the full canvas
-        </a>
       </div>
 
       {map.blurb && (

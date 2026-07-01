@@ -373,12 +373,6 @@ export default function WelcomeGate() {
         <p className="mt-2.5 text-center font-sans text-2xs text-ink-muted">
           No email needed — jump straight into the canvas
         </p>
-
-        <p className="mt-5 text-center font-sans text-2xs leading-relaxed text-ink-muted/70">
-          {cloud
-            ? "Guest maps stay on this device — create an account any time to sync them."
-            : "v0 beta — sign-in and cloud sync are on the way; for now your account lives on this device."}
-        </p>
       </div>
     </div>
   );
