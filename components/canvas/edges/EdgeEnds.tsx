@@ -79,7 +79,7 @@ export default function EdgeEnds({
           y1={sGrip.y}
           x2={tGrip.x}
           y2={tGrip.y}
-          stroke="var(--gold)"
+          stroke="var(--edge-accent, var(--gold))"
           strokeWidth={1.5}
           strokeDasharray="6 4"
           pointerEvents="none"

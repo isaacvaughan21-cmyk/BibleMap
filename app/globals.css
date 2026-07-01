@@ -196,42 +196,53 @@
   }
 }
 
-/* Edges (.react-flow__edge prefix beats the library's default edge stroke) */
+/* Edges (.react-flow__edge prefix beats the library's default edge stroke).
+   Edges render in their own SVG layer — outside the bubbles — so they can't
+   inherit a node's themed tokens. They instead read --edge-line / --edge-accent,
+   which each theme (lib/themes.ts) tunes to contrast with its canvas backdrop,
+   so the connectors stay clearly visible on every theme. The arrowheads follow
+   the line via context-stroke (see edges/EdgeMarkers.tsx), so they retint and
+   warm on hover/selection automatically — no per-marker colour needed. Falls
+   back to the brand --rule/--gold off-theme. */
 .react-flow__edge .hodos-edge-manual {
-  stroke: var(--rule);
-  stroke-width: 1.25;
-  transition: stroke 0.2s ease;
+  stroke: var(--edge-line, var(--rule));
+  stroke-width: 2;
+  transition:
+    stroke 0.2s ease,
+    stroke-width 0.2s ease;
 }
 .react-flow__edge .hodos-edge-crossref {
-  stroke: var(--gold);
-  stroke-width: 1.6;
+  stroke: var(--edge-accent, var(--gold));
+  stroke-width: 2;
   stroke-dasharray: 7 5;
-  opacity: 0.9;
-  transition: stroke 0.2s ease;
+  opacity: 0.95;
+  transition:
+    stroke 0.2s ease,
+    stroke-width 0.2s ease;
 }
 .react-flow .react-flow__edge.selected .hodos-edge-manual,
 .react-flow .react-flow__edge.selected .hodos-edge-crossref {
-  stroke: var(--gold);
-  stroke-width: 1.8;
+  stroke: var(--edge-accent, var(--gold));
+  stroke-width: 2.6;
   opacity: 1;
 }
 
-/* Edge hover — line warms toward gold */
+/* Edge hover — line warms toward the theme accent */
 .react-flow__edge:hover .hodos-edge-manual {
-  stroke: var(--gold-soft);
-  stroke-width: 1.5;
+  stroke: var(--edge-accent, var(--gold-soft));
+  stroke-width: 2.6;
 }
 .react-flow__edge:hover .hodos-edge-crossref {
   opacity: 1;
-  stroke-width: 1.8;
+  stroke-width: 2.6;
 }
 
 /* Edge endpoint caps — appear on hover/selection. display:none (not
    opacity) so 500-edge maps never pay paint cost for hidden caps. */
 .react-flow__edge .hodos-edge-cap {
-  fill: var(--parchment);
-  stroke: var(--gold);
-  stroke-width: 1.2;
+  fill: var(--canvas-bg, var(--parchment));
+  stroke: var(--edge-accent, var(--gold));
+  stroke-width: 1.4;
   display: none;
   pointer-events: none;
 }
@@ -242,8 +253,8 @@
 
 /* Draggable endpoint grips on a selected edge — drop on a bubble to re-attach */
 .hodos-edge-grip {
-  fill: var(--gold);
-  stroke: var(--parchment);
+  fill: var(--edge-accent, var(--gold));
+  stroke: var(--canvas-bg, var(--parchment));
   stroke-width: 1.5;
   pointer-events: all;
   cursor: grab;
