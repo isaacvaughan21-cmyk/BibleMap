@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { importDailyMapAsCanvas } from "@/lib/daily-map-import";
 import type { DailyMap } from "@/lib/daily-map";
 
@@ -18,7 +17,6 @@ export default function SaveToCanvasButton({
   map: DailyMap;
   className?: string;
 }) {
-  const router = useRouter();
   const [saving, setSaving] = useState(false);
 
   return (
@@ -30,7 +28,12 @@ export default function SaveToCanvasButton({
         setSaving(true);
         try {
           await importDailyMapAsCanvas(map, { activate: true });
-          router.push("/app");
+          // Hard navigation, not router.push: the canvas store is a module
+          // singleton that hydrates only once per JS context, so an in-app
+          // (SPA) nav to /app would keep whatever canvas was already active.
+          // A full document load makes the store re-read the activeCanvas we
+          // just set and open straight onto the new Map-of-the-Day canvas.
+          window.location.assign("/app");
         } catch (err) {
           console.error("hodos: failed to save daily map", err);
           setSaving(false);
