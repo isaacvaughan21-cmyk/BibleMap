@@ -27,7 +27,18 @@ export default function SaveToCanvasButton({
         if (saving) return;
         setSaving(true);
         try {
-          await importDailyMapAsCanvas(map, { activate: true });
+          const canvasId = await importDailyMapAsCanvas(map, {
+            activate: true,
+          });
+          // Remember which canvas to settle on. For signed-in readers, a cloud
+          // pull on /app would otherwise reset the active canvas to the cloud
+          // snapshot's value — CloudSync restores this intent after pulling.
+          try {
+            sessionStorage.setItem("hodos.pendingCanvas", canvasId);
+          } catch {
+            // sessionStorage unavailable (e.g. private mode) — the local
+            // activeCanvas meta still points at the new canvas.
+          }
           // Hard navigation, not router.push: the canvas store is a module
           // singleton that hydrates only once per JS context, so an in-app
           // (SPA) nav to /app would keep whatever canvas was already active.

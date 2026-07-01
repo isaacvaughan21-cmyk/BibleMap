@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useAuthUser } from "@/lib/use-auth";
 import { pullCloud, pushCloud } from "@/lib/cloud-sync";
+import * as repo from "@/lib/db/repo";
 
 /**
  * Keeps a signed-in user's canvases mirrored to the cloud. Renders nothing.
@@ -37,7 +38,21 @@ export default function CloudSync() {
     pulledFor.current = user.id;
     const id = user.id;
     void pullCloud(id)
-      .then((changed) => (changed ? rehydrate() : undefined))
+      .then(async (changed) => {
+        // A canvas the reader just chose to open (e.g. Map of the Day, saved
+        // via SaveToCanvasButton) must survive the pull. pullCloud overwrites
+        // activeCanvas with the cloud snapshot's value, so restore the intent
+        // BEFORE rehydrating — otherwise the store flashes to another canvas.
+        let pending: string | null = null;
+        try {
+          pending = sessionStorage.getItem("hodos.pendingCanvas");
+          if (pending) sessionStorage.removeItem("hodos.pendingCanvas");
+        } catch {
+          pending = null;
+        }
+        if (pending) await repo.setMeta("activeCanvas", pending);
+        if (changed || pending) await rehydrate();
+      })
       .finally(() => {
         readyFor.current = id;
         // Reconcile local up to the cloud once (e.g. a guest's existing work
