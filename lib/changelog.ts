@@ -19,7 +19,7 @@ export type Release = {
 export const CHANGELOG: Release[] = [
   {
     version: "0.9.0",
-    date: "2026-06-27",
+    date: "2026-06-30",
     title: "Map of the Day",
     changes: [
       "A fresh starter map every day — a verse, the question it raises, and a few related verses to explore. Open it from the ··· menu, or read it (and share it) at /map-of-the-day.",

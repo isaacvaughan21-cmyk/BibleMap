@@ -1,10 +1,10 @@
 {
-  "id": "2026-07-18-how-does-god-prove-his-love",
-  "date": "2026-07-18",
-  "title": "How Does God Prove His Love?",
-  "question": "When did God show His love for us, and what did it cost Him?",
-  "anchorRef": "Romans 5:8",
-  "blurb": "God didn't wait for us to clean up first. See the timing and the cost that proved His love.",
+  "id": "2026-07-06-who-is-the-word",
+  "date": "2026-07-06",
+  "title": "Who Is the Word?",
+  "question": "Who is \"the Word\" who was with God and was God in the beginning?",
+  "anchorRef": "John 1:1",
+  "blurb": "One verse hides a Person in plain sight, present at creation, with God and yet God. Follow the trail Scripture leaves.",
   "version": "BSB",
   "nodes": [
     {
@@ -14,7 +14,7 @@
         "x": 0,
         "y": 0
       },
-      "content": "When did God show His love for us, and what did it cost Him?"
+      "content": "Who is \"the Word\" who was with God and was God in the beginning?"
     },
     {
       "id": "anchor",
@@ -23,8 +23,8 @@
         "x": 0,
         "y": -240
       },
-      "verseRef": "Romans 5:8",
-      "verseText": "But God proves His love for us in this: While we were still sinners, Christ died for us."
+      "verseRef": "John 1:1",
+      "verseText": "In the beginning was the Word, and the Word was with God, and the Word was God."
     },
     {
       "id": "b1",
@@ -33,8 +33,8 @@
         "x": 322,
         "y": 212
       },
-      "verseRef": "John 3:16",
-      "verseText": "For God so loved the world that He gave His one and only Son, that everyone who believes in Him shall not perish but have eternal life."
+      "verseRef": "John 1:14",
+      "verseText": "The Word became flesh and made His dwelling among us. We have seen His glory, the glory of the one and only Son from the Father, full of grace and truth."
     },
     {
       "id": "b2",
@@ -43,8 +43,8 @@
         "x": 0,
         "y": 373
       },
-      "verseRef": "1 John 4:10",
-      "verseText": "And love consists in this: not that we loved God, but that He loved us and sent His Son as the atoning sacrifice for our sins."
+      "verseRef": "John 1:3",
+      "verseText": "Through Him all things were made, and without Him nothing was made that has been made."
     },
     {
       "id": "b3",
@@ -53,8 +53,8 @@
         "x": -329,
         "y": 217
       },
-      "verseRef": "John 15:13",
-      "verseText": "Greater love has no one than this, that he lay down his life for his friends."
+      "verseRef": "Revelation 19:13",
+      "verseText": "He is dressed in a robe dipped in blood, and His name is The Word of God."
     }
   ],
   "edges": [
