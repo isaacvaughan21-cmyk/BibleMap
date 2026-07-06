@@ -5,6 +5,7 @@ import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
 import NestBadge from "./NestBadge";
 import PrimaryBadge from "./PrimaryBadge";
+import EditLockBadge from "./EditLockBadge";
 import { floatStyle } from "./float";
 
 /** A question bubble — the seed of a study. Gold ?-glyph + serif text. */
@@ -25,6 +26,7 @@ export default function QuestionNode({
     >
       <NestBadge id={id} />
       <PrimaryBadge show={isPrimary} />
+      <EditLockBadge id={id} />
       <div
         className={`bubble flex max-w-xs items-center gap-3 rounded-full border bg-parchment py-2.5 pl-3 pr-6 ${
           selected ? "bubble-selected border-gold" : "border-rule"

@@ -25,7 +25,10 @@ export type AnalyticsEvent =
   | "mobile_blocked"
   | "mobile_notify_signup"
   | "history"
-  | "streak_advanced";
+  | "streak_advanced"
+  | "group_created"
+  | "group_joined"
+  | "group_left";
 
 export function track(
   name: AnalyticsEvent,

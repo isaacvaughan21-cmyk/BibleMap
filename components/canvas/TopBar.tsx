@@ -10,6 +10,7 @@ import { APP_VERSION } from "@/lib/changelog";
 import { BIBLE_VERSIONS } from "@/lib/versions";
 import { BUBBLE_THEMES } from "@/lib/themes";
 import { cloudSignOut, useAuthUser } from "@/lib/use-auth";
+import GroupsMenu from "./GroupsMenu";
 
 type TopBarProps = {
   railOpen: boolean;
@@ -153,6 +154,8 @@ export default function TopBar({
               />
             </svg>
           </button>
+
+          <GroupsMenu />
 
           <OverflowMenu
             onExport={onExport}

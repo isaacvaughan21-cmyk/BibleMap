@@ -48,6 +48,9 @@ import VersePicker from "./VersePicker";
 import WelcomeGate from "./WelcomeGate";
 import GuestSavePrompt from "./GuestSavePrompt";
 import CloudSync from "./CloudSync";
+import PresenceBar from "./PresenceBar";
+import RemoteCursors from "./RemoteCursors";
+import { useAuthUser } from "@/lib/use-auth";
 import QuestionNode from "./nodes/QuestionNode";
 import VerseNode from "./nodes/VerseNode";
 import NoteNode from "./nodes/NoteNode";
@@ -193,6 +196,44 @@ function CanvasInner() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Invite link (/app?join=CODE) — capture the code, strip it from the URL,
+  // then join once the visitor is signed in (collaboration needs an identity).
+  const { user } = useAuthUser();
+  const joinGroup = useCanvasStore((s) => s.joinGroup);
+  const refreshGroupSession = useCanvasStore((s) => s.refreshGroupSession);
+  const [pendingJoin, setPendingJoin] = useState<string | null>(null);
+
+  // Open/close the live session as the signed-in user changes (incl. the
+  // async resolve of an existing session on first load).
+  useEffect(() => {
+    void refreshGroupSession();
+  }, [user, refreshGroupSession]);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("join");
+    if (!code) return;
+    setPendingJoin(code.toUpperCase());
+    params.delete("join");
+    const qs = params.toString();
+    window.history.replaceState(
+      {},
+      "",
+      `${window.location.pathname}${qs ? `?${qs}` : ""}`,
+    );
+  }, []);
+  useEffect(() => {
+    if (!pendingJoin) return;
+    if (!user) {
+      // Nudge the sign-up gate; the join fires once they're in.
+      window.dispatchEvent(new Event("hodos:open-gate"));
+      return;
+    }
+    void joinGroup(pendingJoin).then(({ error }) => {
+      if (error) setToast({ text: error });
+    });
+    setPendingJoin(null);
+  }, [pendingJoin, user, joinGroup]);
 
   // Diving into a bubble's map (or rising back out) starts fresh — the study
   // panel for the verse you left shouldn't carry over to the new canvas. The
@@ -496,6 +537,7 @@ function CanvasInner() {
       />
       <CanvasControls railOpen={railOpen} />
       {loaded && !loadError && <StreakBadge />}
+      {loaded && !loadError && <PresenceBar />}
       <FeedbackWidget
         open={feedbackOpen}
         onOpenChange={setFeedbackOpen}
@@ -1123,11 +1165,29 @@ function FlowSurface(props: {
   // duplicate to the snapped node.
   const ignoreConnect = useCallback(() => {}, []);
 
+  // Broadcast the local cursor to group peers (throttled). Cheap no-op when
+  // not in a session — the store guards it.
+  const publishCursor = useCanvasStore((s) => s.publishCursor);
+  const inSession = useCanvasStore((s) => !!s.groupSession);
+  const lastCursorAt = useRef(0);
+  const onPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!inSession) return;
+      const now = performance.now();
+      if (now - lastCursorAt.current < 45) return;
+      lastCursorAt.current = now;
+      const p = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+      publishCursor(p.x, p.y);
+    },
+    [inSession, publishCursor, screenToFlowPosition],
+  );
+
   return (
     <div
       ref={surfaceRef}
       className="relative h-full w-full"
       onDoubleClick={onDoubleClick}
+      onPointerMove={inSession ? onPointerMove : undefined}
     >
       <EdgeMarkers />
       <ReactFlow
@@ -1211,6 +1271,8 @@ function FlowSurface(props: {
       {ring > 0 && (
         <div key={ring} aria-hidden="true" className="zoom-ring z-40" />
       )}
+      {/* Live cursors of other group members (inside the flow transform) */}
+      <RemoteCursors />
     </div>
   );
 }

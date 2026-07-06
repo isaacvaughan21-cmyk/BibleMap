@@ -9,6 +9,23 @@ import {
 import { track } from "@/lib/analytics";
 import * as repo from "@/lib/db/repo";
 import { db, ROOT_MAP_ID, type DbEdge, type DbNode } from "@/lib/db/schema";
+import { getBrowserClient, isCloudEnabled } from "@/lib/supabase-browser";
+import {
+  broadcastCursor,
+  broadcastLock,
+  closeGroupChannel,
+  colorForUser,
+  createGroup as createGroupRpc,
+  fetchGroupContent,
+  joinGroupByCode,
+  leaveGroup as leaveGroupRpc,
+  openGroupChannel,
+  pushGroupRows,
+  type EditLock,
+  type GroupMemberMeta,
+  type GroupRow,
+  type RemoteCursor,
+} from "@/lib/groups/realtime";
 import { parseImport } from "@/lib/map-io";
 import { DEFAULT_VERSION } from "@/lib/versions";
 import { DEFAULT_THEME } from "@/lib/themes";
@@ -195,7 +212,57 @@ export interface CanvasStore {
     milestone: boolean;
   } | null;
   dismissStreakCelebration(): void;
+
+  /* ---- Group map sharing (live collaboration) ---- */
+  /**
+   * The live group session, when the canvas on screen is a shared group canvas
+   * (its id IS the group id). Null in ordinary solo canvases.
+   */
+  groupSession: GroupSession | null;
+  /** Members currently connected to the active group channel (incl. self). */
+  groupMembersOnline: GroupMemberMeta[];
+  /** Other members' live cursors, keyed by user id (flow coordinates). */
+  remoteCursors: Record<string, RemoteCursor>;
+  /**
+   * Bubbles a peer is currently editing, keyed by node id — an exclusive edit
+   * lock. While a lock is held, this client can't open that bubble's editor.
+   */
+  remoteLocks: Record<string, EditLock>;
+  /** Create a group, register its shared canvas locally, and slide to it. */
+  createGroup(name: string): Promise<GroupRow | null>;
+  /** Join a group by invite code; registers + opens its shared canvas. */
+  joinGroup(
+    code: string,
+  ): Promise<{ group: GroupRow | null; error: string | null }>;
+  /** Register (if needed) and slide to a group's shared canvas. */
+  openGroup(group: GroupRow): Promise<void>;
+  /** Leave a group — drop membership and remove the local shared canvas. */
+  leaveGroup(groupId: string): Promise<void>;
+  /** Broadcast the local cursor to peers (throttle at the call site). */
+  publishCursor(x: number, y: number): void;
+  /**
+   * Reconcile the live session with the current auth state — open the channel
+   * when a signed-in user is on a group canvas, close it on sign-out. Called
+   * whenever the signed-in user changes.
+   */
+  refreshGroupSession(): Promise<void>;
 }
+
+/** A live shared-canvas session. */
+export type GroupSession = {
+  groupId: string;
+  inviteCode: string;
+  name: string;
+  role: string;
+};
+
+/** Local record of a group whose shared canvas lives in the registry. */
+type GroupCanvasInfo = {
+  groupId: string;
+  inviteCode: string;
+  name: string;
+  role: string;
+};
 
 export const DEFAULT_MAP_NAME = "Untitled map";
 
@@ -282,6 +349,18 @@ let activeMapId: string = ROOT_MAP_ID;
  * Ephemeral mode never touches IndexedDB, so real maps stay safe.
  */
 let ephemeralMode = false;
+
+/**
+ * The group whose shared canvas is currently on screen (its id === the group
+ * id), or null in a solo canvas. Set on entering a group session; drives the
+ * flush mirror. Kept at module scope so `flush()` can read it without a store
+ * round-trip.
+ */
+let activeGroupId: string | null = null;
+/** Presence identity for the active session (self), or null when solo. */
+let sessionMe: GroupMemberMeta | null = null;
+/** Registry of group-backed canvases (canvasId === groupId → its details). */
+const groupByCanvasId = new Map<string, GroupCanvasInfo>();
 
 function buildSynthetic(nodeCount: number, edgeCount: number) {
   const sampleTexts = [
@@ -481,6 +560,20 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         delEdges.length ? repo.softDeleteEdges(delEdges) : null,
       ]);
       await writeSnapshot();
+      // Mirror the very same rows to the group tables when the canvas on
+      // screen is a shared one. Aligning the echo clock (updatedAtById) to the
+      // pushed rows' timestamps lets applyRemoteRows filter our own echoes.
+      if (activeGroupId) {
+        for (const r of nodeRows) updatedAtById.set(r.id, r.updatedAt);
+        for (const r of edgeRows) updatedAtById.set(r.id, r.updatedAt);
+        void pushGroupRows(
+          activeGroupId,
+          nodeRows,
+          edgeRows,
+          delNodes,
+          delEdges,
+        );
+      }
       set({ saveState: "saved" });
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {
@@ -730,6 +823,291 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     }
   }
 
+  /* ---------------- Group sharing (live collaboration) ---------------- */
+
+  /** Presence display name for the signed-in user. */
+  async function currentDisplayName(): Promise<string> {
+    const client = getBrowserClient();
+    const res = await client?.auth.getUser();
+    const u = res?.data.user;
+    const meta = (u?.user_metadata ?? {}) as { name?: string };
+    return meta.name || u?.email?.split("@")[0] || "Member";
+  }
+
+  /**
+   * Merge inbound remote rows (from a peer's push or the seed fetch) into the
+   * local map, last-write-wins by `updatedAt` — the same rule the single-user
+   * cloud sync uses. Rows are written to Dexie WITHOUT being marked dirty (so
+   * they never bounce back out), and, when they belong to the map on screen,
+   * patched straight into the live view. A bubble the local user is actively
+   * editing or dragging is left untouched.
+   */
+  async function applyRemoteRows(
+    incomingNodes: DbNode[],
+    incomingEdges: DbEdge[],
+  ) {
+    if (!incomingNodes.length && !incomingEdges.length) return;
+    try {
+      await db.transaction("rw", db.nodes, db.edges, async () => {
+        for (const n of incomingNodes) {
+          const existing = await db.nodes.get(n.id);
+          if (!existing || existing.updatedAt < n.updatedAt)
+            await db.nodes.put(n);
+        }
+        for (const e of incomingEdges) {
+          const existing = await db.edges.get(e.id);
+          if (!existing || existing.updatedAt < e.updatedAt)
+            await db.edges.put(e);
+        }
+      });
+    } catch (err) {
+      console.error("hodos: remote merge failed", err);
+    }
+
+    const s = get();
+    const curMap = s.currentMapId;
+    let nextNodes = s.nodes;
+    let changedNodes = false;
+    let nextLocks = s.remoteLocks;
+    let locksChanged = false;
+    for (const n of incomingNodes) {
+      if (n.mapId !== curMap) continue;
+      // Filter self-echoes and stale writes via the shared updatedAt clock.
+      if (n.updatedAt <= (updatedAtById.get(n.id) ?? 0)) continue;
+      if (s.editingNodeId === n.id || dirtyNodeIds.has(n.id)) continue;
+      updatedAtById.set(n.id, n.updatedAt);
+      mapIdById.set(n.id, n.mapId);
+      if (!createdAtById.has(n.id)) createdAtById.set(n.id, n.createdAt);
+      if (n.deletedAt) {
+        const before = nextNodes.length;
+        nextNodes = nextNodes.filter((x) => x.id !== n.id);
+        if (nextNodes.length !== before) changedNodes = true;
+        if (nextLocks[n.id]) {
+          nextLocks = { ...nextLocks };
+          delete nextLocks[n.id];
+          locksChanged = true;
+        }
+      } else {
+        const live = fromDbNode(n);
+        const idx = nextNodes.findIndex((x) => x.id === n.id);
+        if (idx === -1) {
+          nextNodes = [...nextNodes, live];
+        } else {
+          const prev = nextNodes[idx];
+          nextNodes = nextNodes.map((x) =>
+            x.id === n.id
+              ? ({ ...live, selected: prev.selected } as HodosNode)
+              : x,
+          );
+        }
+        changedNodes = true;
+      }
+    }
+
+    let nextEdges = s.edges;
+    let changedEdges = false;
+    for (const e of incomingEdges) {
+      if (e.mapId !== curMap) continue;
+      if (e.updatedAt <= (updatedAtById.get(e.id) ?? 0)) continue;
+      if (dirtyEdgeIds.has(e.id)) continue;
+      updatedAtById.set(e.id, e.updatedAt);
+      mapIdById.set(e.id, e.mapId);
+      if (!createdAtById.has(e.id)) createdAtById.set(e.id, e.createdAt);
+      if (e.deletedAt) {
+        const before = nextEdges.length;
+        nextEdges = nextEdges.filter((x) => x.id !== e.id);
+        if (nextEdges.length !== before) changedEdges = true;
+      } else {
+        const live = fromDbEdge(e);
+        const idx = nextEdges.findIndex((x) => x.id === e.id);
+        if (idx === -1) nextEdges = [...nextEdges, live];
+        else
+          nextEdges = nextEdges.map((x) =>
+            x.id === e.id ? { ...live, selected: x.selected } : x,
+          );
+        changedEdges = true;
+      }
+    }
+
+    if (changedNodes || changedEdges || locksChanged) {
+      set({
+        ...(changedNodes ? { nodes: nextNodes } : {}),
+        ...(changedEdges ? { edges: nextEdges } : {}),
+        ...(locksChanged ? { remoteLocks: nextLocks } : {}),
+      });
+      if (changedNodes) void refreshChildMapIds();
+    }
+  }
+
+  /** Announce that this member started/stopped editing a bubble. */
+  function broadcastEditLock(nodeId: string, editing: boolean) {
+    if (!activeGroupId || !sessionMe) return;
+    broadcastLock({
+      nodeId,
+      editing,
+      userId: sessionMe.userId,
+      name: sessionMe.name,
+      color: sessionMe.color,
+    });
+  }
+
+  /**
+   * Apply a peer's edit lock/unlock. On a simultaneous grab of the SAME bubble,
+   * the lower user id wins deterministically (both clients compute the same
+   * result), so exactly one editor survives — the other yields its editor.
+   */
+  function applyRemoteLock(p: EditLock & { editing: boolean }) {
+    const s = get();
+    if (p.editing) {
+      if (s.editingNodeId === p.nodeId && sessionMe) {
+        if (p.userId < sessionMe.userId) {
+          // Peer wins the tie — release our editor and let theirs stand.
+          set({ editingNodeId: null });
+          broadcastEditLock(p.nodeId, false);
+        } else {
+          // We win — ignore their claim; they'll yield on their side.
+          return;
+        }
+      }
+      set({
+        remoteLocks: {
+          ...s.remoteLocks,
+          [p.nodeId]: {
+            nodeId: p.nodeId,
+            userId: p.userId,
+            name: p.name,
+            color: p.color,
+          },
+        },
+      });
+    } else if (s.remoteLocks[p.nodeId]?.userId === p.userId) {
+      const next = { ...s.remoteLocks };
+      delete next[p.nodeId];
+      set({ remoteLocks: next });
+    }
+  }
+
+  /** Open the realtime channel and seed the shared canvas from the cloud. */
+  async function enterGroupSession(info: GroupCanvasInfo) {
+    if (!isCloudEnabled()) return;
+    const client = getBrowserClient();
+    const res = await client?.auth.getUser();
+    const user = res?.data.user;
+    if (!user) return; // collaboration requires a signed-in identity
+    const me: GroupMemberMeta = {
+      userId: user.id,
+      name: await currentDisplayName(),
+      color: colorForUser(user.id),
+    };
+    activeGroupId = info.groupId;
+    sessionMe = me;
+    set({
+      groupSession: {
+        groupId: info.groupId,
+        inviteCode: info.inviteCode,
+        name: info.name,
+        role: info.role,
+      },
+      groupMembersOnline: [me],
+      remoteCursors: {},
+    });
+    try {
+      const { nodes, edges } = await fetchGroupContent(info.groupId);
+      await applyRemoteRows(nodes, edges);
+    } catch (err) {
+      console.error("hodos: group seed failed", err);
+    }
+    openGroupChannel(info.groupId, me, {
+      onRows: (n, e) => void applyRemoteRows(n, e),
+      onPresence: (members) => {
+        // Drop cursors + edit locks held by anyone who has left, so a peer
+        // that disconnects mid-edit can never wedge a bubble locked.
+        const online = new Set(members.map((m) => m.userId));
+        const s = get();
+        const remoteCursors = Object.fromEntries(
+          Object.entries(s.remoteCursors).filter(([, c]) =>
+            online.has(c.userId),
+          ),
+        );
+        const remoteLocks = Object.fromEntries(
+          Object.entries(s.remoteLocks).filter(([, l]) => online.has(l.userId)),
+        );
+        set({ groupMembersOnline: members, remoteCursors, remoteLocks });
+      },
+      onCursor: (c) =>
+        set({ remoteCursors: { ...get().remoteCursors, [c.userId]: c } }),
+      onLock: (l) => applyRemoteLock(l),
+    });
+  }
+
+  /** Tear down the active session (leaving a group canvas or signing out). */
+  function exitGroupSession() {
+    if (!activeGroupId) return;
+    // Release any lock we hold so peers aren't left staring at a stale badge.
+    if (get().editingNodeId) broadcastEditLock(get().editingNodeId!, false);
+    closeGroupChannel();
+    activeGroupId = null;
+    sessionMe = null;
+    set({
+      groupSession: null,
+      groupMembersOnline: [],
+      remoteCursors: {},
+      remoteLocks: {},
+    });
+  }
+
+  /** Enter or exit a session so it matches the canvas now on screen. */
+  async function syncGroupSessionForCanvas(canvasId: string) {
+    const info = groupByCanvasId.get(canvasId);
+    if (info) {
+      if (activeGroupId !== info.groupId) {
+        exitGroupSession();
+        await enterGroupSession(info);
+      }
+    } else if (activeGroupId) {
+      exitGroupSession();
+    }
+  }
+
+  /** Register a group's shared canvas in the local registry + meta. */
+  async function registerGroupCanvas(g: GroupRow) {
+    const info: GroupCanvasInfo = {
+      groupId: g.id,
+      inviteCode: g.invite_code,
+      name: g.name,
+      role: g.role ?? "member",
+    };
+    groupByCanvasId.set(g.id, info);
+    const stored =
+      (await repo.getMeta<Record<string, Omit<GroupCanvasInfo, "groupId">>>(
+        "groups",
+      )) ?? {};
+    stored[g.id] = {
+      inviteCode: info.inviteCode,
+      name: info.name,
+      role: info.role,
+    };
+    await repo.setMeta("groups", stored);
+
+    if (!get().canvases.some((c) => c.id === g.id)) {
+      const next = [...get().canvases, { id: g.id, name: g.name }];
+      set({ canvases: next });
+      await repo.setMeta("canvases", next);
+    }
+  }
+
+  /** Load persisted group-canvas records into the in-memory registry. */
+  async function loadGroupRegistry() {
+    const stored =
+      (await repo.getMeta<Record<string, Omit<GroupCanvasInfo, "groupId">>>(
+        "groups",
+      )) ?? {};
+    groupByCanvasId.clear();
+    for (const [gid, meta] of Object.entries(stored)) {
+      groupByCanvasId.set(gid, { groupId: gid, ...meta });
+    }
+  }
+
   return {
     nodes: [],
     edges: [],
@@ -754,6 +1132,10 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     canRedo: false,
     streak: EMPTY_STREAK,
     streakCelebration: null,
+    groupSession: null,
+    groupMembersOnline: [],
+    remoteCursors: {},
+    remoteLocks: {},
 
     load() {
       if (loadPromise) return loadPromise;
@@ -824,6 +1206,8 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
             loadError: null,
           });
           await refreshChildMapIds();
+          await loadGroupRegistry();
+          void syncGroupSessionForCanvas(active);
           track("map_size", { nodes: nodes.length, edges: edges.length });
         } catch (err) {
           console.error("hodos: failed to open local database", err);
@@ -867,7 +1251,10 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       for (const id of removed) {
         deletedNodeIds.add(id);
         dirtyNodeIds.delete(id);
-        if (get().editingNodeId === id) set({ editingNodeId: null });
+        if (get().editingNodeId === id) {
+          set({ editingNodeId: null });
+          if (activeGroupId) broadcastEditLock(id, false);
+        }
       }
       moved.forEach((id) => dirtyNodeIds.add(id));
       if (removedNodes.length) recordDeletion(removedNodes, []);
@@ -917,6 +1304,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
 
     createNode(type, position) {
       pushHistory();
+      const prevEditing = get().editingNodeId;
       const id = uuidv7();
       createdAtById.set(id, Date.now());
       const data =
@@ -931,6 +1319,10 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         ],
         editingNodeId: id,
       });
+      if (activeGroupId) {
+        if (prevEditing) broadcastEditLock(prevEditing, false);
+        broadcastEditLock(id, true);
+      }
       markNodeDirty(id);
       noteBubblePlaced();
       track("bubble_created", { type });
@@ -952,7 +1344,18 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
 
     setEditing(id) {
+      // Someone else is typing in this bubble — refuse to open its editor.
+      if (id) {
+        const lock = get().remoteLocks[id];
+        if (lock && lock.userId !== sessionMe?.userId) return;
+      }
+      const prev = get().editingNodeId;
+      if (prev === id) return;
       set({ editingNodeId: id });
+      if (activeGroupId) {
+        if (prev) broadcastEditLock(prev, false);
+        if (id) broadcastEditLock(id, true);
+      }
     },
 
     changeNodeType(id, to) {
@@ -1413,6 +1816,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       set({ activeCanvasId: id, mapName: name, anchorNodeId: null });
       if (!ephemeralMode) void repo.setMeta("activeCanvas", id);
       await refreshChildMapIds();
+      await syncGroupSessionForCanvas(id);
     },
 
     async deleteCanvas(id) {
@@ -1501,6 +1905,68 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         anchorNodeId: null,
       });
       await refreshChildMapIds();
+      await loadGroupRegistry();
+      void syncGroupSessionForCanvas(active);
+    },
+
+    async createGroup(name) {
+      if (!isCloudEnabled()) return null;
+      const g = await createGroupRpc(name, await currentDisplayName());
+      if (!g) return null;
+      await registerGroupCanvas(g);
+      if (!get().pendingNav) set({ pendingNav: { kind: "canvas", id: g.id } });
+      track("group_created", {});
+      return g;
+    },
+
+    async joinGroup(code) {
+      if (!isCloudEnabled())
+        return { group: null, error: "Cloud isn't enabled." };
+      const { group, error } = await joinGroupByCode(
+        code,
+        await currentDisplayName(),
+      );
+      if (!group) return { group: null, error };
+      await registerGroupCanvas(group);
+      if (!get().pendingNav)
+        set({ pendingNav: { kind: "canvas", id: group.id } });
+      track("group_joined", {});
+      return { group, error: null };
+    },
+
+    async openGroup(group) {
+      await registerGroupCanvas(group);
+      get().requestCanvas(group.id);
+    },
+
+    async leaveGroup(groupId) {
+      if (activeGroupId === groupId) exitGroupSession();
+      await leaveGroupRpc(groupId);
+      groupByCanvasId.delete(groupId);
+      const stored =
+        (await repo.getMeta<Record<string, unknown>>("groups")) ?? {};
+      delete stored[groupId];
+      await repo.setMeta("groups", stored);
+      // Drop the local shared canvas + its content (slides away if in view).
+      if (get().canvases.some((c) => c.id === groupId))
+        await get().deleteCanvas(groupId);
+      track("group_left", {});
+    },
+
+    publishCursor(x, y) {
+      if (!activeGroupId || !sessionMe) return;
+      broadcastCursor({ ...sessionMe, x, y });
+    },
+
+    async refreshGroupSession() {
+      if (ephemeralMode) return;
+      const client = getBrowserClient();
+      const res = await client?.auth.getUser();
+      if (!res?.data.user) {
+        exitGroupSession();
+        return;
+      }
+      await syncGroupSessionForCanvas(get().activeCanvasId);
     },
   };
 });

@@ -14,6 +14,7 @@ import { getHighlighter, HIGHLIGHTERS } from "@/lib/themes";
 import NodeHandles from "./NodeHandles";
 import NestBadge from "./NestBadge";
 import PrimaryBadge from "./PrimaryBadge";
+import EditLockBadge from "./EditLockBadge";
 import { floatStyle } from "./float";
 
 const TRUNCATE_AT = 240;
@@ -202,6 +203,7 @@ export default function VerseNode({
     <div className="relative floaty" style={floatStyle(id)}>
       <NestBadge id={id} />
       <PrimaryBadge show={isPrimary} />
+      <EditLockBadge id={id} />
       <div
         className={`bubble w-64 rounded-xl border border-l-[3px] border-l-gold bg-parchment px-4 py-3 ${
           selected ? "bubble-selected border-gold" : "border-rule"

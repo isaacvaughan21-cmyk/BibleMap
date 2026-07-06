@@ -18,6 +18,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.10.0",
+    date: "2026-07-06",
+    title: "Study together, live",
+    changes: [
+      "Create a group and study one map together in real time. Open the new people icon in the top bar, make a group, and share the invite link — everyone sees each other’s bubbles, connections, and cursors as they’re drawn.",
+      "You can see who’s in the room, and while someone is typing in a bubble, it’s held for them so two people never overwrite the same thought.",
+      "Your own view stays yours — your theme, streak, and undo history are personal, even on a shared map. (Sign in to create or join a group.)",
+    ],
+  },
+  {
     version: "0.9.0",
     date: "2026-06-30",
     title: "Map of the Day",

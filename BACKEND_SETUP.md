@@ -50,11 +50,38 @@ Once the anon key is present and a deploy goes out, the `/app` gate becomes
 **Create account / Sign in**, and a signed-in user's canvases sync across
 devices (last-write-wins; on sign-in the cloud snapshot merges into local).
 
+## 4. Group map sharing (live collaboration)
+
+Lets signed-in users create/join a **group** and edit one shared canvas
+together in real time (bubbles, edges, live cursors, a "who's here" roster).
+Built on the **same** anon key + Supabase Auth as step 3 — no new secret.
+
+a. **Tables + RPCs** — SQL Editor → run `supabase/migrations/0005_groups.sql`.
+This creates `groups`, `group_members`, `group_nodes`, `group_edges` (RLS
+scoped to members via a `is_group_member()` helper), the
+`create_group` / `join_group_by_code` / `my_groups` RPCs the browser calls,
+and — at the end — adds the two content tables to the `supabase_realtime`
+publication.
+
+b. **Confirm Realtime is on** — Supabase → Database → Replication → the
+`supabase_realtime` publication should list `group_nodes` and `group_edges`.
+(The migration adds them; you can also toggle here.) Realtime must be enabled
+for the project (it is by default).
+
+That's it — the top-bar **people icon** appears (only when the anon key is
+set), and `/app?join=CODE` invite links let others join. Per-entity
+last-write-wins, same pragmatic rule as the single-user sync; a member's
+theme, streak, and undo history stay local and are not shared.
+
 ## What still isn't built (by design, for later)
 
 - Password reset / email change UI.
-- Real-time / multi-tab conflict resolution (sync is last-write-wins, whole
-  tree, debounced — fine for one device at a time).
+- Real-time / multi-tab conflict resolution **for a single user's own maps**
+  (that sync is last-write-wins, whole tree, debounced — fine for one device
+  at a time). Note: _group_ canvases (step 4) ARE realtime, per-entity LWW.
+- True concurrent co-typing inside one bubble (group edits are per-entity LWW,
+  so two people typing the same bubble at once → last write wins; a CRDT layer
+  would be needed for character-level merges).
 - Migrating an existing **guest's** on-device maps into a brand-new account on
   first sign-up (today, guest maps are merged up on the next push if the guest
   later signs in on the same device; a dedicated "claim my guest work" step

@@ -9,6 +9,7 @@ import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
 import NestBadge from "./NestBadge";
 import PrimaryBadge from "./PrimaryBadge";
+import EditLockBadge from "./EditLockBadge";
 import { floatStyle } from "./float";
 
 /**
@@ -70,6 +71,7 @@ export default function DefinitionNode({
     >
       <NestBadge id={id} />
       <PrimaryBadge show={isPrimary} />
+      <EditLockBadge id={id} />
       <div
         className={`bubble w-60 rounded-xl border border-l-[3px] border-l-ink-soft bg-parchment px-4 py-3 ${
           selected ? "bubble-selected border-gold" : "border-rule"

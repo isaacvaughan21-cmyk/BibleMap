@@ -5,6 +5,7 @@ import NodeHandles from "./NodeHandles";
 import NodeEditor from "./NodeEditor";
 import NestBadge from "./NestBadge";
 import PrimaryBadge from "./PrimaryBadge";
+import EditLockBadge from "./EditLockBadge";
 import { floatStyle } from "./float";
 
 /** A personal note — borderless, quieter than questions and verses. */
@@ -25,6 +26,7 @@ export default function NoteNode({
     >
       <NestBadge id={id} />
       <PrimaryBadge show={isPrimary} />
+      <EditLockBadge id={id} />
       <div
         className={`bubble max-w-60 rounded-xl border border-transparent bg-parchment-2 px-4 py-3 ${
           selected ? "bubble-selected border-gold" : ""
