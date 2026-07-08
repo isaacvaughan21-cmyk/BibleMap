@@ -10,6 +10,7 @@ import {
   MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  SelectionMode,
   useReactFlow,
   type Edge,
   type Node,
@@ -162,6 +163,9 @@ function CanvasInner() {
   const theme = getTheme(colorTheme);
   const bubbleThemeStyle = useMemo(() => themeStyle(theme), [theme]);
   const [railOpen, setRailOpen] = useState(false);
+  // Marquee mode: plain left-drag draws a selection box instead of panning, so
+  // several bubbles can be grabbed and moved together without holding Shift.
+  const [selectMode, setSelectMode] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -535,7 +539,11 @@ function CanvasInner() {
         selectedVerse={selectedVerse}
         onCloseAsk={() => setAskOpen(false)}
       />
-      <CanvasControls railOpen={railOpen} />
+      <CanvasControls
+        railOpen={railOpen}
+        selectMode={selectMode}
+        onToggleSelectMode={() => setSelectMode((v) => !v)}
+      />
       {loaded && !loadError && <StreakBadge />}
       {loaded && !loadError && <PresenceBar />}
       <FeedbackWidget
@@ -550,6 +558,7 @@ function CanvasInner() {
         {loaded && !loadError && (
           <FlowSurface
             railOpen={railOpen}
+            selectMode={selectMode}
             onNodeContextMenu={onNodeContextMenu}
             onEdgeContextMenu={onEdgeContextMenu}
             onPaneContextMenu={onPaneContextMenu}
@@ -794,6 +803,7 @@ function RecoveryScreen() {
 /** The React Flow surface — split out so useReactFlow lives under the provider. */
 function FlowSurface(props: {
   railOpen: boolean;
+  selectMode: boolean;
   nodes: ReturnType<typeof useCanvasStore.getState>["nodes"];
   edges: Edge[];
   onNodesChange: ReturnType<typeof useCanvasStore.getState>["onNodesChange"];
@@ -1208,6 +1218,11 @@ function FlowSurface(props: {
         deleteKeyCode={["Backspace", "Delete"]}
         multiSelectionKeyCode="Shift"
         selectionKeyCode="Shift"
+        // Marquee mode swaps left-drag from panning to rubber-band selection;
+        // Shift still box-selects either way, and scroll/trackpad still pans.
+        selectionOnDrag={props.selectMode}
+        panOnDrag={!props.selectMode}
+        selectionMode={SelectionMode.Partial}
         connectionRadius={18}
         connectionLineType={ConnectionLineType.Bezier}
         connectionLineStyle={{

@@ -9,7 +9,15 @@ import { useCanvasStore } from "@/lib/store/canvas-store";
  * accent), zoom in. Shifts left when the study panel is open. The minimap sits
  * just above it.
  */
-export default function CanvasControls({ railOpen }: { railOpen: boolean }) {
+export default function CanvasControls({
+  railOpen,
+  selectMode,
+  onToggleSelectMode,
+}: {
+  railOpen: boolean;
+  selectMode: boolean;
+  onToggleSelectMode: () => void;
+}) {
   const { zoomIn, zoomOut, fitView } = useReactFlow();
   const reducedMotion = usePrefersReducedMotion();
   const ms = (d: number) => (reducedMotion ? 0 : d);
@@ -26,6 +34,41 @@ export default function CanvasControls({ railOpen }: { railOpen: boolean }) {
       role="group"
       aria-label="Canvas controls"
     >
+      <button
+        type="button"
+        onClick={onToggleSelectMode}
+        aria-label="Select multiple bubbles"
+        aria-pressed={selectMode}
+        title="Select multiple bubbles — drag a box to grab several, then move them together"
+        className={`flex h-9 w-9 items-center justify-center rounded-full transition-colors ${
+          selectMode
+            ? "bg-gold/15 text-gold"
+            : "text-ink-soft hover:bg-parchment-2 hover:text-gold"
+        }`}
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 14 14"
+          fill="none"
+          aria-hidden="true"
+        >
+          <rect
+            x="1.5"
+            y="1.5"
+            width="11"
+            height="11"
+            rx="1.5"
+            stroke="currentColor"
+            strokeWidth="1.3"
+            strokeLinecap="round"
+            strokeDasharray="2.4 2"
+          />
+        </svg>
+      </button>
+
+      <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-rule/80" />
+
       <ControlButton label="Undo" disabled={!canUndo} onClick={() => undo()}>
         <svg
           width="13"

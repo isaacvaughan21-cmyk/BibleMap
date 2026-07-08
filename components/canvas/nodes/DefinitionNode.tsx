@@ -84,6 +84,7 @@ export default function DefinitionNode({
           <NodeEditor
             value={data.content}
             singleLine
+            autoCorrect={false}
             placeholder="A word to define…"
             className="mt-1 w-44 font-serif text-base text-ink"
             onCommit={lookUp}
