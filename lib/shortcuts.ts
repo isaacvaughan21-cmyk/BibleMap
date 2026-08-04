@@ -9,6 +9,8 @@ import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ["mod", "K"], label: "Command palette" },
+  { keys: ["mod", "⇧", "L"], label: "Open your library" },
+  { keys: ["esc"], label: "Zoom out to the library" },
   { keys: ["mod", "Z"], label: "Undo" },
   { keys: ["mod", "⇧", "Z"], label: "Redo" },
   { keys: ["2×click"], label: "Create a bubble (on the canvas)" },
@@ -32,6 +34,11 @@ export function useCanvasShortcuts(handlers: {
   onHelp: () => void;
   onUndo: () => void;
   onRedo: () => void;
+  /**
+   * Whether Escape should zoom out to the Library. False while any overlay,
+   * editor, or menu owns the key — Escape belongs to whatever is on top.
+   */
+  canLeaveCanvas: () => boolean;
 }) {
   const { fitView, zoomIn, zoomOut } = useReactFlow();
   const selectAll = useCanvasStore((s) => s.selectAll);
@@ -58,7 +65,20 @@ export function useCanvasShortcuts(handlers: {
         handlers.onAsk();
         return;
       }
+      // The Library — the zoom level above the canvas. Escape is the natural
+      // "back out one level", but it only wins when nothing else is open.
+      if (mod && e.shiftKey && e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        useCanvasStore.getState().openLibrary();
+        return;
+      }
       if (inField) return;
+
+      if (e.key === "Escape" && handlers.canLeaveCanvas()) {
+        e.preventDefault();
+        useCanvasStore.getState().openLibrary();
+        return;
+      }
 
       // Undo / redo (redo = mod+shift+Z or mod+Y). Checked before plain undo
       // so shift+Z doesn't fall through to it.

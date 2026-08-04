@@ -102,6 +102,12 @@ export default function CommandPalette({
     const actionDefs: PaletteItem[] = [
       {
         kind: "action",
+        id: "open-library",
+        label: "Open your library",
+        run: () => useCanvasStore.getState().openLibrary(),
+      },
+      {
+        kind: "action",
         id: "ask-scripture",
         label: "Ask Scripture",
         run: onAsk,

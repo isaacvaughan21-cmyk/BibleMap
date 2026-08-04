@@ -26,6 +26,14 @@ import {
   type GroupRow,
   type RemoteCursor,
 } from "@/lib/groups/realtime";
+import { DEFAULT_MAP_NAME } from "@/lib/library/constants";
+import {
+  MAX_TAGS_PER_CANVAS,
+  normalizeCanvases,
+  normalizeShelves,
+  type CanvasEntry,
+  type Shelf,
+} from "@/lib/library/model";
 import { parseImport } from "@/lib/map-io";
 import { DEFAULT_VERSION } from "@/lib/versions";
 import { DEFAULT_THEME } from "@/lib/themes";
@@ -172,18 +180,53 @@ export interface CanvasStore {
   clearPendingNav(): void;
 
   /* ---- Canvases (independent top-level maps) ---- */
-  /** All top-level canvases. The first is always the root. */
-  canvases: { id: string; name: string }[];
+  /**
+   * All top-level canvases, with the organisation a reader has put on them —
+   * shelf, tags, pin, archive. See lib/library/model.
+   */
+  canvases: CanvasEntry[];
+  /** Named collections a canvas can sit on. One shelf per canvas. */
+  shelves: Shelf[];
   /** The canvas currently in view. */
   activeCanvasId: string;
   /** Create a blank canvas and slide to it. Returns its id. */
-  createCanvas(): string;
+  createCanvas(shelfId?: string | null): string;
   /** Request a sideways slide to an existing canvas. */
   requestCanvas(id: string): void;
   /** Perform the canvas switch (called by the slide animation). */
   switchCanvas(id: string): Promise<void>;
   /** Delete a canvas and all of its content (and any maps nested inside it). */
   deleteCanvas(id: string): Promise<void>;
+
+  /* ---- The Library ---- */
+  /**
+   * Whether the Library is on screen. It's the zoom level ABOVE the root
+   * canvas, not a modal — the canvas stays mounted underneath so the camera can
+   * pull back into it and grow back out of it.
+   */
+  libraryOpen: boolean;
+  openLibrary(): void;
+  closeLibrary(): void;
+  /** Rename any canvas, in view or not. */
+  renameCanvas(id: string, name: string): void;
+  /** Move a canvas onto a shelf, or off every shelf with null. */
+  setCanvasShelf(id: string, shelfId: string | null): void;
+  /** Add a tag if absent, remove it if present. */
+  toggleCanvasTag(id: string, tag: string): void;
+  setCanvasPinned(id: string, pinned: boolean): void;
+  /**
+   * Archive rather than delete. A finished study leaves every view but the
+   * Archive shelf and keeps all of its content — the reader can always come
+   * back to it. Deleting stays available for genuine mistakes.
+   */
+  setCanvasArchived(id: string, archived: boolean): void;
+  /** Create a shelf. Returns its id. */
+  createShelf(name: string): string;
+  renameShelf(id: string, name: string): void;
+  /** Remove a shelf; the studies on it fall back to unshelved. */
+  deleteShelf(id: string): void;
+  /** Mark a shelf as an ordered series (cards then show their number). */
+  setShelfSequential(id: string, sequential: boolean): void;
   /** Re-read canvases + settings + the active map from the DB (after a cloud
    *  pull brings new data into IndexedDB). */
   rehydrate(): Promise<void>;
@@ -264,7 +307,21 @@ type GroupCanvasInfo = {
   role: string;
 };
 
-export const DEFAULT_MAP_NAME = "Untitled map";
+export { DEFAULT_MAP_NAME };
+
+/**
+ * True when a stored registry still has rows in the pre-Library `{ id, name }`
+ * shape — the cue to write the widened rows back once, rather than re-deriving
+ * them on every load.
+ */
+function needsWidening(rows: unknown[]): boolean {
+  return rows.some(
+    (r) =>
+      !r ||
+      typeof r !== "object" ||
+      typeof (r as { createdAt?: unknown }).createdAt !== "number",
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /* Dirty tracking + debounced flush                                    */
@@ -1090,10 +1147,56 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     await repo.setMeta("groups", stored);
 
     if (!get().canvases.some((c) => c.id === g.id)) {
-      const next = [...get().canvases, { id: g.id, name: g.name }];
+      const now = Date.now();
+      const next: CanvasEntry[] = [
+        ...get().canvases,
+        {
+          id: g.id,
+          name: g.name,
+          createdAt: now,
+          openedAt: now,
+          updatedAt: now,
+        },
+      ];
       set({ canvases: next });
       await repo.setMeta("canvases", next);
     }
+  }
+
+  /** Write the registry to state and to IndexedDB in one move. */
+  function persistCanvases(canvases: CanvasEntry[]) {
+    set({ canvases });
+    if (!ephemeralMode) void repo.setMeta("canvases", canvases);
+  }
+
+  /**
+   * Patch one registry entry. `organisational` edits (shelf, tags, name, pin,
+   * archive) bump `updatedAt`, which is what cloud sync compares when two
+   * devices disagree; a bare "I opened it" doesn't, so merely visiting a canvas
+   * on one device can't overwrite real organisation done on another.
+   */
+  function touchCanvas(
+    id: string,
+    patch: Partial<CanvasEntry>,
+    opts: { organisational?: boolean } = {},
+  ) {
+    const now = Date.now();
+    const organisational = opts.organisational ?? true;
+    let changed = false;
+    const canvases = get().canvases.map((c) => {
+      if (c.id !== id) return c;
+      changed = true;
+      const next = { ...c, ...patch };
+      if (organisational) next.updatedAt = now;
+      // Undefined means "drop this" — keep the stored row lean rather than
+      // carrying a graveyard of nulls into the cloud snapshot.
+      for (const key of Object.keys(patch) as (keyof CanvasEntry)[]) {
+        if (patch[key] === undefined) delete next[key];
+      }
+      return next;
+    });
+    if (!changed) return;
+    persistCanvases(canvases);
   }
 
   /** Load persisted group-canvas records into the in-memory registry. */
@@ -1124,7 +1227,12 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     childMapIds: new Set<string>(),
     anchorNodeId: null,
     pendingNav: null,
-    canvases: [{ id: ROOT_MAP_ID, name: DEFAULT_MAP_NAME }],
+    canvases: normalizeCanvases(null, {
+      id: ROOT_MAP_ID,
+      name: DEFAULT_MAP_NAME,
+    }),
+    shelves: [],
+    libraryOpen: false,
     activeCanvasId: ROOT_MAP_ID,
     bibleVersion: DEFAULT_VERSION,
     colorTheme: DEFAULT_THEME,
@@ -1159,12 +1267,19 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         }
 
         try {
-          // Canvas registry — migrate from the legacy single `mapName`.
+          // Canvas registry — migrate from the legacy single `mapName`, then
+          // widen any `{ id, name }` rows written before the Library existed.
           const legacyName =
             (await repo.getMeta<string>("mapName")) ?? DEFAULT_MAP_NAME;
-          const canvases = (await repo.getMeta<{ id: string; name: string }[]>(
-            "canvases",
-          )) ?? [{ id: ROOT_MAP_ID, name: legacyName }];
+          const storedCanvases = await repo.getMeta<unknown>("canvases");
+          const canvases = normalizeCanvases(storedCanvases, {
+            id: ROOT_MAP_ID,
+            name: legacyName,
+          });
+          const shelves = normalizeShelves(await repo.getMeta("shelves"));
+          // Persist the widened shape once so later writes aren't re-migrating.
+          if (!Array.isArray(storedCanvases) || needsWidening(storedCanvases))
+            void repo.setMeta("canvases", canvases);
           const savedActive =
             (await repo.getMeta<string>("activeCanvas")) ?? ROOT_MAP_ID;
           const active = canvases.some((c) => c.id === savedActive)
@@ -1183,6 +1298,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
 
           set({
             canvases,
+            shelves,
             activeCanvasId: active,
             mapName: activeName,
             hintsDismissed: !!(await repo.getMeta<boolean>("hintsDismissed")),
@@ -1527,19 +1643,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     },
 
     setMapName(name) {
-      const trimmed = name.trim().slice(0, 120) || DEFAULT_MAP_NAME;
-      // The root crumb mirrors the active canvas name.
-      const path = get().mapPath.map((c, i) =>
-        i === 0 ? { ...c, label: trimmed } : c,
-      );
-      const canvases = get().canvases.map((c) =>
-        c.id === get().activeCanvasId ? { ...c, name: trimmed } : c,
-      );
-      set({ mapName: trimmed, mapPath: path, canvases });
-      if (!ephemeralMode) {
-        void repo.setMeta("mapName", trimmed); // legacy mirror
-        void repo.setMeta("canvases", canvases);
-      }
+      get().renameCanvas(get().activeCanvasId, name);
     },
 
     dismissHints() {
@@ -1790,11 +1894,20 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
 
     /* ---------------- Canvases ---------------- */
 
-    createCanvas() {
+    createCanvas(shelfId) {
       const id = uuidv7();
-      const canvases = [...get().canvases, { id, name: DEFAULT_MAP_NAME }];
-      set({ canvases });
-      if (!ephemeralMode) void repo.setMeta("canvases", canvases);
+      const now = Date.now();
+      persistCanvases([
+        ...get().canvases,
+        {
+          id,
+          name: DEFAULT_MAP_NAME,
+          createdAt: now,
+          openedAt: now,
+          updatedAt: now,
+          ...(shelfId ? { shelfId } : {}),
+        },
+      ]);
       if (!get().pendingNav) set({ pendingNav: { kind: "canvas", id } });
       return id;
     },
@@ -1815,8 +1928,116 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       applyMap(id, [{ id, label: name }], nodes, edges);
       set({ activeCanvasId: id, mapName: name, anchorNodeId: null });
       if (!ephemeralMode) void repo.setMeta("activeCanvas", id);
+      // Arriving IS opening — this is what the Library sorts "Recent" by.
+      touchCanvas(id, { openedAt: Date.now() }, { organisational: false });
       await refreshChildMapIds();
       await syncGroupSessionForCanvas(id);
+    },
+
+    /* ---------------- The Library ---------------- */
+
+    openLibrary() {
+      if (ephemeralMode || get().pendingNav) return;
+      set({ libraryOpen: true, editingNodeId: null, versePickerNodeId: null });
+      track("library_opened", { canvases: get().canvases.length });
+    },
+
+    closeLibrary() {
+      set({ libraryOpen: false });
+    },
+
+    renameCanvas(id, name) {
+      const trimmed = name.trim().slice(0, 120) || DEFAULT_MAP_NAME;
+      touchCanvas(id, { name: trimmed });
+      // Renaming the canvas in view also retitles the top bar and the root crumb.
+      if (id === get().activeCanvasId) {
+        set({
+          mapName: trimmed,
+          mapPath: get().mapPath.map((c, i) =>
+            i === 0 ? { ...c, label: trimmed } : c,
+          ),
+        });
+        if (!ephemeralMode) void repo.setMeta("mapName", trimmed);
+      }
+    },
+
+    setCanvasShelf(id, shelfId) {
+      touchCanvas(id, { shelfId: shelfId ?? undefined });
+    },
+
+    toggleCanvasTag(id, tag) {
+      const clean = tag.trim().slice(0, 32).toLowerCase();
+      if (!clean) return;
+      const current = get().canvases.find((c) => c.id === id)?.tags ?? [];
+      const next = current.includes(clean)
+        ? current.filter((t) => t !== clean)
+        : [...current, clean].slice(0, MAX_TAGS_PER_CANVAS);
+      touchCanvas(id, { tags: next.length ? next : undefined });
+    },
+
+    setCanvasPinned(id, pinned) {
+      touchCanvas(id, { pinned: pinned || undefined });
+    },
+
+    setCanvasArchived(id, archived) {
+      touchCanvas(id, { archivedAt: archived ? Date.now() : undefined });
+      track("canvas_archived", { archived: archived ? "yes" : "no" });
+      // You can't stay standing in a study you just put away. From inside the
+      // Library the swap happens straight away — the shelves are covering the
+      // canvas, so the fly-over cinematic would play to an empty room, and
+      // racing it against a card click could switch twice.
+      if (archived && id === get().activeCanvasId) {
+        const next = get().canvases.find((c) => c.id !== id && !c.archivedAt);
+        if (!next) return;
+        if (get().libraryOpen) void get().switchCanvas(next.id);
+        else if (!get().pendingNav)
+          set({ pendingNav: { kind: "canvas", id: next.id } });
+      }
+    },
+
+    createShelf(name) {
+      const id = uuidv7();
+      const trimmed = name.trim().slice(0, 60) || "New shelf";
+      const shelves = [
+        ...get().shelves,
+        { id, name: trimmed, order: get().shelves.length },
+      ];
+      set({ shelves });
+      if (!ephemeralMode) void repo.setMeta("shelves", shelves);
+      return id;
+    },
+
+    renameShelf(id, name) {
+      const trimmed = name.trim().slice(0, 60);
+      if (!trimmed) return;
+      const shelves = get().shelves.map((s) =>
+        s.id === id ? { ...s, name: trimmed } : s,
+      );
+      set({ shelves });
+      if (!ephemeralMode) void repo.setMeta("shelves", shelves);
+    },
+
+    deleteShelf(id) {
+      const shelves = get()
+        .shelves.filter((s) => s.id !== id)
+        .map((s, i) => ({ ...s, order: i }));
+      set({ shelves });
+      if (!ephemeralMode) void repo.setMeta("shelves", shelves);
+      // Emptying a shelf never touches the studies on it — they fall back to
+      // unshelved, which is the whole point of archiving over deleting.
+      const now = Date.now();
+      const canvases = get().canvases.map((c) =>
+        c.shelfId === id ? { ...c, shelfId: undefined, updatedAt: now } : c,
+      );
+      persistCanvases(canvases);
+    },
+
+    setShelfSequential(id, sequential) {
+      const shelves = get().shelves.map((s) =>
+        s.id === id ? { ...s, sequential: sequential || undefined } : s,
+      );
+      set({ shelves });
+      if (!ephemeralMode) void repo.setMeta("shelves", shelves);
     },
 
     async deleteCanvas(id) {
@@ -1837,7 +2058,16 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       // Deleting your ONLY canvas clears it back to a fresh, blank canvas
       // (same id) rather than leaving you with nothing.
       if (isLast) {
-        const cleared = [{ id, name: DEFAULT_MAP_NAME }];
+        const now = Date.now();
+        const cleared: CanvasEntry[] = [
+          {
+            id,
+            name: DEFAULT_MAP_NAME,
+            createdAt: now,
+            openedAt: now,
+            updatedAt: now,
+          },
+        ];
         set({ canvases: cleared, mapName: DEFAULT_MAP_NAME });
         void repo.setMeta("canvases", cleared);
         void repo.setMeta("mapName", DEFAULT_MAP_NAME);
@@ -1851,10 +2081,15 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       set({ canvases: remaining });
       void repo.setMeta("canvases", remaining);
 
-      // If we deleted the canvas in view, slide to a neighbour (the existing
-      // canvas transition flushes — now a no-op — loads it, and re-frames).
-      if (wasActive && !get().pendingNav) {
-        set({ pendingNav: { kind: "canvas", id: remaining[0].id } });
+      // If we deleted the canvas in view, move to a neighbour. From the canvas
+      // that's a slide (the existing transition flushes — now a no-op — loads
+      // it, and re-frames); from inside the Library it's an immediate swap,
+      // since the shelves are covering the screen and a card click could
+      // otherwise race the cinematic into switching twice.
+      if (wasActive) {
+        if (get().libraryOpen) await get().switchCanvas(remaining[0].id);
+        else if (!get().pendingNav)
+          set({ pendingNav: { kind: "canvas", id: remaining[0].id } });
       }
 
       // Refresh the recovery snapshot so a deleted canvas can't resurface from
@@ -1878,9 +2113,14 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
 
     async rehydrate() {
       if (ephemeralMode) return;
-      const canvases =
-        (await repo.getMeta<{ id: string; name: string }[]>("canvases")) ??
-        get().canvases;
+      const stored = await repo.getMeta<unknown>("canvases");
+      const canvases = stored
+        ? normalizeCanvases(stored, {
+            id: ROOT_MAP_ID,
+            name: get().mapName,
+          })
+        : get().canvases;
+      const shelves = normalizeShelves(await repo.getMeta("shelves"));
       const savedActive = (await repo.getMeta<string>("activeCanvas")) ?? null;
       const active =
         savedActive && canvases.some((c) => c.id === savedActive)
@@ -1898,6 +2138,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       applyMap(active, [{ id: active, label: name }], nodes, edges);
       set({
         canvases,
+        shelves,
         activeCanvasId: active,
         mapName: name,
         bibleVersion,

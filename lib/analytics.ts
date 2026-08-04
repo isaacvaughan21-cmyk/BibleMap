@@ -28,7 +28,11 @@ export type AnalyticsEvent =
   | "streak_advanced"
   | "group_created"
   | "group_joined"
-  | "group_left";
+  | "group_left"
+  | "library_opened"
+  | "library_search"
+  | "canvas_shelved"
+  | "canvas_archived";
 
 export function track(
   name: AnalyticsEvent,

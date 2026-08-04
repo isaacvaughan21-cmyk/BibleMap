@@ -1,4 +1,12 @@
 import * as repo from "@/lib/db/repo";
+import { ROOT_MAP_ID } from "@/lib/db/schema";
+import { DEFAULT_MAP_NAME } from "@/lib/library/constants";
+import {
+  mergeEntries,
+  normalizeCanvases,
+  normalizeShelves,
+  type CanvasEntry,
+} from "@/lib/library/model";
 import { getBrowserClient } from "@/lib/supabase-browser";
 
 /**
@@ -21,9 +29,13 @@ import { getBrowserClient } from "@/lib/supabase-browser";
 const TABLE = "user_maps";
 // The canvas registry is the source of truth for names, so the legacy
 // `mapName` key is intentionally NOT synced (it's derived on rehydrate).
-const META_KEYS = ["canvases", "activeCanvas", "bibleVersion"] as const;
+const META_KEYS = [
+  "canvases",
+  "shelves",
+  "activeCanvas",
+  "bibleVersion",
+] as const;
 
-type Canvas = { id: string; name: string };
 type CloudSnapshot = {
   export: repo.HodosExport;
   meta: Record<string, unknown>;
@@ -55,15 +67,42 @@ export async function pullCloud(userId: string): Promise<boolean> {
   const snap = data.data as CloudSnapshot;
   try {
     await repo.importMerge(snap.export);
-    // Union the canvas registry: keep every local canvas AND every cloud one;
-    // cloud names win on a conflict.
-    const localCanvases = (await repo.getMeta<Canvas[]>("canvases")) ?? [];
-    const cloudCanvases = (snap.meta.canvases as Canvas[]) ?? [];
-    const byId = new Map<string, Canvas>();
+    // Union the canvas registry: keep every local canvas AND every cloud one.
+    // Where both sides know a canvas, the entry edited most recently wins —
+    // shelving a study on your laptop shouldn't be undone by a phone that only
+    // ever opened it. Both sides are normalised first, so a device still on the
+    // pre-Library `{ id, name }` shape merges cleanly.
+    const now = Date.now();
+    const localCanvases = normalizeCanvases(
+      await repo.getMeta("canvases"),
+      { id: ROOT_MAP_ID, name: DEFAULT_MAP_NAME },
+      now,
+    );
+    const cloudCanvases = Array.isArray(snap.meta.canvases)
+      ? normalizeCanvases(
+          snap.meta.canvases,
+          { id: ROOT_MAP_ID, name: DEFAULT_MAP_NAME },
+          now,
+        )
+      : [];
+    const byId = new Map<string, CanvasEntry>();
     for (const c of localCanvases) byId.set(c.id, c);
-    for (const c of cloudCanvases) byId.set(c.id, c);
+    for (const c of cloudCanvases) {
+      const local = byId.get(c.id);
+      byId.set(c.id, local ? mergeEntries(local, c) : c);
+    }
     const merged = [...byId.values()];
     if (merged.length) await repo.setMeta("canvases", merged);
+
+    // Shelves are a flat list keyed by id — same union, cloud names win.
+    const shelvesById = new Map(
+      normalizeShelves(await repo.getMeta("shelves")).map((s) => [s.id, s]),
+    );
+    for (const s of normalizeShelves(snap.meta.shelves))
+      shelvesById.set(s.id, s);
+    if (shelvesById.size)
+      await repo.setMeta("shelves", [...shelvesById.values()]);
+
     if (typeof snap.meta.activeCanvas === "string")
       await repo.setMeta("activeCanvas", snap.meta.activeCanvas);
     if (typeof snap.meta.bibleVersion === "string")

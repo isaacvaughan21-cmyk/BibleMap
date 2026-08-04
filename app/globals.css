@@ -555,6 +555,38 @@
   }
 }
 
+/* The Library is one zoom level ABOVE the root canvas, so it behaves like the
+   dive: rising to it, the shelves come toward you out of the distance; leaving
+   it, they rush past as the canvas opens up. Like the dive, this always plays —
+   it IS the navigation, not decoration — hence !important over the global
+   reduced-motion override. */
+.library-in {
+  animation: library-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both !important;
+}
+.library-out {
+  animation: library-out 240ms cubic-bezier(0.55, 0, 0.7, 0.2) both !important;
+}
+@keyframes library-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes library-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

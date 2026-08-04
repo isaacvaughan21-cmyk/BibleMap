@@ -20,6 +20,7 @@ type TopBarProps = {
   onOpenPalette: () => void;
   onFeedback: () => void;
   onExport: () => void;
+  onShareImage: () => void;
   onCompileNotes: () => void;
   onImportFile: (file: File) => void;
   onDailyMap: () => void;
@@ -36,6 +37,7 @@ export default function TopBar({
   onOpenPalette,
   onFeedback,
   onExport,
+  onShareImage,
   onCompileNotes,
   onImportFile,
   onDailyMap,
@@ -159,6 +161,7 @@ export default function TopBar({
 
           <OverflowMenu
             onExport={onExport}
+            onShareImage={onShareImage}
             onCompileNotes={onCompileNotes}
             onImportFile={onImportFile}
             onDailyMap={onDailyMap}
@@ -174,6 +177,7 @@ export default function TopBar({
 /** "…" menu — canvases, Bible version, export, import, shortcuts. */
 function OverflowMenu({
   onExport,
+  onShareImage,
   onCompileNotes,
   onImportFile,
   onDailyMap,
@@ -181,6 +185,7 @@ function OverflowMenu({
   onRequestVersion,
 }: {
   onExport: () => void;
+  onShareImage: () => void;
   onCompileNotes: () => void;
   onImportFile: (file: File) => void;
   onDailyMap: () => void;
@@ -190,10 +195,11 @@ function OverflowMenu({
   const [open, setOpen] = useState(false);
   const [isGuest, setIsGuest] = useState(false);
   const { user } = useAuthUser();
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const canvases = useCanvasStore((s) => s.canvases);
-  const deleteCanvas = useCanvasStore((s) => s.deleteCanvas);
+  const openLibrary = useCanvasStore((s) => s.openLibrary);
+  const liveCanvasCount = useCanvasStore(
+    (s) => s.canvases.filter((c) => !c.archivedAt).length,
+  );
   const bibleVersion = useCanvasStore((s) => s.bibleVersion);
   const setBibleVersion = useCanvasStore((s) => s.setBibleVersion);
   const colorTheme = useCanvasStore((s) => s.colorTheme);
@@ -209,9 +215,7 @@ function OverflowMenu({
       setIsGuest(false);
     }
   }, [open]);
-  const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
   const createCanvas = useCanvasStore((s) => s.createCanvas);
-  const requestCanvas = useCanvasStore((s) => s.requestCanvas);
   const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -278,107 +282,70 @@ function OverflowMenu({
               Map of the Day
             </button>
             <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
-            <p className="px-4 pb-1 pt-1.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
-              CANVASES
-            </p>
-            <div className="max-h-44 overflow-y-auto">
-              {canvases.map((c) => {
-                const verb = canvases.length === 1 ? "Clear" : "Delete";
-                return confirmDeleteId === c.id ? (
-                  <div
-                    key={c.id}
-                    className="flex items-center justify-between gap-2 px-4 py-1.5"
-                  >
-                    <span className="truncate font-sans text-2xs text-ink-muted">
-                      {verb} “{c.name}”?
-                    </span>
-                    <span className="flex shrink-0 items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          void deleteCanvas(c.id);
-                          setConfirmDeleteId(null);
-                          setOpen(false);
-                        }}
-                        className="font-sans text-2xs font-medium text-danger transition-colors hover:text-ink"
-                      >
-                        {verb}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirmDeleteId(null)}
-                        className="font-sans text-2xs text-ink-muted transition-colors hover:text-ink"
-                      >
-                        Cancel
-                      </button>
-                    </span>
-                  </div>
-                ) : (
-                  <div
-                    key={c.id}
-                    onContextMenu={(e) => {
-                      e.preventDefault();
-                      setConfirmDeleteId(c.id);
-                    }}
-                    className="group flex w-full items-center gap-2 px-4 py-1.5 transition-colors hover:bg-parchment-2"
-                  >
-                    <button
-                      type="button"
-                      role="menuitemradio"
-                      aria-checked={c.id === activeCanvasId}
-                      onClick={() => {
-                        requestCanvas(c.id);
-                        setOpen(false);
-                      }}
-                      className="flex min-w-0 flex-1 items-center gap-2 text-left font-sans text-xs text-ink-soft transition-colors hover:text-ink"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                          c.id === activeCanvasId ? "bg-gold" : "bg-rule"
-                        }`}
-                      />
-                      <span className="truncate">{c.name}</span>
-                    </button>
-                    <button
-                      type="button"
-                      aria-label={`${verb} ${c.name}`}
-                      title={`${verb} canvas`}
-                      onClick={() => setConfirmDeleteId(c.id)}
-                      className="shrink-0 text-ink-muted/40 transition-colors hover:text-danger"
-                    >
-                      <svg
-                        width="13"
-                        height="13"
-                        viewBox="0 0 14 14"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M2.5 3.5h9M5.5 3.5V2.5a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v1M3.5 3.5l.5 8a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1l.5-8"
-                          stroke="currentColor"
-                          strokeWidth="1.1"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="px-4 pb-0.5 pt-1 font-sans text-[10px] text-ink-muted/60">
-              Right-click a canvas to delete
-            </p>
+            {/* Shelving, searching, and sorting all live in the Library now —
+                a menu strip was never the place to organise a year of study. */}
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                openLibrary();
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2 text-left font-sans text-xs text-ink-soft transition-colors hover:bg-parchment-2 hover:text-ink"
+            >
+              <span aria-hidden="true" className="text-gold">
+                ▤
+              </span>
+              Your library
+              <span className="ml-auto font-sans text-[10px] tabular-nums text-ink-muted">
+                {liveCanvasCount}
+              </span>
+            </button>
             <MenuButton
               onClick={() => {
                 createCanvas();
                 setOpen(false);
               }}
             >
-              + New canvas
+              + New study
             </MenuButton>
             <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onShareImage();
+                setOpen(false);
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2 text-left font-sans text-xs text-ink-soft transition-colors hover:bg-parchment-2 hover:text-ink"
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 14 14"
+                fill="none"
+                aria-hidden="true"
+                className="shrink-0 text-gold"
+              >
+                <rect
+                  x="1.1"
+                  y="2.4"
+                  width="11.8"
+                  height="9.2"
+                  rx="1.6"
+                  stroke="currentColor"
+                  strokeWidth="1.1"
+                />
+                <path
+                  d="M1.6 9.3 4.7 6.6l2.4 2.1 2.2-1.9 3 2.5"
+                  stroke="currentColor"
+                  strokeWidth="1.1"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Share as image…
+            </button>
             <MenuButton
               onClick={() => {
                 onCompileNotes();

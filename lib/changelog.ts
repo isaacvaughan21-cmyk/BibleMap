@@ -18,6 +18,18 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.12.0",
+    date: "2026-08-03",
+    title: "Your library",
+    changes: [
+      "Every study you’ve made now has a room of its own. Press Escape from a canvas — or pick “Your library” from the ··· menu — and your maps lay out as cards, each drawing its own miniature so you can recognise a study before you read its name.",
+      "Put your work in order: make shelves and drag studies onto them, add tags like “sermon” or “small group”, and pin whatever you’re in the middle of so it’s always first.",
+      "Every card tells you which books of the Bible it reaches into, worked out from your own verse bubbles — nothing to tag. Switch to “By book” and the whole library indexes itself from Genesis to Revelation.",
+      "Search reads inside your maps, not just their names, so “bronze serpent” finds the study even when you called it something else.",
+      "Finished with a study? Archive it. It leaves the shelf and keeps everything, so nothing has to be deleted to tidy up.",
+    ],
+  },
+  {
     version: "0.11.0",
     date: "2026-08-03",
     title: "Read in the ESV",

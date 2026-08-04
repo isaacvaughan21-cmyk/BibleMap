@@ -43,6 +43,8 @@ import FeedbackWidget from "./FeedbackWidget";
 import HintBar from "./HintBar";
 import HelpOverlay from "./HelpOverlay";
 import ImportDialog from "./ImportDialog";
+import ShareCardDialog from "./ShareCardDialog";
+import Library from "./Library";
 import DailyMapModal from "./DailyMapModal";
 import StreakBadge from "./StreakBadge";
 import VersePicker from "./VersePicker";
@@ -170,6 +172,7 @@ function CanvasInner() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [dailyOpen, setDailyOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState<string | undefined>();
   const [menu, setMenu] = useState<MenuTarget | null>(null);
@@ -286,6 +289,26 @@ function CanvasInner() {
           ? { text: "Redone" }
           : { text: "Nothing to redo" },
       ),
+    // Escape rises to the Library only from a bare canvas — every overlay,
+    // editor, and picker gets first refusal on the key.
+    canLeaveCanvas: () => {
+      const s = useCanvasStore.getState();
+      return (
+        !paletteOpen &&
+        !helpOpen &&
+        !dailyOpen &&
+        !importPending &&
+        !menu &&
+        !picker &&
+        !feedbackOpen &&
+        !s.libraryOpen &&
+        !s.pendingNav &&
+        !s.editingNodeId &&
+        !s.versePickerNodeId &&
+        s.mapPath.length === 1 &&
+        !s.nodes.some((n) => n.selected)
+      );
+    },
   });
 
   useEffect(() => {
@@ -522,6 +545,7 @@ function CanvasInner() {
           setFeedbackOpen((o) => !o);
         }}
         onExport={handleExport}
+        onShareImage={() => setShareOpen(true)}
         onCompileNotes={compileNotes}
         onImportFile={handleImportFile}
         onDailyMap={() => setDailyOpen(true)}
@@ -672,6 +696,7 @@ function CanvasInner() {
         onAsk={() => setAskOpen(true)}
       />
       <HelpOverlay open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <ShareCardDialog open={shareOpen} onClose={() => setShareOpen(false)} />
 
       <DailyMapModal
         open={dailyOpen}
@@ -705,6 +730,10 @@ function CanvasInner() {
           </p>
         </div>
       )}
+
+      {/* One zoom level up: the shelves. Renders over the canvas, which stays
+          mounted underneath so the camera can pull back into it. */}
+      <Library />
 
       {/* v0 beta sign-up gate — first visit only */}
       <WelcomeGate />
@@ -849,6 +878,27 @@ function FlowSurface(props: {
   const [ring, setRing] = useState(0);
   const [arriving, setArriving] = useState(false);
   const running = useRef(false);
+
+  // ---- Rising to the Library ----
+  // The Library is the zoom level above the root canvas, so the camera has to
+  // agree with that: opening it lets the canvas fall away behind the parchment
+  // (visible through the blur), and returning settles on whatever canvas is now
+  // in view — which is how a card "grows back" into the map it drew.
+  const libraryOpen = useCanvasStore((s) => s.libraryOpen);
+  const wasLibraryOpen = useRef(libraryOpen);
+  useEffect(() => {
+    if (libraryOpen === wasLibraryOpen.current) return;
+    wasLibraryOpen.current = libraryOpen;
+    if (libraryOpen) {
+      const v = getViewport();
+      setViewport(
+        { x: v.x, y: v.y, zoom: Math.max(0.1, v.zoom * 0.55) },
+        { duration: 300 },
+      );
+    } else {
+      fitView({ padding: 0.25, maxZoom: 1, duration: 520 });
+    }
+  }, [libraryOpen, getViewport, setViewport, fitView]);
 
   useEffect(() => {
     if (!pendingNav || running.current) return;
