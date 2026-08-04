@@ -14,6 +14,14 @@ export type BlogPost = {
 
 export const posts: BlogPost[] = [
   {
+    slug: "how-to-read-the-bible-in-context",
+    title: "How to Read the Bible in Context (Keep Your Favorite Verses)",
+    description:
+      "How to read the Bible in context with a five-minute, five-circle habit — shown on Jeremiah 29:11. No Greek, no seminary, and beloved verses get deeper.",
+    datePublished: "2026-08-04",
+    readingTime: "10 min read",
+  },
+  {
     slug: "how-to-use-cross-references-in-the-bible",
     title: "How to Use Cross-References in the Bible",
     description:
