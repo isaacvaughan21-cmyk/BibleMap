@@ -1,11 +1,15 @@
 import { BOOKS, type BibleBook } from "./bible-books";
-import { DEFAULT_VERSION, isLiveVersion } from "./versions";
+import {
+  DEFAULT_VERSION,
+  isLiveVersion,
+  versionCacheVerseLimit,
+} from "./versions";
 
 /**
  * Bible access — per-book JSON, lazy-loaded and cached. The default version
  * (BSB) lives at /bible/{osis}.json; other bundled versions at
- * /bible/{VERSION}/{osis}.json. Live (licensed) versions like NLT are fetched
- * per-chapter through /api/nlt instead — see {@link loadChapter}.
+ * /bible/{VERSION}/{osis}.json. Live (licensed) versions like NLT and ESV are
+ * fetched per-chapter through /api/{version} instead — see {@link loadChapter}.
  * Canonical reference display form: "John 3:16" (full book name).
  */
 
@@ -39,10 +43,40 @@ export function loadBook(
 
 const chapterCache = new Map<string, Promise<string[]>>();
 
+/** Verse count of each settled chapter of a licence-capped version, oldest first. */
+const cappedChapters = new Map<string, number>();
+/** Verses currently held in `chapterCache` for each licence-capped version. */
+const cappedTotals = new Map<string, number>();
+
+/**
+ * Keep a capped version's cached verses inside its licence allowance (Crossway
+ * caps ESV at 500). Counts are recorded once a chapter settles, so eviction can
+ * walk `cappedChapters` — insertion-ordered, hence oldest-first — synchronously.
+ */
+function noteCappedChapter(
+  version: string,
+  key: string,
+  limit: number,
+  verses: number,
+): void {
+  cappedChapters.set(key, verses);
+  let total = (cappedTotals.get(version) ?? 0) + verses;
+
+  const prefix = `${version}:`;
+  for (const [k, n] of cappedChapters) {
+    if (total <= limit) break;
+    if (k === key || !k.startsWith(prefix)) continue;
+    cappedChapters.delete(k);
+    chapterCache.delete(k);
+    total -= n;
+  }
+  cappedTotals.set(version, total);
+}
+
 /**
  * One chapter's verses (`string[]`, index = verse − 1). Bundled versions slice
- * the cached whole-book JSON; live versions (NLT) fetch just that chapter from
- * /api/nlt — we never pull a whole copyrighted book to the client.
+ * the cached whole-book JSON; live versions (NLT, ESV) fetch just that chapter
+ * from /api/{version} — we never pull a whole copyrighted book to the client.
  */
 export function loadChapter(
   code: string,
@@ -53,7 +87,9 @@ export function loadChapter(
   let cached = chapterCache.get(key);
   if (!cached) {
     cached = isLiveVersion(version)
-      ? fetch(`/api/nlt?book=${code}&chapter=${chapter}`).then((res) => {
+      ? fetch(
+          `/api/${version.toLowerCase()}?book=${code}&chapter=${chapter}`,
+        ).then((res) => {
           if (!res.ok)
             throw new Error(
               `Failed to load ${code} ${chapter} (${version}) (${res.status})`,
@@ -65,6 +101,13 @@ export function loadChapter(
       : loadBook(code, version).then((b) => b.chapters[chapter - 1] ?? []);
     cached.catch(() => chapterCache.delete(key));
     chapterCache.set(key, cached);
+
+    const limit = versionCacheVerseLimit(version);
+    if (limit !== undefined) {
+      void cached.then((verses) =>
+        noteCappedChapter(version, key, limit, verses.length),
+      );
+    }
   }
   return cached;
 }

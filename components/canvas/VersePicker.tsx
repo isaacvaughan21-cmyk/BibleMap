@@ -13,7 +13,7 @@ import {
 } from "@/lib/bible";
 import { useCanvasStore } from "@/lib/store/canvas-store";
 import { useFocusTrap } from "@/lib/use-focus-trap";
-import { versionCredit } from "@/lib/versions";
+import { VersionCredit } from "./VersionCredit";
 
 /**
  * Verse picker — book grid → chapter grid → verse list, with a free-text
@@ -423,11 +423,10 @@ export default function VersePicker({
                 </ul>
               )}
 
-              {versionCredit(bibleVersion) && (
-                <p className="mt-3 border-t border-rule/50 pt-2 font-sans text-[9px] leading-snug text-ink-muted/70">
-                  {versionCredit(bibleVersion)}
-                </p>
-              )}
+              <VersionCredit
+                version={bibleVersion}
+                className="mt-3 border-t border-rule/50 pt-2 font-sans text-[9px] leading-snug text-ink-muted/70"
+              />
             </>
           )}
         </div>

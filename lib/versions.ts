@@ -2,14 +2,14 @@
  * Bible translations available in Hodos.
  *
  * Public-domain / freely-licensed versions are bundled with full text (static
- * JSON under public/bible/). Most copyrighted versions (NIV, ESV, NASB…) can't
- * be redistributed without a paid licence, so they're offered as a "request"
- * that routes to the feedback form instead.
+ * JSON under public/bible/). Most copyrighted versions (NIV, NASB…) can't be
+ * redistributed without a paid licence, so they're offered as a "request" that
+ * routes to the feedback form instead.
  *
- * NLT is the exception: we hold a Tyndale licence to *quote* it, so it's a
- * selectable version but fetched live, server-side, one chapter at a time
- * (lib/nlt.ts + app/api/nlt) rather than bundled. Its required credit line
- * (`NLT_CREDIT`) is shown wherever its text appears.
+ * NLT and ESV are the exceptions: we're licensed to *quote* them, so they're
+ * selectable versions but fetched live, server-side, one chapter at a time
+ * (lib/nlt.ts + app/api/nlt, lib/esv.ts + app/api/esv) rather than bundled.
+ * Their required credit lines are shown wherever their text appears.
  */
 
 export type BibleVersion = {
@@ -20,6 +20,13 @@ export type BibleVersion = {
   live?: boolean;
   /** Required credit line, rendered wherever this version's text is shown. */
   credit?: string;
+  /** Link the licence requires alongside the credit line. */
+  creditLink?: { href: string; label: string };
+  /**
+   * Cap on how many verses of this version may be held in a client-side cache,
+   * where the licence sets one. Enforced in lib/bible.ts.
+   */
+  cacheVerseLimit?: number;
 };
 
 export const DEFAULT_VERSION = "BSB";
@@ -31,9 +38,29 @@ export const DEFAULT_VERSION = "BSB";
 export const NLT_CREDIT =
   "Scripture quotations marked (NLT) are taken from the Holy Bible, New Living Translation, copyright © 1996, 2004, 2015 by Tyndale House Foundation. Used by permission of Tyndale House Publishers, Inc., Carol Stream, Illinois 60188. All rights reserved.";
 
-/** Selectable versions — public domain (bundled) plus licensed-live NLT. */
+/**
+ * Crossway-required attribution for the English Standard Version, quoted from
+ * their approved wording. Crossway additionally requires that every page using
+ * ESV text link to www.esv.org — hence `creditLink` below, which the shared
+ * VersionCredit component renders alongside this text.
+ */
+export const ESV_CREDIT =
+  "Scripture quotations are from the ESV® Bible (The Holy Bible, English Standard Version®), © 2001 by Crossway, a publishing ministry of Good News Publishers. Used by permission. All rights reserved. The ESV text may not be quoted in any publication made available to the public by a Creative Commons license. The ESV may not be translated into any other language.";
+
+/** Crossway caps cached ESV text at 500 verses. */
+export const ESV_CACHE_VERSE_LIMIT = 500;
+
+/** Selectable versions — public domain (bundled) plus licensed-live NLT/ESV. */
 export const BIBLE_VERSIONS: BibleVersion[] = [
   { code: "BSB", name: "Berean Standard Bible" },
+  {
+    code: "ESV",
+    name: "English Standard Version",
+    live: true,
+    credit: ESV_CREDIT,
+    creditLink: { href: "https://www.esv.org", label: "www.esv.org" },
+    cacheVerseLimit: ESV_CACHE_VERSE_LIMIT,
+  },
   {
     code: "NLT",
     name: "New Living Translation",
@@ -47,7 +74,7 @@ export const BIBLE_VERSIONS: BibleVersion[] = [
 ];
 
 /** Popular versions we can't bundle (copyright) — these route to feedback. */
-export const REQUESTABLE_VERSIONS = ["NIV", "ESV", "NASB", "CSB", "NKJV"];
+export const REQUESTABLE_VERSIONS = ["NIV", "NASB", "CSB", "NKJV"];
 
 export function versionName(code: string): string {
   return BIBLE_VERSIONS.find((v) => v.code === code)?.name ?? code;
@@ -65,4 +92,16 @@ export function isLiveVersion(code: string): boolean {
 /** The required credit line for a version, if it has one. */
 export function versionCredit(code: string): string | undefined {
   return BIBLE_VERSIONS.find((v) => v.code === code)?.credit;
+}
+
+/** The link a version's licence requires beside its credit line, if any. */
+export function versionCreditLink(
+  code: string,
+): BibleVersion["creditLink"] | undefined {
+  return BIBLE_VERSIONS.find((v) => v.code === code)?.creditLink;
+}
+
+/** Licence cap on client-side cached verses for a version, if it has one. */
+export function versionCacheVerseLimit(code: string): number | undefined {
+  return BIBLE_VERSIONS.find((v) => v.code === code)?.cacheVerseLimit;
 }

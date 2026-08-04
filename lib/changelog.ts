@@ -18,6 +18,16 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.11.0",
+    date: "2026-08-03",
+    title: "Read in the ESV",
+    changes: [
+      "The English Standard Version is now one of the translations you can study in. Pick ESV from the ··· menu and every verse bubble, cross-reference, and passage reads in the ESV.",
+      "That makes seven translations in all, and you can still switch a single verse to another version from its own menu without changing the rest of your map.",
+      "ESV text is used under licence from Crossway, so it’s read a chapter at a time straight from their library rather than stored with the app.",
+    ],
+  },
+  {
     version: "0.10.0",
     date: "2026-07-06",
     title: "Study together, live",
