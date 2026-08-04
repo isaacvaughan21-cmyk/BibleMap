@@ -271,16 +271,9 @@ export function drawTracked(
 /* Highlighted runs                                                    */
 /* ------------------------------------------------------------------ */
 
-/** `dim` sets a run in the muted ink — used for the translation marker. */
-export type TextRun = { text: string; mark?: string; dim?: boolean };
-type Token = { text: string; mark?: string; dim?: boolean; space: boolean };
-export type Seg = {
-  text: string;
-  mark?: string;
-  dim?: boolean;
-  x: number;
-  w: number;
-};
+export type TextRun = { text: string; mark?: string };
+type Token = { text: string; mark?: string; space: boolean };
+export type Seg = { text: string; mark?: string; x: number; w: number };
 export type WrappedLine = { segs: Seg[]; width: number };
 
 function escapeRegExp(s: string): string {
@@ -329,12 +322,7 @@ export function wrapRuns(
   for (const run of runs) {
     for (const piece of run.text.split(/(\s+)/)) {
       if (!piece) continue;
-      tokens.push({
-        text: piece,
-        mark: run.mark,
-        dim: run.dim,
-        space: /^\s+$/.test(piece),
-      });
+      tokens.push({ text: piece, mark: run.mark, space: /^\s+$/.test(piece) });
     }
   }
 
@@ -365,11 +353,11 @@ export function wrapRuns(
     for (const t of toks) {
       const last = segs[segs.length - 1];
       const w = ctx.measureText(t.text).width;
-      if (last && last.mark === t.mark && last.dim === t.dim) {
+      if (last && last.mark === t.mark) {
         last.text += t.text;
         last.w += w;
       } else {
-        segs.push({ text: t.text, mark: t.mark, dim: t.dim, x, w });
+        segs.push({ text: t.text, mark: t.mark, x, w });
       }
       x += w;
     }
@@ -406,10 +394,8 @@ export function drawRunLine(
     );
     ctx.fill();
   }
-  for (const seg of line.segs) {
-    ctx.fillStyle = seg.dim ? alpha(INK_MUTED, 0.8) : color;
-    ctx.fillText(seg.text, x + seg.x, baseline);
-  }
+  ctx.fillStyle = color;
+  for (const seg of line.segs) ctx.fillText(seg.text, x + seg.x, baseline);
 }
 
 /* ------------------------------------------------------------------ */

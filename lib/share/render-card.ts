@@ -1,6 +1,6 @@
 import type { HodosEdge, HodosNode } from "@/lib/types";
 import { getHighlighter, type BubbleTheme } from "@/lib/themes";
-import { versionCredit, versionCreditLink } from "@/lib/versions";
+import { versionCredit } from "@/lib/versions";
 import type { ShareFormat } from "./formats";
 import {
   countKinds,
@@ -51,7 +51,7 @@ export type ShareCardInput = {
   nodes: HodosNode[];
   edges: HodosEdge[];
   theme: BubbleTheme;
-  /** Bible version code, for the meta line and the licence credit. */
+  /** Bible version code — shown in the meta line and beside the verse. */
   version: string;
   /** Which verse the "one verse" card is built around. */
   verseNodeId?: string | null;
@@ -216,7 +216,7 @@ function paint(ctx: CanvasRenderingContext2D, input: ShareCardInput): void {
   paintPaper(ctx, W, H, theme);
   paintFrame(ctx, W, H, Math.round(MX * 0.52), Math.round(MY * 0.52), accent);
 
-  const footerTop = paintColophon(frame, input);
+  const footerTop = paintColophon(frame);
   const gap = U * 0.03;
   const topY = Math.round(MY * 1.12);
 
@@ -432,8 +432,8 @@ function paintVerseMasthead(
 
 /* ---------------------------- colophon ---------------------------- */
 
-/** Wordmark, site, and any licence-required credit. Returns its top edge. */
-function paintColophon(frame: Frame, input: ShareCardInput): number {
+/** Wordmark and site, under a hairline. Returns the block's top edge. */
+function paintColophon(frame: Frame): number {
   const { ctx, fonts, W, H, MX, MY, U, accent } = frame;
   const baseline = H - Math.round(MY * 0.85);
 
@@ -681,7 +681,20 @@ function paintVersePlate(
   );
   const verseLh = verseSize * 1.42;
 
-  const blockH = fixed + verseLines.length * verseLh;
+  // The translation is named at the end of the verse, the way a printed
+  // citation does it — small and in the muted ink, so it never competes with
+  // the scripture. It rides the last line where there's room, and drops to its
+  // own line where there isn't.
+  const markSize = Math.max(12, Math.round(verseSize * 0.34));
+  const markTrack = markSize * 0.14;
+  ctx.font = font({ family: fonts.sans, size: markSize, weight: 500 });
+  const markW = trackedWidth(ctx, input.version, markTrack);
+  const markGap = markSize * 0.9;
+  const lastLine = verseLines[verseLines.length - 1];
+  const markInline = !!lastLine && lastLine.width + markGap + markW <= plate.w;
+
+  const blockH =
+    fixed + verseLines.length * verseLh + (markInline ? 0 : markSize * 2.1);
   let y = plate.y + Math.max(0, (plate.h - blockH) / 2);
 
   if (questionLines.length) {
@@ -708,18 +721,39 @@ function paintVersePlate(
   );
   y += refSize * 1.4 + gap * 0.7;
 
+  const verseTop = y;
   ctx.font = font({ family: fonts.serif, size: verseSize });
   verseLines.forEach((line, i) => {
+    const last = i === verseLines.length - 1;
+    // Centre the final line together with its citation, so the marker doesn't
+    // pull the block visually off axis.
+    const shift = last && markInline ? (markGap + markW) / 2 : 0;
     drawRunLine(
       ctx,
       line,
-      x - line.width / 2,
+      x - line.width / 2 - shift,
       y + verseLh * (i + 0.78),
       verseSize,
       INK,
     );
   });
   y += verseLines.length * verseLh;
+
+  ctx.font = font({ family: fonts.sans, size: markSize, weight: 500 });
+  ctx.fillStyle = alpha(INK_MUTED, 0.85);
+  if (markInline && lastLine) {
+    drawTracked(
+      ctx,
+      input.version,
+      x + lastLine.width / 2 - (markGap + markW) / 2 + markGap,
+      verseTop + verseLh * (verseLines.length - 1 + 0.78),
+      markTrack,
+    );
+  } else {
+    y += markSize * 0.8;
+    drawTracked(ctx, input.version, x, y, markTrack, "center");
+    y += markSize * 1.3;
+  }
 
   if (noteLines.length) {
     y += gap * 0.5;
