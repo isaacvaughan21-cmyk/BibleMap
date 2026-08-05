@@ -1,0 +1,102 @@
+{
+  "id": "2026-08-16-they-will-soar-on-wings",
+  "date": "2026-08-16",
+  "title": "They Will Soar on Wings",
+  "question": "What does waiting on God have to do with strength?",
+  "anchorRef": "Isaiah 40:31",
+  "blurb": "Isaiah puts tired people next to an untiring God. Follow the comparison he's drawing.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "What does waiting on God have to do with strength?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Isaiah 40:31",
+      "verseText": "But those who wait upon the LORD will renew their strength; they will mount up with wings like eagles; they will run and not grow weary, they will walk and not faint."
+    },
+    {
+      "id": "b1",
+      "type": "verse",
+      "position": {
+        "x": 418,
+        "y": 49
+      },
+      "verseRef": "Isaiah 40:28",
+      "verseText": "Do you not know? Have you not heard? The LORD is the everlasting God, the Creator of the ends of the earth. He will not grow tired or weary; His understanding is beyond searching out."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 189,
+        "y": 347
+      },
+      "verseRef": "Isaiah 40:29",
+      "verseText": "He gives power to the faint and increases the strength of the weak."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": -191,
+        "y": 351
+      },
+      "verseRef": "Psalm 27:14",
+      "verseText": "Wait patiently for the LORD; be strong and courageous. Wait patiently for the LORD!"
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -419,
+        "y": 49
+      },
+      "verseRef": "Galatians 6:9",
+      "verseText": "Let us not grow weary in well-doing, for in due time we will reap a harvest if we do not give up."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
+      "kind": "manual"
+    }
+  ]
+}

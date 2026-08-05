@@ -1,0 +1,102 @@
+{
+  "id": "2026-08-08-with-all-your-heart",
+  "date": "2026-08-08",
+  "title": "With All Your Heart",
+  "question": "What does it look like to love God with everything you are?",
+  "anchorRef": "Deuteronomy 6:5",
+  "blurb": "Israel recited this daily, and Jesus called it the greatest commandment. Explore why.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "What does it look like to love God with everything you are?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Deuteronomy 6:5",
+      "verseText": "And you shall love the LORD your God with all your heart and with all your soul and with all your strength."
+    },
+    {
+      "id": "b1",
+      "type": "verse",
+      "position": {
+        "x": 418,
+        "y": 49
+      },
+      "verseRef": "Deuteronomy 6:4",
+      "verseText": "Hear, O Israel: The LORD our God, the LORD is One."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 189,
+        "y": 347
+      },
+      "verseRef": "Mark 12:30",
+      "verseText": "Love the Lord your God with all your heart and with all your soul and with all your mind and with all your strength.’"
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": -191,
+        "y": 351
+      },
+      "verseRef": "Luke 10:27",
+      "verseText": "He answered, “‘Love the Lord your God with all your heart and with all your soul and with all your strength and with all your mind’ and ‘Love your neighbor as yourself.’”"
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -419,
+        "y": 49
+      },
+      "verseRef": "1 John 4:19",
+      "verseText": "We love because He first loved us."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
+      "kind": "manual"
+    }
+  ]
+}

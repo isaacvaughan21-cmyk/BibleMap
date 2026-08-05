@@ -1,0 +1,102 @@
+{
+  "id": "2026-08-22-while-he-was-still-far-off",
+  "date": "2026-08-22",
+  "title": "While He Was Still Far Off",
+  "question": "Who moves first in the story of the lost son?",
+  "anchorRef": "Luke 15:20",
+  "blurb": "The son rehearses a speech. The father runs before he can finish it. Follow what happens next.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "Who moves first in the story of the lost son?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Luke 15:20",
+      "verseText": "So he got up and went to his father. But while he was still in the distance, his father saw him and was filled with compassion. He ran to his son, embraced him, and kissed him."
+    },
+    {
+      "id": "b1",
+      "type": "verse",
+      "position": {
+        "x": 418,
+        "y": 49
+      },
+      "verseRef": "Luke 15:21",
+      "verseText": "The son declared, ‘Father, I have sinned against heaven and against you. I am no longer worthy to be called your son.’"
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 189,
+        "y": 347
+      },
+      "verseRef": "Luke 15:22",
+      "verseText": "But the father said to his servants, ‘Quick! Bring the best robe and put it on him. Put a ring on his finger and sandals on his feet."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": -191,
+        "y": 351
+      },
+      "verseRef": "Luke 15:24",
+      "verseText": "For this son of mine was dead and is alive again! He was lost and is found!’ So they began to celebrate."
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -419,
+        "y": 49
+      },
+      "verseRef": "Psalm 103:13",
+      "verseText": "As a father has compassion on his children, so the LORD has compassion on those who fear Him."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
+      "kind": "manual"
+    }
+  ]
+}
