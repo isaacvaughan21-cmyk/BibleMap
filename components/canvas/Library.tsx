@@ -12,7 +12,11 @@ import {
   type LibraryIndex,
   type SearchHit,
 } from "@/lib/library/facts";
-import { SUGGESTED_TAGS, type CanvasEntry } from "@/lib/library/model";
+import {
+  MAX_TAGS_PER_CANVAS,
+  SUGGESTED_TAGS,
+  type CanvasEntry,
+} from "@/lib/library/model";
 import {
   BOOK_ORDER,
   bookByCode,
@@ -242,11 +246,15 @@ function LibraryScreen({
   const pinnedCount = canvases.filter((c) => c.pinned && !c.archivedAt).length;
   const archivedCount = canvases.filter((c) => !!c.archivedAt).length;
 
-  /** Tags actually in use, plus the suggested set for a fresh library. */
+  /**
+   * Only tags actually in use — a rail full of suggestions nobody has applied
+   * filters to nothing. The suggestions live in the card menu, where applying
+   * one is the next click.
+   */
   const tagOptions = useMemo(() => {
     const used = new Set<string>();
     for (const c of canvases) for (const t of c.tags ?? []) used.add(t);
-    return used.size ? [...used].sort() : SUGGESTED_TAGS.slice(0, 5);
+    return [...used].sort();
   }, [canvases]);
 
   const stageTitle =
@@ -816,6 +824,7 @@ function CardMenu({
   const deleteCanvas = useCanvasStore((s) => s.deleteCanvas);
   const ref = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [newTag, setNewTag] = useState(false);
 
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
@@ -837,14 +846,28 @@ function CardMenu({
 
   const usedTags = new Set<string>();
   for (const c of canvases) for (const t of c.tags ?? []) usedTags.add(t);
-  const tagChoices = [...new Set([...usedTags, ...SUGGESTED_TAGS])].slice(0, 9);
+  // This study's own tags lead, so they're never pushed out of the list by a
+  // vocabulary that has grown past it; then everything else in the library,
+  // then the suggestions as a starting point.
+  const tagChoices = [
+    ...new Set([...(entry.tags ?? []), ...usedTags, ...SUGGESTED_TAGS]),
+  ].slice(0, 14);
+  const atTagCap = (entry.tags?.length ?? 0) >= MAX_TAGS_PER_CANVAS;
+
+  /** Tag as typed — the store trims, lowercases and caps it. */
+  const addTag = (value: string) => {
+    const clean = value.trim();
+    if (clean && !entry.tags?.includes(clean.toLowerCase()))
+      toggleCanvasTag(entry.id, clean);
+    setNewTag(false);
+  };
 
   const width = 224;
   const left = Math.min(
     rect.left - width + rect.width,
     window.innerWidth - width - 12,
   );
-  const top = Math.min(rect.bottom + 6, window.innerHeight - 340);
+  const top = Math.min(rect.bottom + 6, window.innerHeight - 390);
 
   return (
     <div
@@ -879,15 +902,16 @@ function CardMenu({
       <p className="px-3 pb-1 font-sans text-2xs tracking-eyebrow text-ink-muted">
         TAGS
       </p>
-      <div className="flex flex-wrap gap-1 px-3 pb-1.5">
+      <div className="flex max-h-28 flex-wrap gap-1 overflow-y-auto px-3 pb-1.5">
         {tagChoices.map((t) => {
           const on = entry.tags?.includes(t);
           return (
             <button
               key={t}
               type="button"
+              disabled={!on && atTagCap}
               onClick={() => toggleCanvasTag(entry.id, t)}
-              className={`rounded-full border px-1.5 py-0.5 font-sans text-[10px] transition-colors ${
+              className={`rounded-full border px-1.5 py-0.5 font-sans text-[10px] transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                 on
                   ? "border-gold bg-gold/15 text-ink"
                   : "border-rule text-ink-muted hover:border-gold hover:text-ink"
@@ -898,6 +922,41 @@ function CardMenu({
           );
         })}
       </div>
+      {/* Outside the scroller — inventing a tag shouldn't be something you
+          have to scroll a grown vocabulary to find. */}
+      <div className="px-3 pb-1.5">
+        {newTag ? (
+          <input
+            autoFocus
+            maxLength={32}
+            placeholder="New tag"
+            onBlur={(e) => addTag(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter")
+                addTag((e.target as HTMLInputElement).value);
+              else if (e.key === "Escape") {
+                e.stopPropagation();
+                setNewTag(false);
+              }
+            }}
+            className="w-28 rounded-full border border-gold bg-parchment px-1.5 py-0.5 font-sans text-[10px] text-ink outline-none"
+          />
+        ) : (
+          <button
+            type="button"
+            disabled={atTagCap}
+            onClick={() => setNewTag(true)}
+            className="rounded-full border border-dashed border-rule px-1.5 py-0.5 font-sans text-[10px] text-ink-muted transition-colors hover:border-gold hover:text-gold disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            + New tag
+          </button>
+        )}
+      </div>
+      {atTagCap && (
+        <p className="px-3 pb-1 font-sans text-[10px] text-ink-muted/70">
+          {MAX_TAGS_PER_CANVAS} tags is the limit — turn one off to add another.
+        </p>
+      )}
 
       <div className="mx-3 my-1.5 h-px bg-rule/70" aria-hidden="true" />
       <MenuRow

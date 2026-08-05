@@ -29,6 +29,7 @@ import {
   wrapRuns,
   wrapText,
   type Fonts,
+  type WrappedLine,
 } from "./paint";
 
 /**
@@ -55,6 +56,13 @@ export type ShareCardInput = {
   version: string;
   /** Which verse the "one verse" card is built around. */
   verseNodeId?: string | null;
+  /**
+   * Which question is set above the passage on a "one verse" card. `null` is a
+   * deliberate "no question"; leaving it off falls back to the linked one.
+   */
+  questionNodeId?: string | null;
+  /** A verse or question laid over the "whole map" card. `null` for none. */
+  overlayNodeId?: string | null;
   /** Fixed date for the masthead; defaults to today. */
   date?: Date;
 };
@@ -68,6 +76,8 @@ const COMPACT_BELOW = 0.42;
 /** Below this, even headlines are too small — the map becomes a backdrop. */
 const GHOST_BELOW = 0.58;
 const SCENE_PAD = 28;
+/** How much of an overlay band the map yields to; the rest it lies over. */
+const OVERLAY_RESERVE = 0.86;
 
 /* ------------------------------------------------------------------ */
 /* Entry points                                                        */
@@ -138,6 +148,70 @@ export function pickVerseNodeId(nodes: HodosNode[]): string | null {
   return verses.reduce((a, b) => (a.id <= b.id ? a : b)).id;
 }
 
+/**
+ * The questions a "one verse" card could be headed by — the ones joined to the
+ * passage first, then the rest of the study, so a reader can pair any question
+ * with any verse without having to draw an edge for it.
+ */
+export function questionOptions(
+  nodes: HodosNode[],
+  edges: HodosEdge[],
+  verseNodeId: string | null | undefined,
+): { node: HodosNode; linked: boolean }[] {
+  const linked = new Set(
+    verseNodeId ? neighbours(verseNodeId, nodes, edges).map((n) => n.id) : [],
+  );
+  return nodes
+    .filter((n) => n.type === "question" && bodyOf(n).trim())
+    .map((node) => ({ node, linked: linked.has(node.id) }))
+    .sort((a, b) => Number(b.linked) - Number(a.linked));
+}
+
+/** The question a verse card heads with when the reader hasn't chosen one. */
+export function defaultQuestionNodeId(
+  nodes: HodosNode[],
+  edges: HodosEdge[],
+  verseNodeId: string | null | undefined,
+): string | null {
+  const first = questionOptions(nodes, edges, verseNodeId).find(
+    (q) => q.linked,
+  );
+  return first?.node.id ?? null;
+}
+
+/** The bubbles that can be laid over a "whole map" card. */
+export function overlayOptions(nodes: HodosNode[]): HodosNode[] {
+  return nodes.filter((n) =>
+    n.type === "verse"
+      ? !!n.data.verseRef && !!n.data.verseText?.trim()
+      : n.type === "question" && !!bodyOf(n).trim(),
+  );
+}
+
+/** The question actually set above the passage, honouring an explicit "none". */
+function resolvedQuestion(
+  input: ShareCardInput,
+  verseNodeId: string,
+): HodosNode | undefined {
+  const id =
+    input.questionNodeId === undefined
+      ? defaultQuestionNodeId(input.nodes, input.edges, verseNodeId)
+      : input.questionNodeId;
+  if (!id) return undefined;
+  return input.nodes.find(
+    (n) => n.id === id && n.type === "question" && bodyOf(n).trim(),
+  );
+}
+
+/** The bubble laid over a "whole map" card, if the reader picked one. */
+function overlayNode(input: ShareCardInput): HodosNode | null {
+  if (!input.overlayNodeId) return null;
+  return (
+    overlayOptions(input.nodes).find((n) => n.id === input.overlayNodeId) ??
+    null
+  );
+}
+
 /** A ready-to-paste post caption — the other half of actually sharing. */
 export function shareCaption(input: ShareCardInput): string {
   const credit = versionCredit(input.version);
@@ -152,7 +226,9 @@ export function shareCaption(input: ShareCardInput): string {
     const node = input.nodes.find((n) => n.id === input.verseNodeId);
     const data =
       node?.type === "verse" ? node.data : { verseRef: "", verseText: "" };
+    const question = node ? resolvedQuestion(input, node.id) : undefined;
     return [
+      ...(question ? [bodyOf(question).trim(), ``] : []),
       `${data.verseRef} (${input.version})`,
       ``,
       `“${data.verseText}”`,
@@ -164,12 +240,27 @@ export function shareCaption(input: ShareCardInput): string {
       .trim();
   }
 
+  // Whatever is set over the map is what a reader sees first, so the caption
+  // leads with it too rather than with the list of references.
+  const over = overlayNode(input);
+  const featured =
+    over?.type === "verse"
+      ? [
+          `“${over.data.verseText}”`,
+          `— ${over.data.verseRef} (${input.version})`,
+          ``,
+        ]
+      : over
+        ? [bodyOf(over).trim(), ``]
+        : [];
+
   const refs = verseRefs(input.nodes);
   const shown = refs.slice(0, 8).join(" · ");
   const more = refs.length > 8 ? ` +${refs.length - 8} more` : "";
   return [
     `“${input.title}”`,
     ``,
+    ...featured,
     ...(refs.length ? [`${shown}${more}`, ``] : []),
     ...tail,
     ...(credit ? ["", credit] : []),
@@ -239,18 +330,30 @@ function paint(ctx: CanvasRenderingContext2D, input: ShareCardInput): void {
   const head = mapMasthead(frame, input);
   const band = footerTop - topY;
   const maxPlateH = band - head.height - gap * 2;
+
+  // An overlaid passage or question takes the card's lower third. The map is
+  // fitted into what's left plus a little, so the band lands ON the map's foot
+  // rather than beside it — a lower third, not a second panel. The overlap is
+  // small and lands inside the scrim's fade, so it grazes the map rather than
+  // slicing a bubble in half.
+  const over = overlayNode(input);
+  const overlay = over
+    ? overlayBlock(frame, input, over, maxPlateH * 0.55)
+    : null;
+  const sceneH = maxPlateH - (overlay ? overlay.height * OVERLAY_RESERVE : 0);
+
   const fit = fitMapScene(frame, input, {
     x: MX,
     y: 0,
     w: W - MX * 2,
-    h: maxPlateH,
+    h: sceneH,
   });
 
   // A study too large to set legibly becomes its own backdrop: the map is
   // ghosted across the plate and the passages it gathers are set over it, so
   // the card still says something to someone scrolling past.
   const ghost = !!fit && fit.scale < GHOST_BELOW;
-  const plateH = ghost ? maxPlateH : (fit?.height ?? maxPlateH);
+  const plateH = overlay || ghost ? maxPlateH : (fit?.height ?? maxPlateH);
   const contentH = head.height + gap * 2 + plateH;
   const start = topY + Math.max(0, (band - contentH) * 0.38);
   head.draw(start);
@@ -263,10 +366,155 @@ function paint(ctx: CanvasRenderingContext2D, input: ShareCardInput): void {
   };
   if (!fit) {
     paintEmptyPlate(frame, plate);
+    if (overlay) overlay.draw(plate);
     return;
   }
-  paintMapScene(frame, input, fit, plate, ghost ? 0.3 : 1);
-  if (ghost) paintPassageIndex(frame, input, plate);
+  paintMapScene(
+    frame,
+    input,
+    fit,
+    { ...plate, h: plate.h - (overlay ? overlay.height * OVERLAY_RESERVE : 0) },
+    ghost ? 0.3 : overlay ? 0.82 : 1,
+  );
+  if (overlay) overlay.draw(plate);
+  else if (ghost) paintPassageIndex(frame, input, plate);
+}
+
+/* --------------------------- map overlay -------------------------- */
+
+type Overlay = { height: number; draw: (plate: Rect) => void };
+
+/**
+ * One bubble set over the map — the reader chooses the line they want a
+ * scroller to actually read. Measured first and drawn second, like the
+ * masthead, because the map has to be fitted around it.
+ *
+ * The scrim under the type is the theme's own paper faded up from nothing, so
+ * the words hold even where a bubble sits beneath them and the map still shows
+ * through at the band's top edge.
+ */
+function overlayBlock(
+  frame: Frame,
+  input: ShareCardInput,
+  node: HodosNode,
+  maxH: number,
+): Overlay {
+  const { ctx, fonts, U, theme, accent } = frame;
+  const verse = node.type === "verse" ? node : null;
+  const maxW = (frame.W - frame.MX * 2) * 0.84;
+
+  const eyebrowSize = Math.round(U * 0.0145);
+  const eyebrow = verse
+    ? verse.data.verseRef.toUpperCase()
+    : "A QUESTION FROM THIS STUDY";
+  const afterEyebrow = U * 0.03;
+  const padY = U * 0.032;
+
+  const runs = verse
+    ? toRuns(
+        verse.data.verseText,
+        verse.data.highlights,
+        verse.data.highlightColors,
+        (id) => getHighlighter(id)?.color ?? theme.highlight,
+      )
+    : null;
+
+  const markSize = Math.max(11, Math.round(U * 0.014));
+  const markBlock = verse ? markSize * 2.1 : 0;
+  const maxLines = verse ? 6 : 4;
+  const fixed = padY * 2 + eyebrowSize + afterEyebrow + markBlock;
+
+  // Set it as large as the band will take, stepping down rather than clipping.
+  let size = Math.round(U * 0.033);
+  let vLines: WrappedLine[] = [];
+  let qLines: string[] = [];
+  for (;;) {
+    ctx.font = font({ family: fonts.serif, size, italic: !verse });
+    if (runs) vLines = wrapRuns(ctx, runs, maxW, maxLines);
+    else qLines = wrapText(ctx, bodyOf(node), maxW, maxLines);
+    const count = runs ? vLines.length : qLines.length;
+    if (fixed + count * size * 1.4 <= maxH || size <= U * 0.017) break;
+    size -= 2;
+  }
+  const lineH = size * 1.4;
+  const count = runs ? vLines.length : qLines.length;
+  const height = Math.min(maxH, fixed + count * lineH);
+
+  return {
+    height,
+    draw: (plate) => {
+      const top = plate.y + plate.h - height;
+      const x = plate.x + plate.w / 2;
+      const fade = U * 0.075;
+      const paper = theme.background.base;
+
+      const g = ctx.createLinearGradient(0, top - fade, 0, plate.y + plate.h);
+      g.addColorStop(0, alpha(paper, 0));
+      g.addColorStop(
+        Math.min(0.999, (fade * 1.6) / (height + fade)),
+        alpha(paper, 0.94),
+      );
+      g.addColorStop(1, alpha(paper, 0.94));
+      ctx.fillStyle = g;
+      ctx.fillRect(plate.x, top - fade, plate.w, height + fade);
+
+      ctx.strokeStyle = alpha(accent, 0.45);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x - U * 0.042, top);
+      ctx.lineTo(x + U * 0.042, top);
+      ctx.stroke();
+
+      let y = top + padY + eyebrowSize;
+      ctx.font = font({
+        family: verse ? fonts.mono : fonts.sans,
+        size: eyebrowSize,
+        weight: 500,
+      });
+      ctx.fillStyle = accent;
+      drawTracked(
+        ctx,
+        eyebrow,
+        x,
+        y,
+        eyebrowSize * (verse ? 0.14 : 0.22),
+        "center",
+      );
+      y += afterEyebrow;
+
+      ctx.font = font({ family: fonts.serif, size, italic: !verse });
+      if (runs) {
+        vLines.forEach((line, i) =>
+          drawRunLine(
+            ctx,
+            line,
+            x - line.width / 2,
+            y + lineH * (i + 0.78),
+            size,
+            INK,
+          ),
+        );
+        y += vLines.length * lineH;
+        ctx.font = font({ family: fonts.sans, size: markSize, weight: 500 });
+        ctx.fillStyle = alpha(INK_MUTED, 0.85);
+        drawTracked(
+          ctx,
+          input.version,
+          x,
+          y + markSize * 1.1,
+          markSize * 0.14,
+          "center",
+        );
+      } else {
+        ctx.fillStyle = alpha(INK_SOFT, 0.95);
+        ctx.textAlign = "center";
+        qLines.forEach((line, i) =>
+          ctx.fillText(line, x, y + lineH * (i + 0.8)),
+        );
+        ctx.textAlign = "left";
+      }
+    },
+  };
 }
 
 /** Passages named on the card when the map itself is only a backdrop. */
@@ -625,9 +873,7 @@ function paintVersePlate(
   }
 
   const linked = neighbours(node.id, input.nodes, input.edges);
-  const question = linked.find(
-    (n) => n.type === "question" && bodyOf(n).trim(),
-  );
+  const question = resolvedQuestion(input, node.id);
   const note = linked.find((n) => n.type === "note" && bodyOf(n).trim());
 
   const maxW = plate.w * 0.88;

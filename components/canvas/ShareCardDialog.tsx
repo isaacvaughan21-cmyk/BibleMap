@@ -7,7 +7,10 @@ import type { VerseNodeType } from "@/lib/types";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 import { SHARE_FORMATS, type ShareFormat } from "@/lib/share/formats";
 import {
+  defaultQuestionNodeId,
+  overlayOptions,
   pickVerseNodeId,
+  questionOptions,
   renderShareCard,
   shareCaption,
   shareCardBlob,
@@ -16,6 +19,7 @@ import {
   type ShareCardInput,
   type ShareMode,
 } from "@/lib/share/render-card";
+import type { HodosNode } from "@/lib/types";
 
 /**
  * "Share as image" — compose the study into a card built for a feed.
@@ -45,6 +49,8 @@ export default function ShareCardDialog({
   const [mode, setMode] = useState<ShareMode>("map");
   const [format, setFormat] = useState<ShareFormat>(SHARE_FORMATS[0]);
   const [verseId, setVerseId] = useState<string | null>(null);
+  const [questionId, setQuestionId] = useState<string | null>(null);
+  const [overlayId, setOverlayId] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [fontsReady, setFontsReady] = useState(false);
@@ -57,11 +63,31 @@ export default function ShareCardDialog({
     [nodes],
   );
 
+  // Questions the passage could be headed by — the ones joined to it first,
+  // then the rest of the study, so any question can be paired with any verse.
+  const questions = useMemo(
+    () => questionOptions(nodes, edges, verseId),
+    [nodes, edges, verseId],
+  );
+  const overlays = useMemo(() => overlayOptions(nodes), [nodes]);
+
+  /** Follow the verse: a new passage brings its own linked question with it. */
+  const chooseVerse = useCallback(
+    (id: string) => {
+      setVerseId(id);
+      setQuestionId(defaultQuestionNodeId(nodes, edges, id));
+    },
+    [nodes, edges],
+  );
+
   // Opening picks up the reader's current selection; after that the dialog's
   // own verse chips are in charge, so a background change can't move the card.
   useEffect(() => {
     if (!open) return;
-    setVerseId(pickVerseNodeId(nodes));
+    const id = pickVerseNodeId(nodes);
+    setVerseId(id);
+    setQuestionId(defaultQuestionNodeId(nodes, edges, id));
+    setOverlayId(null);
     setFlash(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -96,8 +122,21 @@ export default function ShareCardDialog({
       theme: getTheme(colorTheme),
       version,
       verseNodeId: verseId,
+      questionNodeId: questionId,
+      overlayNodeId: mode === "map" ? overlayId : null,
     }),
-    [mode, format, mapName, nodes, edges, colorTheme, version, verseId],
+    [
+      mode,
+      format,
+      mapName,
+      nodes,
+      edges,
+      colorTheme,
+      version,
+      verseId,
+      questionId,
+      overlayId,
+    ],
   );
 
   // Re-compose the preview on every change. A card is a few hundred draw calls,
@@ -269,21 +308,74 @@ export default function ShareCardDialog({
                 <Label className="mt-5">WHICH PASSAGE</Label>
                 <div className="mt-2 flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
                   {verses.map((v) => (
-                    <button
+                    <Pill
                       key={v.id}
-                      type="button"
-                      onClick={() => setVerseId(v.id)}
-                      aria-pressed={v.id === verseId}
-                      className={`rounded-full border px-2.5 py-1 font-sans text-2xs transition-colors ${
-                        v.id === verseId
-                          ? "border-gold bg-gold/10 text-gold"
-                          : "border-rule text-ink-muted hover:border-gold hover:text-gold"
-                      }`}
+                      active={v.id === verseId}
+                      onClick={() => chooseVerse(v.id)}
                     >
                       {v.data.verseRef}
-                    </button>
+                    </Pill>
                   ))}
                 </div>
+              </>
+            )}
+
+            {mode === "verse" && questions.length > 0 && (
+              <>
+                <Label className="mt-5">HEADED BY</Label>
+                <div className="mt-2 flex max-h-36 flex-wrap gap-1.5 overflow-y-auto">
+                  <Pill
+                    active={questionId === null}
+                    onClick={() => setQuestionId(null)}
+                  >
+                    No question
+                  </Pill>
+                  {questions.map(({ node, linked }) => (
+                    <Pill
+                      key={node.id}
+                      active={node.id === questionId}
+                      onClick={() => setQuestionId(node.id)}
+                      title={nodeText(node)}
+                    >
+                      {linked ? "· " : ""}
+                      {shorten(nodeText(node), 30)}
+                    </Pill>
+                  ))}
+                </div>
+                <p className="mt-1.5 font-sans text-[10px] text-ink-muted/70">
+                  Questions joined to this passage are marked ·, but any
+                  question in the study can head the card.
+                </p>
+              </>
+            )}
+
+            {mode === "map" && overlays.length > 0 && (
+              <>
+                <Label className="mt-5">SET OVER THE MAP</Label>
+                <div className="mt-2 flex max-h-36 flex-wrap gap-1.5 overflow-y-auto">
+                  <Pill
+                    active={overlayId === null}
+                    onClick={() => setOverlayId(null)}
+                  >
+                    Nothing
+                  </Pill>
+                  {overlays.map((n) => (
+                    <Pill
+                      key={n.id}
+                      active={n.id === overlayId}
+                      onClick={() => setOverlayId(n.id)}
+                      title={nodeText(n)}
+                    >
+                      {n.type === "verse"
+                        ? n.data.verseRef
+                        : shorten(nodeText(n), 30)}
+                    </Pill>
+                  ))}
+                </div>
+                <p className="mt-1.5 font-sans text-[10px] text-ink-muted/70">
+                  One verse or question laid across the foot of the map — the
+                  line a scroller reads first.
+                </p>
               </>
             )}
 
@@ -387,6 +479,46 @@ function Label({
       {children}
     </p>
   );
+}
+
+/** A one-line choice in a wrapping row — passages, questions, overlays. */
+function Pill({
+  active,
+  onClick,
+  title,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      title={title}
+      className={`max-w-full truncate rounded-full border px-2.5 py-1 font-sans text-2xs transition-colors ${
+        active
+          ? "border-gold bg-gold/10 text-gold"
+          : "border-rule text-ink-muted hover:border-gold hover:text-gold"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** The typed body of a bubble — what a chip shows for a question or note. */
+function nodeText(node: HodosNode): string {
+  if (node.type === "verse") return node.data.verseRef;
+  return ((node.data as { content?: string }).content ?? "").trim();
+}
+
+function shorten(text: string, max: number): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  return flat.length > max ? `${flat.slice(0, max - 1).trimEnd()}…` : flat;
 }
 
 function Chip({
