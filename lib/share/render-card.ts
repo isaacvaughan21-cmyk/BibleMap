@@ -133,14 +133,26 @@ export async function shareCardBlob(input: ShareCardInput): Promise<Blob> {
   });
 }
 
+function slugify(text: string, max: number): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, max);
+}
+
 export function shareFilename(input: ShareCardInput): string {
-  const slug =
-    input.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 40) || "hodos-map";
-  return `${slug}-${input.format.id}.png`;
+  const title = slugify(input.title, 40) || "hodos-map";
+  // A batch is mostly one passage per file, so the reference belongs in the
+  // name — otherwise eight downloads differ only by their size suffix.
+  const verse = cardVerse(input);
+  const ref = verse?.type === "verse" ? slugify(verse.data.verseRef, 24) : "";
+  return [title, ref, input.format.id].filter(Boolean).join("-") + ".png";
+}
+
+/** The name a batch archive is saved under. */
+export function shareArchiveName(title: string): string {
+  return `${slugify(title, 40) || "hodos-map"}-cards.zip`;
 }
 
 /**

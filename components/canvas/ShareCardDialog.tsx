@@ -5,12 +5,13 @@ import { useCanvasStore } from "@/lib/store/canvas-store";
 import { getTheme } from "@/lib/themes";
 import type { VerseNodeType } from "@/lib/types";
 import { useFocusTrap } from "@/lib/use-focus-trap";
-import { SHARE_FORMATS, type ShareFormat } from "@/lib/share/formats";
+import { SHARE_FORMATS } from "@/lib/share/formats";
 import {
   defaultQuestionNodeId,
   pickVerseNodeId,
   questionOptions,
   renderShareCard,
+  shareArchiveName,
   shareCaption,
   shareCardBlob,
   shareFilename,
@@ -18,16 +19,22 @@ import {
   type ShareBackground,
   type ShareCardInput,
 } from "@/lib/share/render-card";
+import { createZip, uniqueName } from "@/lib/share/zip";
 import type { HodosNode } from "@/lib/types";
 
 /**
- * "Share as image" — compose the study into a card built for a feed.
+ * "Share as image" — compose the study into cards built for a feed.
  *
- * The card is a passage: one verse set large with the reader's own highlights,
+ * A card is a passage: one verse set large with the reader's own highlights,
  * headed by whichever question they want beside it. What changes is what sits
  * behind it — plain paper, or their map ghosted across the plate. Everything
  * is drawn from the map data rather than screenshotted, so the card is sharp
  * at every export size and carries none of the editing chrome.
+ *
+ * Passages and sizes both take several at once: a study's worth of cards, or
+ * one passage cut for every platform, comes out in a single pass. The batch is
+ * the product of the two — pick three passages and two sizes and you get six
+ * cards, which arrive as one archive rather than six download prompts.
  */
 export default function ShareCardDialog({
   open,
@@ -47,11 +54,12 @@ export default function ShareCardDialog({
   const version = useCanvasStore((s) => s.bibleVersion);
 
   const [background, setBackground] = useState<ShareBackground>("plain");
-  const [format, setFormat] = useState<ShareFormat>(SHARE_FORMATS[0]);
-  const [verseId, setVerseId] = useState<string | null>(null);
+  const [formatIds, setFormatIds] = useState<string[]>([SHARE_FORMATS[0].id]);
+  const [verseIds, setVerseIds] = useState<string[]>([]);
   const [questionId, setQuestionId] = useState<string | null>(null);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [flash, setFlash] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
   const [fontsReady, setFontsReady] = useState(false);
 
   const verses = useMemo(
@@ -62,29 +70,52 @@ export default function ShareCardDialog({
     [nodes],
   );
 
-  // Questions the passage could be headed by — the ones joined to it first,
-  // then the rest of the study, so any question can be paired with any verse.
+  // A question can only be chosen deliberately when there's one card's passage
+  // to choose it for; a batch gives each passage the question joined to it.
+  const soloVerseId = verseIds.length === 1 ? verseIds[0] : null;
   const questions = useMemo(
-    () => questionOptions(nodes, edges, verseId),
-    [nodes, edges, verseId],
+    () => questionOptions(nodes, edges, soloVerseId),
+    [nodes, edges, soloVerseId],
   );
 
-  /** Follow the verse: a new passage brings its own linked question with it. */
-  const chooseVerse = useCallback(
+  /** Toggle a passage in or out, never emptying the selection. */
+  const toggleVerse = useCallback(
     (id: string) => {
-      setVerseId(id);
-      setQuestionId(defaultQuestionNodeId(nodes, edges, id));
+      const next = verseIds.includes(id)
+        ? verseIds.filter((v) => v !== id)
+        : [...verseIds, id];
+      if (!next.length) return;
+      // Keep map order rather than click order, so the batch reads the way the
+      // study does.
+      const ordered = verses
+        .filter((v) => next.includes(v.id))
+        .map((v) => v.id);
+      setVerseIds(ordered);
+      if (ordered.length === 1) {
+        setQuestionId(defaultQuestionNodeId(nodes, edges, ordered[0]));
+      }
     },
-    [nodes, edges],
+    [verseIds, verses, nodes, edges],
   );
+
+  const toggleFormat = useCallback((id: string) => {
+    setFormatIds((prev) => {
+      const next = prev.includes(id)
+        ? prev.filter((f) => f !== id)
+        : [...prev, id];
+      if (!next.length) return prev;
+      return SHARE_FORMATS.filter((f) => next.includes(f.id)).map((f) => f.id);
+    });
+  }, []);
 
   // Opening picks up the reader's current selection; after that the dialog's
-  // own verse chips are in charge, so a background change can't move the card.
+  // own passage chips are in charge, so a background change can't move the card.
   useEffect(() => {
     if (!open) return;
     const id = pickVerseNodeId(nodes);
-    setVerseId(id);
+    setVerseIds(id ? [id] : []);
     setQuestionId(defaultQuestionNodeId(nodes, edges, id));
+    setPreviewIndex(0);
     setFlash(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -109,99 +140,165 @@ export default function ShareCardDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  const input: ShareCardInput = useMemo(
-    () => ({
-      background,
-      format,
-      title: mapName,
-      nodes,
-      edges,
-      theme: getTheme(colorTheme),
-      version,
-      verseNodeId: verseId,
-      questionNodeId: questionId,
-    }),
-    [
-      background,
-      format,
-      mapName,
-      nodes,
-      edges,
-      colorTheme,
-      version,
-      verseId,
-      questionId,
-    ],
-  );
+  /** Every card the current choices describe — passages crossed with sizes. */
+  const cards: ShareCardInput[] = useMemo(() => {
+    const formats = SHARE_FORMATS.filter((f) => formatIds.includes(f.id));
+    const theme = getTheme(colorTheme);
+    // A study with no passage still makes a card — of the map itself.
+    const subjects: (string | null)[] = verseIds.length ? verseIds : [null];
+    const out: ShareCardInput[] = [];
+    for (const verseNodeId of subjects) {
+      for (const format of formats) {
+        out.push({
+          background,
+          format,
+          title: mapName,
+          nodes,
+          edges,
+          theme,
+          version,
+          verseNodeId,
+          questionNodeId:
+            subjects.length === 1
+              ? questionId
+              : verseNodeId
+                ? defaultQuestionNodeId(nodes, edges, verseNodeId)
+                : null,
+        });
+      }
+    }
+    return out;
+  }, [
+    background,
+    formatIds,
+    verseIds,
+    questionId,
+    mapName,
+    nodes,
+    edges,
+    colorTheme,
+    version,
+  ]);
+
+  const index = Math.min(previewIndex, Math.max(0, cards.length - 1));
+  const card = cards[index];
+
+  useEffect(() => {
+    setPreviewIndex((i) => Math.min(i, Math.max(0, cards.length - 1)));
+  }, [cards.length]);
 
   // Re-compose the preview on every change. A card is a few hundred draw calls,
   // so this is cheap enough to run straight through without debouncing.
   useEffect(() => {
-    if (!open || !fontsReady || !canvasRef.current) return;
-    renderShareCard(canvasRef.current, input);
-  }, [open, fontsReady, input]);
+    if (!open || !fontsReady || !canvasRef.current || !card) return;
+    renderShareCard(canvasRef.current, card);
+  }, [open, fontsReady, card]);
 
   const say = useCallback((text: string) => {
     setFlash(text);
-    window.setTimeout(() => setFlash(null), 2200);
+    window.setTimeout(() => setFlash(null), 2600);
   }, []);
 
-  const withBlob = useCallback(
-    async (run: (blob: Blob) => Promise<void> | void) => {
-      setBusy(true);
+  /** Render the whole batch, reporting progress — a dozen cards isn't instant. */
+  const renderAll = useCallback(async (): Promise<
+    { name: string; blob: Blob }[]
+  > => {
+    const taken = new Set<string>();
+    const out: { name: string; blob: Blob }[] = [];
+    for (const [i, one] of cards.entries()) {
+      setBusy(
+        cards.length > 1 ? `Composing ${i + 1}/${cards.length}…` : "Composing…",
+      );
+      out.push({
+        name: uniqueName(shareFilename(one), taken),
+        blob: await shareCardBlob(one),
+      });
+    }
+    return out;
+  }, [cards]);
+
+  const run = useCallback(
+    async (job: () => Promise<void>) => {
+      setBusy("Composing…");
       try {
-        await run(await shareCardBlob(input));
+        await job();
       } catch {
-        say("Something went wrong composing the card.");
+        say("Something went wrong composing the cards.");
       } finally {
-        setBusy(false);
+        setBusy(null);
       }
     },
-    [input, say],
+    [say],
   );
 
+  const save = (blob: Blob, name: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const download = () =>
-    withBlob((blob) => {
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = shareFilename(input);
-      a.click();
-      URL.revokeObjectURL(url);
-      say("Saved to your downloads.");
+    run(async () => {
+      const files = await renderAll();
+      if (files.length === 1) {
+        save(files[0].blob, files[0].name);
+        say("Saved to your downloads.");
+        return;
+      }
+      const entries = await Promise.all(
+        files.map(async (f) => ({
+          name: f.name,
+          data: new Uint8Array(await f.blob.arrayBuffer()),
+        })),
+      );
+      save(createZip(entries), shareArchiveName(mapName));
+      say(`${files.length} cards saved as a zip.`);
     });
 
   const copyImage = () =>
-    withBlob(async (blob) => {
+    run(async () => {
+      if (!card) return;
       if (typeof ClipboardItem === "undefined" || !navigator.clipboard?.write) {
         say("This browser can't copy images — use Download instead.");
         return;
       }
       await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": blob }),
+        new ClipboardItem({ "image/png": await shareCardBlob(card) }),
       ]);
-      say("Card copied — paste it straight into your post.");
+      say(
+        cards.length > 1
+          ? "The shown card is copied — paste it into your post."
+          : "Card copied — paste it straight into your post.",
+      );
     });
 
   const shareNative = () =>
-    withBlob(async (blob) => {
-      const file = new File([blob], shareFilename(input), {
-        type: "image/png",
-      });
-      if (!navigator.canShare?.({ files: [file] })) {
+    run(async () => {
+      const rendered = await renderAll();
+      const files = rendered.map(
+        (f) => new File([f.blob], f.name, { type: "image/png" }),
+      );
+      if (!navigator.canShare?.({ files })) {
         say("Sharing isn't available here — try Download.");
         return;
       }
       try {
-        await navigator.share({ files: [file], text: shareCaption(input) });
+        await navigator.share({
+          files,
+          text: card ? shareCaption(card) : undefined,
+        });
       } catch {
         // A cancelled share sheet is not an error.
       }
     });
 
   const copyCaption = async () => {
+    if (!card) return;
     try {
-      await navigator.clipboard.writeText(shareCaption(input));
+      await navigator.clipboard.writeText(shareCaption(card));
       say("Caption copied.");
     } catch {
       say("Couldn't reach the clipboard.");
@@ -209,6 +306,8 @@ export default function ShareCardDialog({
   };
 
   if (!open) return null;
+
+  const many = cards.length > 1;
 
   return (
     <div
@@ -232,14 +331,16 @@ export default function ShareCardDialog({
         <header className="flex items-start justify-between gap-4 border-b border-rule/70 px-6 py-4">
           <div>
             <p className="font-sans text-2xs tracking-eyebrow text-gold">
-              SHARE AS IMAGE
+              SHARE AS {many ? "IMAGES" : "IMAGE"}
             </p>
             <p className="mt-1 font-serif text-md italic text-ink">
               {!verses.length
                 ? "Your study, framed"
-                : background === "map"
-                  ? "One passage, over your map"
-                  : "One passage, set large"}
+                : many
+                  ? `${cards.length} cards from this study`
+                  : background === "map"
+                    ? "One passage, over your map"
+                    : "One passage, set large"}
             </p>
           </div>
           <button
@@ -261,7 +362,7 @@ export default function ShareCardDialog({
 
         <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto md:grid-cols-[minmax(0,1fr)_310px]">
           {/* Preview */}
-          <div className="relative flex items-center justify-center bg-parchment-2 px-6 py-6">
+          <div className="relative flex flex-col items-center justify-center gap-3 bg-parchment-2 px-6 py-6">
             <div
               aria-hidden="true"
               className="dot-grid pointer-events-none absolute inset-0"
@@ -269,30 +370,80 @@ export default function ShareCardDialog({
             <canvas
               ref={canvasRef}
               role="img"
-              aria-label={`Preview of the ${format.name.toLowerCase()} share card`}
-              className={`relative max-h-[54vh] max-w-full rounded-lg shadow-xl shadow-ink/15 transition-opacity duration-300 ${
+              aria-label={`Preview of the ${card?.format.name.toLowerCase() ?? ""} share card`}
+              className={`relative max-h-[48vh] max-w-full rounded-lg shadow-xl shadow-ink/15 transition-opacity duration-300 ${
                 fontsReady ? "opacity-100" : "opacity-0"
               }`}
               style={{ height: "auto", width: "auto" }}
             />
+            {many && (
+              <div className="relative flex items-center gap-3">
+                <StepButton
+                  label="Previous card"
+                  onClick={() =>
+                    setPreviewIndex(
+                      (i) => (i - 1 + cards.length) % cards.length,
+                    )
+                  }
+                  path="M7.5 2.5 4 6l3.5 3.5"
+                />
+                <span className="font-sans text-2xs tabular-nums text-ink-muted">
+                  {index + 1} / {cards.length}
+                  <span className="ml-2 text-ink-muted/70">
+                    {card?.format.name}
+                  </span>
+                </span>
+                <StepButton
+                  label="Next card"
+                  onClick={() => setPreviewIndex((i) => (i + 1) % cards.length)}
+                  path="M4.5 2.5 8 6l-3.5 3.5"
+                />
+              </div>
+            )}
           </div>
 
           {/* Controls */}
           <div className="border-t border-rule/70 px-6 py-5 md:border-l md:border-t-0">
             {verses.length > 0 ? (
               <>
-                <Label>WHICH PASSAGE</Label>
+                <div className="flex items-baseline justify-between gap-2">
+                  <Label>
+                    {verses.length > 1 ? "WHICH PASSAGES" : "WHICH PASSAGE"}
+                  </Label>
+                  {verses.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setVerseIds(
+                          verseIds.length === verses.length
+                            ? [verses[0].id]
+                            : verses.map((v) => v.id),
+                        )
+                      }
+                      className="font-sans text-2xs text-gold transition-colors hover:text-ink"
+                    >
+                      {verseIds.length === verses.length
+                        ? "Just one"
+                        : "Select all"}
+                    </button>
+                  )}
+                </div>
                 <div className="mt-2 flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
                   {verses.map((v) => (
                     <Pill
                       key={v.id}
-                      active={v.id === verseId}
-                      onClick={() => chooseVerse(v.id)}
+                      active={verseIds.includes(v.id)}
+                      onClick={() => toggleVerse(v.id)}
                     >
                       {v.data.verseRef}
                     </Pill>
                   ))}
                 </div>
+                {verses.length > 1 && (
+                  <p className="mt-1.5 font-sans text-[10px] text-ink-muted/70">
+                    Pick several and you get a card for each.
+                  </p>
+                )}
               </>
             ) : (
               <p className="rounded-lg border border-dashed border-rule px-3 py-2 font-sans text-[11px] leading-relaxed text-ink-muted">
@@ -301,7 +452,7 @@ export default function ShareCardDialog({
               </p>
             )}
 
-            {questions.length > 0 && verses.length > 0 && (
+            {questions.length > 0 && soloVerseId && (
               <>
                 <Label className="mt-5">HEADED BY</Label>
                 <div className="mt-2 flex max-h-36 flex-wrap gap-1.5 overflow-y-auto">
@@ -330,6 +481,13 @@ export default function ShareCardDialog({
               </>
             )}
 
+            {verseIds.length > 1 && (
+              <p className="mt-4 font-sans text-[10px] leading-relaxed text-ink-muted/70">
+                Each card is headed by the question joined to its own passage.
+                Choose a single passage to set that yourself.
+              </p>
+            )}
+
             {/* Only meaningful behind a passage — with none placed, the card
                 already IS the map. */}
             {verses.length > 0 && (
@@ -352,48 +510,36 @@ export default function ShareCardDialog({
               </>
             )}
 
-            <Label className="mt-5">SIZE</Label>
+            <Label className="mt-5">SIZES</Label>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {SHARE_FORMATS.map((f) => (
-                <button
+                <Chip
                   key={f.id}
-                  type="button"
-                  onClick={() => setFormat(f)}
-                  aria-pressed={f.id === format.id}
-                  className={`rounded-lg border px-3 py-2 text-left transition-colors ${
-                    f.id === format.id
-                      ? "border-gold bg-gold/5"
-                      : "border-rule hover:border-gold/60"
-                  }`}
-                >
-                  <span
-                    className={`block font-sans text-xs ${
-                      f.id === format.id ? "text-gold" : "text-ink-soft"
-                    }`}
-                  >
-                    {f.name}
-                  </span>
-                  <span className="mt-0.5 block font-sans text-[10px] text-ink-muted">
-                    {f.hint}
-                  </span>
-                </button>
+                  active={formatIds.includes(f.id)}
+                  onClick={() => toggleFormat(f.id)}
+                  label={f.name}
+                  hint={f.hint}
+                />
               ))}
             </div>
+            <p className="mt-1.5 font-sans text-[10px] text-ink-muted/70">
+              Every size you pick is cut for each passage.
+            </p>
 
             <Label className="mt-5">CAPTION</Label>
             <p className="mt-2 max-h-24 overflow-y-auto whitespace-pre-line rounded-lg border border-rule bg-parchment-2 px-3 py-2 font-sans text-[11px] leading-relaxed text-ink-muted">
-              {shareCaption(input)}
+              {card ? shareCaption(card) : ""}
             </p>
             <button
               type="button"
               onClick={copyCaption}
               className="mt-2 font-sans text-2xs text-gold transition-colors hover:text-ink"
             >
-              Copy caption
+              Copy caption{many ? " for the shown card" : ""}
             </button>
 
             <p className="mt-5 font-sans text-[10px] leading-relaxed text-ink-muted/70">
-              The card follows your bubble theme. Handles, badges and selection
+              The cards follow your bubble theme. Handles, badges and selection
               glow are left off.
             </p>
           </div>
@@ -404,13 +550,13 @@ export default function ShareCardDialog({
             aria-live="polite"
             className="min-h-[1.1rem] font-sans text-2xs text-ink-muted"
           >
-            {flash ?? ""}
+            {busy ?? flash ?? ""}
           </p>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={shareNative}
-              disabled={busy}
+              disabled={!!busy}
               className="hidden rounded-full border border-rule px-4 py-2 font-sans text-xs text-ink-soft transition-colors hover:border-gold hover:text-gold disabled:opacity-50 sm:block"
             >
               Share…
@@ -418,7 +564,7 @@ export default function ShareCardDialog({
             <button
               type="button"
               onClick={copyImage}
-              disabled={busy}
+              disabled={!!busy}
               className="rounded-full border border-rule px-4 py-2 font-sans text-xs text-ink-soft transition-colors hover:border-gold hover:text-gold disabled:opacity-50"
             >
               Copy image
@@ -426,10 +572,14 @@ export default function ShareCardDialog({
             <button
               type="button"
               onClick={download}
-              disabled={busy}
+              disabled={!!busy}
               className="rounded-full bg-gold px-5 py-2 font-sans text-xs font-medium text-parchment shadow-md shadow-gold/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-ink disabled:opacity-50"
             >
-              {busy ? "Composing…" : "Download PNG"}
+              {busy
+                ? "Composing…"
+                : many
+                  ? `Download ${cards.length} PNGs`
+                  : "Download PNG"}
             </button>
           </div>
         </footer>
@@ -451,6 +601,37 @@ function Label({
     >
       {children}
     </p>
+  );
+}
+
+/** Preview paging arrow — same chrome as the canvas breadcrumb's back button. */
+function StepButton({
+  label,
+  onClick,
+  path,
+}: {
+  label: string;
+  onClick: () => void;
+  path: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="flex h-6 w-6 items-center justify-center rounded-full border border-rule bg-parchment text-ink-muted transition-colors hover:border-gold hover:text-gold"
+    >
+      <svg width="11" height="11" viewBox="0 0 12 12" aria-hidden="true">
+        <path
+          d={path}
+          stroke="currentColor"
+          strokeWidth="1.3"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </button>
   );
 }
 
