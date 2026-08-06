@@ -8,7 +8,6 @@ import { useFocusTrap } from "@/lib/use-focus-trap";
 import { SHARE_FORMATS, type ShareFormat } from "@/lib/share/formats";
 import {
   defaultQuestionNodeId,
-  overlayOptions,
   pickVerseNodeId,
   questionOptions,
   renderShareCard,
@@ -16,18 +15,19 @@ import {
   shareCardBlob,
   shareFilename,
   waitForFonts,
+  type ShareBackground,
   type ShareCardInput,
-  type ShareMode,
 } from "@/lib/share/render-card";
 import type { HodosNode } from "@/lib/types";
 
 /**
  * "Share as image" — compose the study into a card built for a feed.
  *
- * Two things to share: the whole map (the shape of a study) or one verse (the
- * passage, set large, with the reader's own highlights). Both are drawn from
- * the map data rather than screenshotted, so the card is sharp at every export
- * size and carries none of the editing chrome.
+ * The card is a passage: one verse set large with the reader's own highlights,
+ * headed by whichever question they want beside it. What changes is what sits
+ * behind it — plain paper, or their map ghosted across the plate. Everything
+ * is drawn from the map data rather than screenshotted, so the card is sharp
+ * at every export size and carries none of the editing chrome.
  */
 export default function ShareCardDialog({
   open,
@@ -46,11 +46,10 @@ export default function ShareCardDialog({
   const colorTheme = useCanvasStore((s) => s.colorTheme);
   const version = useCanvasStore((s) => s.bibleVersion);
 
-  const [mode, setMode] = useState<ShareMode>("map");
+  const [background, setBackground] = useState<ShareBackground>("plain");
   const [format, setFormat] = useState<ShareFormat>(SHARE_FORMATS[0]);
   const [verseId, setVerseId] = useState<string | null>(null);
   const [questionId, setQuestionId] = useState<string | null>(null);
-  const [overlayId, setOverlayId] = useState<string | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [fontsReady, setFontsReady] = useState(false);
@@ -69,7 +68,6 @@ export default function ShareCardDialog({
     () => questionOptions(nodes, edges, verseId),
     [nodes, edges, verseId],
   );
-  const overlays = useMemo(() => overlayOptions(nodes), [nodes]);
 
   /** Follow the verse: a new passage brings its own linked question with it. */
   const chooseVerse = useCallback(
@@ -87,7 +85,6 @@ export default function ShareCardDialog({
     const id = pickVerseNodeId(nodes);
     setVerseId(id);
     setQuestionId(defaultQuestionNodeId(nodes, edges, id));
-    setOverlayId(null);
     setFlash(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -114,7 +111,7 @@ export default function ShareCardDialog({
 
   const input: ShareCardInput = useMemo(
     () => ({
-      mode,
+      background,
       format,
       title: mapName,
       nodes,
@@ -123,10 +120,9 @@ export default function ShareCardDialog({
       version,
       verseNodeId: verseId,
       questionNodeId: questionId,
-      overlayNodeId: mode === "map" ? overlayId : null,
     }),
     [
-      mode,
+      background,
       format,
       mapName,
       nodes,
@@ -135,7 +131,6 @@ export default function ShareCardDialog({
       version,
       verseId,
       questionId,
-      overlayId,
     ],
   );
 
@@ -240,9 +235,11 @@ export default function ShareCardDialog({
               SHARE AS IMAGE
             </p>
             <p className="mt-1 font-serif text-md italic text-ink">
-              {mode === "verse"
-                ? "One passage, set large"
-                : "Your study, framed"}
+              {!verses.length
+                ? "Your study, framed"
+                : background === "map"
+                  ? "One passage, over your map"
+                  : "One passage, set large"}
             </p>
           </div>
           <button
@@ -282,30 +279,9 @@ export default function ShareCardDialog({
 
           {/* Controls */}
           <div className="border-t border-rule/70 px-6 py-5 md:border-l md:border-t-0">
-            <Label>WHAT TO SHARE</Label>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Chip
-                active={mode === "map"}
-                onClick={() => setMode("map")}
-                label="Whole map"
-                hint="Every bubble, fitted to frame"
-              />
-              <Chip
-                active={mode === "verse"}
-                onClick={() => setMode("verse")}
-                disabled={!verses.length}
-                label="One verse"
-                hint={
-                  verses.length
-                    ? "The passage, with your highlights"
-                    : "Add a verse bubble first"
-                }
-              />
-            </div>
-
-            {mode === "verse" && verses.length > 1 && (
+            {verses.length > 0 ? (
               <>
-                <Label className="mt-5">WHICH PASSAGE</Label>
+                <Label>WHICH PASSAGE</Label>
                 <div className="mt-2 flex max-h-24 flex-wrap gap-1.5 overflow-y-auto">
                   {verses.map((v) => (
                     <Pill
@@ -318,9 +294,14 @@ export default function ShareCardDialog({
                   ))}
                 </div>
               </>
+            ) : (
+              <p className="rounded-lg border border-dashed border-rule px-3 py-2 font-sans text-[11px] leading-relaxed text-ink-muted">
+                No passage placed yet — the card shows the map itself. Add a
+                verse bubble and it becomes the subject.
+              </p>
             )}
 
-            {mode === "verse" && questions.length > 0 && (
+            {questions.length > 0 && verses.length > 0 && (
               <>
                 <Label className="mt-5">HEADED BY</Label>
                 <div className="mt-2 flex max-h-36 flex-wrap gap-1.5 overflow-y-auto">
@@ -349,33 +330,25 @@ export default function ShareCardDialog({
               </>
             )}
 
-            {mode === "map" && overlays.length > 0 && (
+            {/* Only meaningful behind a passage — with none placed, the card
+                already IS the map. */}
+            {verses.length > 0 && (
               <>
-                <Label className="mt-5">SET OVER THE MAP</Label>
-                <div className="mt-2 flex max-h-36 flex-wrap gap-1.5 overflow-y-auto">
-                  <Pill
-                    active={overlayId === null}
-                    onClick={() => setOverlayId(null)}
-                  >
-                    Nothing
-                  </Pill>
-                  {overlays.map((n) => (
-                    <Pill
-                      key={n.id}
-                      active={n.id === overlayId}
-                      onClick={() => setOverlayId(n.id)}
-                      title={nodeText(n)}
-                    >
-                      {n.type === "verse"
-                        ? n.data.verseRef
-                        : shorten(nodeText(n), 30)}
-                    </Pill>
-                  ))}
+                <Label className="mt-5">BACKGROUND</Label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <Chip
+                    active={background === "plain"}
+                    onClick={() => setBackground("plain")}
+                    label="Plain"
+                    hint="Paper, and nothing else"
+                  />
+                  <Chip
+                    active={background === "map"}
+                    onClick={() => setBackground("map")}
+                    label="Your map"
+                    hint="The study, ghosted behind"
+                  />
                 </div>
-                <p className="mt-1.5 font-sans text-[10px] text-ink-muted/70">
-                  One verse or question laid across the foot of the map — the
-                  line a scroller reads first.
-                </p>
               </>
             )}
 

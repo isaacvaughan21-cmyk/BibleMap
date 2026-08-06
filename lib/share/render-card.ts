@@ -38,14 +38,20 @@ import {
  * Two things a canvas screenshot can't be: framed (a map is wide, a feed is
  * tall) and legible (a map at 1:1 doesn't fit, and shrunk it turns to mush).
  * So the card is laid out like a printed plate — masthead, plate, colophon —
- * and the map inside it is redrawn at whatever scale actually fits, dropping to
- * headline-only bubbles when full body copy would be too small to read.
+ * and everything on it is redrawn from the map data rather than captured.
+ *
+ * The card IS a passage: one verse set large, headed by a question if the
+ * reader picks one. The study behind it is a choice of backdrop — plain paper,
+ * or the map itself ghosted across the plate, which says "this came from
+ * somewhere" without asking anyone to read a mind map at thumbnail size. A
+ * study with no passage in it yet falls back to a card of the map alone.
  */
 
-export type ShareMode = "map" | "verse";
+/** What sits behind the passage. */
+export type ShareBackground = "plain" | "map";
 
 export type ShareCardInput = {
-  mode: ShareMode;
+  background: ShareBackground;
   format: ShareFormat;
   /** The map's name — the card's title. */
   title: string;
@@ -54,15 +60,13 @@ export type ShareCardInput = {
   theme: BubbleTheme;
   /** Bible version code — shown in the meta line and beside the verse. */
   version: string;
-  /** Which verse the "one verse" card is built around. */
+  /** Which verse the card is built around. */
   verseNodeId?: string | null;
   /**
-   * Which question is set above the passage on a "one verse" card. `null` is a
-   * deliberate "no question"; leaving it off falls back to the linked one.
+   * Which question is set above the passage. `null` is a deliberate "no
+   * question"; leaving it off falls back to the one joined to the verse.
    */
   questionNodeId?: string | null;
-  /** A verse or question laid over the "whole map" card. `null` for none. */
-  overlayNodeId?: string | null;
   /** Fixed date for the masthead; defaults to today. */
   date?: Date;
 };
@@ -76,8 +80,12 @@ const COMPACT_BELOW = 0.42;
 /** Below this, even headlines are too small — the map becomes a backdrop. */
 const GHOST_BELOW = 0.58;
 const SCENE_PAD = 28;
-/** How much of an overlay band the map yields to; the rest it lies over. */
-const OVERLAY_RESERVE = 0.86;
+/**
+ * A backdrop is texture, not reading matter. Held well below full size, a
+ * three-bubble study reads as a diagram behind the passage rather than as a
+ * second copy of it competing for the same words.
+ */
+const BACKDROP_MAX_SCALE = 0.6;
 
 /* ------------------------------------------------------------------ */
 /* Entry points                                                        */
@@ -179,15 +187,6 @@ export function defaultQuestionNodeId(
   return first?.node.id ?? null;
 }
 
-/** The bubbles that can be laid over a "whole map" card. */
-export function overlayOptions(nodes: HodosNode[]): HodosNode[] {
-  return nodes.filter((n) =>
-    n.type === "verse"
-      ? !!n.data.verseRef && !!n.data.verseText?.trim()
-      : n.type === "question" && !!bodyOf(n).trim(),
-  );
-}
-
 /** The question actually set above the passage, honouring an explicit "none". */
 function resolvedQuestion(
   input: ShareCardInput,
@@ -203,13 +202,15 @@ function resolvedQuestion(
   );
 }
 
-/** The bubble laid over a "whole map" card, if the reader picked one. */
-function overlayNode(input: ShareCardInput): HodosNode | null {
-  if (!input.overlayNodeId) return null;
-  return (
-    overlayOptions(input.nodes).find((n) => n.id === input.overlayNodeId) ??
-    null
-  );
+/**
+ * The passage the card is built around. A card is always a passage where the
+ * study has one; only an empty or verse-less map falls through to null.
+ */
+function cardVerse(input: ShareCardInput): HodosNode | null {
+  const chosen = input.nodes.find((n) => n.id === input.verseNodeId);
+  if (chosen?.type === "verse" && chosen.data.verseRef) return chosen;
+  const id = pickVerseNodeId(input.nodes);
+  return input.nodes.find((n) => n.id === id) ?? null;
 }
 
 /** A ready-to-paste post caption — the other half of actually sharing. */
@@ -221,18 +222,29 @@ export function shareCaption(input: ShareCardInput): string {
     ``,
     `#BibleStudy #Scripture #Hodos`,
   ];
+  const refs = verseRefs(input.nodes);
 
-  if (input.mode === "verse") {
-    const node = input.nodes.find((n) => n.id === input.verseNodeId);
-    const data =
-      node?.type === "verse" ? node.data : { verseRef: "", verseText: "" };
-    const question = node ? resolvedQuestion(input, node.id) : undefined;
+  const verse = cardVerse(input);
+  if (verse?.type === "verse") {
+    const question = resolvedQuestion(input, verse.id);
+    // On a map backdrop the card says where the passage came from, so the
+    // caption names the study too rather than quoting it out of nowhere.
+    const provenance =
+      input.background === "map" && input.title
+        ? [
+            `From “${input.title}” — ${refs.length} passage${
+              refs.length === 1 ? "" : "s"
+            } mapped.`,
+            ``,
+          ]
+        : [];
     return [
       ...(question ? [bodyOf(question).trim(), ``] : []),
-      `${data.verseRef} (${input.version})`,
+      `${verse.data.verseRef} (${input.version})`,
       ``,
-      `“${data.verseText}”`,
+      `“${verse.data.verseText}”`,
       ``,
+      ...provenance,
       ...tail,
       ...(credit ? ["", credit] : []),
     ]
@@ -240,27 +252,11 @@ export function shareCaption(input: ShareCardInput): string {
       .trim();
   }
 
-  // Whatever is set over the map is what a reader sees first, so the caption
-  // leads with it too rather than with the list of references.
-  const over = overlayNode(input);
-  const featured =
-    over?.type === "verse"
-      ? [
-          `“${over.data.verseText}”`,
-          `— ${over.data.verseRef} (${input.version})`,
-          ``,
-        ]
-      : over
-        ? [bodyOf(over).trim(), ``]
-        : [];
-
-  const refs = verseRefs(input.nodes);
   const shown = refs.slice(0, 8).join(" · ");
   const more = refs.length > 8 ? ` +${refs.length - 8} more` : "";
   return [
     `“${input.title}”`,
     ``,
-    ...featured,
     ...(refs.length ? [`${shown}${more}`, ``] : []),
     ...tail,
     ...(credit ? ["", credit] : []),
@@ -311,7 +307,18 @@ function paint(ctx: CanvasRenderingContext2D, input: ShareCardInput): void {
   const gap = U * 0.03;
   const topY = Math.round(MY * 1.12);
 
-  if (input.mode === "verse") {
+  const verse = cardVerse(input);
+  if (verse) {
+    // The map goes down first and full-bleed within the frame, so the passage
+    // is set ON the study rather than beside a picture of it.
+    if (input.background === "map") {
+      paintMapBackdrop(frame, input, {
+        x: MX,
+        y: topY,
+        w: W - MX * 2,
+        h: footerTop - topY,
+      });
+    }
     const bottom = paintVerseMasthead(frame, input, topY);
     const plate: Rect = {
       x: MX,
@@ -319,41 +326,30 @@ function paint(ctx: CanvasRenderingContext2D, input: ShareCardInput): void {
       w: W - MX * 2,
       h: footerTop - gap - (bottom + gap),
     };
-    if (plate.h > 0) paintVersePlate(frame, input, plate);
+    if (plate.h > 0) paintVersePlate(frame, input, plate, verse);
     return;
   }
 
-  // A wide map in a tall frame leaves the plate mostly empty, so the masthead
-  // and the map are placed as ONE block, optically centred in the band between
-  // the frame and the colophon — rather than the masthead pinned to the top
-  // with a lake of paper beneath it.
+  // No passage placed yet — the card falls back to the map itself. A wide map
+  // in a tall frame leaves the plate mostly empty, so the masthead and the map
+  // are placed as ONE block, optically centred in the band between the frame
+  // and the colophon, rather than the masthead pinned to the top with a lake
+  // of paper beneath it.
   const head = mapMasthead(frame, input);
   const band = footerTop - topY;
   const maxPlateH = band - head.height - gap * 2;
-
-  // An overlaid passage or question takes the card's lower third. The map is
-  // fitted into what's left plus a little, so the band lands ON the map's foot
-  // rather than beside it — a lower third, not a second panel. The overlap is
-  // small and lands inside the scrim's fade, so it grazes the map rather than
-  // slicing a bubble in half.
-  const over = overlayNode(input);
-  const overlay = over
-    ? overlayBlock(frame, input, over, maxPlateH * 0.55)
-    : null;
-  const sceneH = maxPlateH - (overlay ? overlay.height * OVERLAY_RESERVE : 0);
-
   const fit = fitMapScene(frame, input, {
     x: MX,
     y: 0,
     w: W - MX * 2,
-    h: sceneH,
+    h: maxPlateH,
   });
 
   // A study too large to set legibly becomes its own backdrop: the map is
   // ghosted across the plate and the passages it gathers are set over it, so
   // the card still says something to someone scrolling past.
   const ghost = !!fit && fit.scale < GHOST_BELOW;
-  const plateH = overlay || ghost ? maxPlateH : (fit?.height ?? maxPlateH);
+  const plateH = ghost ? maxPlateH : (fit?.height ?? maxPlateH);
   const contentH = head.height + gap * 2 + plateH;
   const start = topY + Math.max(0, (band - contentH) * 0.38);
   head.draw(start);
@@ -366,155 +362,29 @@ function paint(ctx: CanvasRenderingContext2D, input: ShareCardInput): void {
   };
   if (!fit) {
     paintEmptyPlate(frame, plate);
-    if (overlay) overlay.draw(plate);
     return;
   }
-  paintMapScene(
-    frame,
-    input,
-    fit,
-    { ...plate, h: plate.h - (overlay ? overlay.height * OVERLAY_RESERVE : 0) },
-    ghost ? 0.3 : overlay ? 0.82 : 1,
-  );
-  if (overlay) overlay.draw(plate);
-  else if (ghost) paintPassageIndex(frame, input, plate);
+  paintMapScene(frame, input, fit, plate, ghost ? 0.3 : 1);
+  if (ghost) paintPassageIndex(frame, input, plate);
 }
 
-/* --------------------------- map overlay -------------------------- */
-
-type Overlay = { height: number; draw: (plate: Rect) => void };
-
 /**
- * One bubble set over the map — the reader chooses the line they want a
- * scroller to actually read. Measured first and drawn second, like the
- * masthead, because the map has to be fitted around it.
+ * The study, ghosted across the plate — the card's wallpaper, not its subject.
  *
- * The scrim under the type is the theme's own paper faded up from nothing, so
- * the words hold even where a bubble sits beneath them and the map still shows
- * through at the band's top edge.
+ * One fixed opacity can't serve both ends: a small map sits near full size and
+ * needs holding right back, while a large one is already tiny and would vanish
+ * at the same value. So the wash answers to the fitted scale — the bigger the
+ * bubbles, the fainter they're drawn.
  */
-function overlayBlock(
+function paintMapBackdrop(
   frame: Frame,
   input: ShareCardInput,
-  node: HodosNode,
-  maxH: number,
-): Overlay {
-  const { ctx, fonts, U, theme, accent } = frame;
-  const verse = node.type === "verse" ? node : null;
-  const maxW = (frame.W - frame.MX * 2) * 0.84;
-
-  const eyebrowSize = Math.round(U * 0.0145);
-  const eyebrow = verse
-    ? verse.data.verseRef.toUpperCase()
-    : "A QUESTION FROM THIS STUDY";
-  const afterEyebrow = U * 0.03;
-  const padY = U * 0.032;
-
-  const runs = verse
-    ? toRuns(
-        verse.data.verseText,
-        verse.data.highlights,
-        verse.data.highlightColors,
-        (id) => getHighlighter(id)?.color ?? theme.highlight,
-      )
-    : null;
-
-  const markSize = Math.max(11, Math.round(U * 0.014));
-  const markBlock = verse ? markSize * 2.1 : 0;
-  const maxLines = verse ? 6 : 4;
-  const fixed = padY * 2 + eyebrowSize + afterEyebrow + markBlock;
-
-  // Set it as large as the band will take, stepping down rather than clipping.
-  let size = Math.round(U * 0.033);
-  let vLines: WrappedLine[] = [];
-  let qLines: string[] = [];
-  for (;;) {
-    ctx.font = font({ family: fonts.serif, size, italic: !verse });
-    if (runs) vLines = wrapRuns(ctx, runs, maxW, maxLines);
-    else qLines = wrapText(ctx, bodyOf(node), maxW, maxLines);
-    const count = runs ? vLines.length : qLines.length;
-    if (fixed + count * size * 1.4 <= maxH || size <= U * 0.017) break;
-    size -= 2;
-  }
-  const lineH = size * 1.4;
-  const count = runs ? vLines.length : qLines.length;
-  const height = Math.min(maxH, fixed + count * lineH);
-
-  return {
-    height,
-    draw: (plate) => {
-      const top = plate.y + plate.h - height;
-      const x = plate.x + plate.w / 2;
-      const fade = U * 0.075;
-      const paper = theme.background.base;
-
-      const g = ctx.createLinearGradient(0, top - fade, 0, plate.y + plate.h);
-      g.addColorStop(0, alpha(paper, 0));
-      g.addColorStop(
-        Math.min(0.999, (fade * 1.6) / (height + fade)),
-        alpha(paper, 0.94),
-      );
-      g.addColorStop(1, alpha(paper, 0.94));
-      ctx.fillStyle = g;
-      ctx.fillRect(plate.x, top - fade, plate.w, height + fade);
-
-      ctx.strokeStyle = alpha(accent, 0.45);
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x - U * 0.042, top);
-      ctx.lineTo(x + U * 0.042, top);
-      ctx.stroke();
-
-      let y = top + padY + eyebrowSize;
-      ctx.font = font({
-        family: verse ? fonts.mono : fonts.sans,
-        size: eyebrowSize,
-        weight: 500,
-      });
-      ctx.fillStyle = accent;
-      drawTracked(
-        ctx,
-        eyebrow,
-        x,
-        y,
-        eyebrowSize * (verse ? 0.14 : 0.22),
-        "center",
-      );
-      y += afterEyebrow;
-
-      ctx.font = font({ family: fonts.serif, size, italic: !verse });
-      if (runs) {
-        vLines.forEach((line, i) =>
-          drawRunLine(
-            ctx,
-            line,
-            x - line.width / 2,
-            y + lineH * (i + 0.78),
-            size,
-            INK,
-          ),
-        );
-        y += vLines.length * lineH;
-        ctx.font = font({ family: fonts.sans, size: markSize, weight: 500 });
-        ctx.fillStyle = alpha(INK_MUTED, 0.85);
-        drawTracked(
-          ctx,
-          input.version,
-          x,
-          y + markSize * 1.1,
-          markSize * 0.14,
-          "center",
-        );
-      } else {
-        ctx.fillStyle = alpha(INK_SOFT, 0.95);
-        ctx.textAlign = "center";
-        qLines.forEach((line, i) =>
-          ctx.fillText(line, x, y + lineH * (i + 0.8)),
-        );
-        ctx.textAlign = "left";
-      }
-    },
-  };
+  band: Rect,
+): void {
+  const fit = fitMapScene(frame, input, band, BACKDROP_MAX_SCALE);
+  if (!fit) return;
+  const wash = Math.min(0.38, Math.max(0.16, 0.11 / fit.scale));
+  paintMapScene(frame, input, fit, band, wash);
 }
 
 /** Passages named on the card when the map itself is only a backdrop. */
@@ -780,19 +650,20 @@ function fitMapScene(
   frame: Frame,
   input: ShareCardInput,
   plate: Rect,
+  maxScale = 1.55,
 ): MapFit | null {
   const nodes = input.nodes.filter(isRenderable);
   if (!nodes.length || plate.h <= 0) return null;
 
   const primaryId = nodes.reduce((a, b) => (a.id <= b.id ? a : b)).id;
   let scene = layoutScene(frame, nodes, "full", primaryId);
-  let scale = fitScale(scene.bounds, plate);
+  let scale = fitScale(scene.bounds, plate, maxScale);
 
   // Too small to read? Re-set the map with headline-only bubbles — a smaller
   // scene, which then fits at a larger scale. Keep whichever reads better.
   if (scale < COMPACT_BELOW) {
     const compact = layoutScene(frame, nodes, "compact", primaryId);
-    const compactScale = fitScale(compact.bounds, plate);
+    const compactScale = fitScale(compact.bounds, plate, maxScale);
     if (compactScale > scale) {
       scene = compact;
       scale = compactScale;
@@ -838,11 +709,11 @@ function paintMapScene(
   ctx.restore();
 }
 
-function fitScale(bounds: Rect, plate: Rect): number {
+function fitScale(bounds: Rect, plate: Rect, maxScale: number): number {
   const raw = Math.min(plate.w / bounds.w, plate.h / bounds.h);
   // A two-bubble map shouldn't blow up to poster type; a hundred-bubble one
   // shouldn't vanish. Both ends are clamped.
-  return Math.min(1.55, Math.max(0.1, raw));
+  return Math.min(maxScale, Math.max(0.1, raw));
 }
 
 function paintEmptyPlate(frame: Frame, plate: Rect): void {
@@ -864,10 +735,10 @@ function paintVersePlate(
   frame: Frame,
   input: ShareCardInput,
   plate: Rect,
+  node: HodosNode,
 ): void {
   const { ctx, fonts, U, theme, accent } = frame;
-  const node = input.nodes.find((n) => n.id === input.verseNodeId);
-  if (!node || node.type !== "verse") {
+  if (node.type !== "verse") {
     paintEmptyPlate(frame, plate);
     return;
   }
