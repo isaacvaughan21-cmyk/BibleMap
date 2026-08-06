@@ -24,6 +24,10 @@ export default function RightRail({
     <aside
       aria-label={askOpen ? "Ask Scripture panel" : "Study panel"}
       aria-hidden={!open}
+      // Stable hook for the guided tour, whose coach card steps aside for
+      // this panel — the aria-label changes with the mode, so it can't be
+      // the thing the tour selects on.
+      data-tour-panel="rail"
       className={`dive-dim absolute bottom-0 right-0 top-14 z-30 w-80 transform border-l border-rule/70 bg-parchment-2/85 backdrop-blur-md ${
         open
           ? "visible translate-x-0 [transition:transform_300ms_ease-out,visibility_0s]"

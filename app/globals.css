@@ -579,6 +579,19 @@
     box-shadow: 0 0 0 9px color-mix(in srgb, var(--gold) 0%, transparent);
   }
 }
+/* The coach card glides when it steps aside for a panel, and bows out
+   entirely while the reader is inside a picker or menu the tour asked them
+   to open — it must never be the thing standing in the way. */
+.tour-card {
+  transition:
+    left 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
+}
+/* Opacity only — the wrapper's transform is the -translate-x-1/2 that centres
+   the bottom card, and must not be overwritten to fade it out. */
+.tour-card-yield {
+  opacity: 0;
+}
 .tour-pop {
   animation: tour-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }

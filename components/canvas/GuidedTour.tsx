@@ -207,7 +207,16 @@ const STEPS: Step[] = [
   },
 ];
 
-export default function GuidedTour() {
+export default function GuidedTour({
+  yielding = false,
+}: {
+  /**
+   * True while a picker, context menu, or modal the reader is mid-way through
+   * is on screen. The coach card gets out of the way rather than competing
+   * with it — the tour asks for these gestures, so it must never block them.
+   */
+  yielding?: boolean;
+}) {
   const loaded = useCanvasStore((s) => s.loaded);
   const setTourActive = useCanvasStore((s) => s.setTourActive);
   const snap = useCanvasStore(useShallow(computeSnap));
@@ -318,12 +327,34 @@ export default function GuidedTour() {
     width: number;
     height: number;
   } | null>(null);
+  /**
+   * Left edge of the nearest right-hand panel the spotlit control can summon —
+   * the study rail, or the ··· dropdown. An anchored card slides left of it, so
+   * pointing AT a control never covers what the control opens. Both are always
+   * measurable: the rail sits translated off-screen (left === viewport width)
+   * when closed, and the dropdown is only in the DOM while open.
+   */
+  const [obstacleLeft, setObstacleLeft] = useState(Infinity);
   useEffect(() => {
-    if (!step?.target) {
-      setSpot(null);
-      return;
-    }
     const measure = () => {
+      let limit = Infinity;
+      const panels = [
+        document.querySelector('[data-tour-panel="rail"]'),
+        document.querySelector('[role="menu"][aria-label="Map options"]'),
+      ];
+      for (const el of panels) {
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        if (r.width > 0 && r.left < window.innerWidth && r.left < limit) {
+          limit = r.left;
+        }
+      }
+      setObstacleLeft(limit);
+
+      if (!step?.target) {
+        setSpot(null);
+        return;
+      }
       const el = document.querySelector(`[data-tour="${step.target}"]`);
       if (!el) {
         setSpot(null);
@@ -341,7 +372,7 @@ export default function GuidedTour() {
       );
     };
     measure();
-    const iv = setInterval(measure, 300);
+    const iv = setInterval(measure, 200);
     window.addEventListener("resize", measure);
     return () => {
       clearInterval(iv);
@@ -388,7 +419,7 @@ export default function GuidedTour() {
       type="button"
       onClick={() => finish(false, step.id)}
       aria-label="End the tour"
-      className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-parchment-2 hover:text-ink"
+      className="pointer-events-auto absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-parchment-2 hover:text-ink"
     >
       <svg width="9" height="9" viewBox="0 0 8 8" aria-hidden="true">
         <path
@@ -507,10 +538,12 @@ export default function GuidedTour() {
   const anchored = !!(step.kind === "spot" && spotBox);
   const viewportW = typeof window !== "undefined" ? window.innerWidth : 1280;
   const spotCenterX = spotBox ? spotBox.left + spotBox.width / 2 : 0;
+  // Centre under the target, then pull left of anything that panel opened.
+  const rightLimit = Math.min(viewportW - 12, obstacleLeft - 16);
   const cardLeft = spotBox
     ? Math.max(
         12,
-        Math.min(spotCenterX - cardWidth / 2, viewportW - cardWidth - 12),
+        Math.min(spotCenterX - cardWidth / 2, rightLimit - cardWidth),
       )
     : 0;
   const cardStyle: React.CSSProperties =
@@ -521,78 +554,85 @@ export default function GuidedTour() {
           width: cardWidth,
         }
       : {};
+  // Once the card has stepped aside, the notch can no longer reach its target.
+  const notchX = spotCenterX - cardLeft - 5;
+  const showNotch = anchored && notchX >= 20 && notchX <= cardWidth - 20;
 
   return (
     <>
       {spotlight}
+      {/* The card never eats a canvas gesture: the surface is click-through and
+          only its own controls take pointer events. A double-click that lands
+          on it still reaches the parchment and creates a bubble. */}
       <div
         role="dialog"
         aria-label={step.title}
-        className={`dive-dim absolute z-[62] ${
+        className={`dive-dim tour-card pointer-events-none absolute z-[62] ${
           anchored
-            ? "animate-fade-up"
-            : "bottom-6 left-1/2 w-[min(420px,calc(100%-2rem))] -translate-x-1/2 animate-fade-up"
-        }`}
+            ? ""
+            : "bottom-6 left-1/2 w-[min(420px,calc(100%-2rem))] -translate-x-1/2"
+        } ${yielding ? "tour-card-yield" : ""}`}
         style={cardStyle}
       >
-        {/* Notch pointing up at the spotlit control */}
-        {anchored && (
-          <span
-            aria-hidden="true"
-            className="absolute -top-[5px] h-2.5 w-2.5 rotate-45 border-l border-t border-rule bg-parchment"
-            style={{
-              left: Math.min(
-                Math.max(spotCenterX - cardLeft - 5, 24),
-                cardWidth - 24,
-              ),
-            }}
-          />
-        )}
-        <div className="relative rounded-2xl border border-rule bg-parchment/95 px-6 py-5 shadow-xl shadow-ink/10 backdrop-blur-md">
-          {exitButton}
-          <p className="font-sans text-2xs tracking-eyebrow text-gold">
-            {step.eyebrow}
-          </p>
-          {flash ? (
-            <div className="mt-2 min-h-[3.5rem]">{checkFlash}</div>
-          ) : (
-            <div className="mt-2 min-h-[3.5rem]">
-              <h2 className="font-serif text-md leading-snug text-ink">
-                {step.title}
-              </h2>
-              <p className="mt-1.5 font-sans text-xs leading-relaxed text-ink-muted">
-                {step.body}
-              </p>
-            </div>
+        {/* The entrance animation lives on its own element: `fade-up` fills
+            `both`, so leaving it on the positioned wrapper would pin that
+            wrapper's opacity and transform forever — clobbering both the
+            yield and the -translate-x-1/2 centring. */}
+        <div className="relative animate-fade-up">
+          {/* Notch pointing up at the spotlit control */}
+          {showNotch && (
+            <span
+              aria-hidden="true"
+              className="absolute -top-[5px] h-2.5 w-2.5 rotate-45 border-l border-t border-rule bg-parchment"
+              style={{ left: notchX }}
+            />
           )}
-          <div className="mt-4 flex items-center justify-between">
-            {progress}
-            {step.cta ? (
-              <button
-                type="button"
-                onClick={next}
-                autoFocus
-                className="group rounded-full bg-gold px-4 py-1.5 font-sans text-xs font-medium text-parchment shadow-sm shadow-gold/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-ink"
-              >
-                {step.cta}{" "}
-                <span
-                  aria-hidden="true"
-                  className="inline-block transition-transform duration-300 group-hover:translate-x-0.5"
-                >
-                  →
-                </span>
-              </button>
+          <div className="relative rounded-2xl border border-rule bg-parchment/95 px-6 py-5 shadow-xl shadow-ink/10 backdrop-blur-md">
+            {exitButton}
+            <p className="font-sans text-2xs tracking-eyebrow text-gold">
+              {step.eyebrow}
+            </p>
+            {flash ? (
+              <div className="mt-2 min-h-[3.5rem]">{checkFlash}</div>
             ) : (
-              !flash && (
+              <div className="mt-2 min-h-[3.5rem]">
+                <h2 className="font-serif text-md leading-snug text-ink">
+                  {step.title}
+                </h2>
+                <p className="mt-1.5 font-sans text-xs leading-relaxed text-ink-muted">
+                  {step.body}
+                </p>
+              </div>
+            )}
+            <div className="mt-4 flex items-center justify-between">
+              {progress}
+              {step.cta ? (
                 <button
                   type="button"
                   onClick={next}
-                  className="font-sans text-2xs text-ink-muted underline-offset-2 transition-colors hover:text-ink hover:underline"
+                  autoFocus
+                  className="group pointer-events-auto rounded-full bg-gold px-4 py-1.5 font-sans text-xs font-medium text-parchment shadow-sm shadow-gold/25 transition-all duration-300 hover:-translate-y-0.5 hover:bg-ink"
                 >
-                  Skip this step
+                  {step.cta}{" "}
+                  <span
+                    aria-hidden="true"
+                    className="inline-block transition-transform duration-300 group-hover:translate-x-0.5"
+                  >
+                    →
+                  </span>
                 </button>
-              )
-            )}
+              ) : (
+                !flash && (
+                  <button
+                    type="button"
+                    onClick={next}
+                    className="pointer-events-auto font-sans text-2xs text-ink-muted underline-offset-2 transition-colors hover:text-ink hover:underline"
+                  >
+                    Skip this step
+                  </button>
+                )
+              )}
+            </div>
           </div>
         </div>
       </div>

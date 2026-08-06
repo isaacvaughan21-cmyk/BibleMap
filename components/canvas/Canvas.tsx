@@ -736,8 +736,24 @@ function CanvasInner() {
           mounted underneath so the camera can pull back into it. */}
       <Library />
 
-      {/* Guided tour — auto-runs once for new readers, replayable from ··· */}
-      {loaded && !loadError && <GuidedTour />}
+      {/* Guided tour — auto-runs once for new readers, replayable from ···.
+          It yields whenever the reader is inside one of the very things it
+          asked them to open, so the coach card can't block the action. */}
+      {loaded && !loadError && (
+        <GuidedTour
+          yielding={
+            !!picker ||
+            !!menu ||
+            !!versePickerNodeId ||
+            !!importPending ||
+            paletteOpen ||
+            helpOpen ||
+            dailyOpen ||
+            shareOpen ||
+            feedbackOpen
+          }
+        />
+      )}
 
       {/* v0 beta sign-up gate — first visit only */}
       <WelcomeGate />
