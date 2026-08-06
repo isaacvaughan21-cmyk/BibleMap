@@ -11,6 +11,7 @@ import { BIBLE_VERSIONS } from "@/lib/versions";
 import { BUBBLE_THEMES } from "@/lib/themes";
 import { cloudSignOut, useAuthUser } from "@/lib/use-auth";
 import GroupsMenu from "./GroupsMenu";
+import { START_TOUR_EVENT } from "./GuidedTour";
 
 type TopBarProps = {
   railOpen: boolean;
@@ -91,6 +92,7 @@ export default function TopBar({
 
           <button
             type="button"
+            data-tour="ask"
             onClick={onAsk}
             aria-pressed={askOpen}
             aria-label={
@@ -244,6 +246,7 @@ function OverflowMenu({
     <div ref={rootRef} className="relative">
       <button
         type="button"
+        data-tour="menu"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-label="More options"
@@ -491,6 +494,14 @@ function OverflowMenu({
             <div className="mx-4 my-1.5 h-px bg-rule/70" aria-hidden="true" />
             <MenuButton
               onClick={() => {
+                window.dispatchEvent(new Event(START_TOUR_EVENT));
+                setOpen(false);
+              }}
+            >
+              Replay the guided tour
+            </MenuButton>
+            <MenuButton
+              onClick={() => {
                 onHelp();
                 setOpen(false);
               }}
@@ -556,6 +567,7 @@ function Breadcrumb() {
     >
       <button
         type="button"
+        data-tour="back"
         onClick={() => requestGoTo(last - 1)}
         aria-label="Back one level"
         className="mr-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-rule text-ink-muted transition-colors hover:border-gold hover:text-gold"

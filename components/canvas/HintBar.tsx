@@ -11,13 +11,15 @@ export default function HintBar() {
   const hintsDismissed = useCanvasStore((s) => s.hintsDismissed);
   const dismissHints = useCanvasStore((s) => s.dismissHints);
   const loaded = useCanvasStore((s) => s.loaded);
+  // The guided tour says all of this and more — one voice at a time.
+  const tourActive = useCanvasStore((s) => s.tourActive);
   const [isMac, setIsMac] = useState(false);
 
   useEffect(() => {
     setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
   }, []);
 
-  if (!loaded || hintsDismissed) return null;
+  if (!loaded || hintsDismissed || tourActive) return null;
 
   return (
     <div className="dive-dim pointer-events-none absolute bottom-5 left-4 z-30 animate-fade-up">

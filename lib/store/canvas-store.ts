@@ -133,6 +133,9 @@ export interface CanvasStore {
   /** First-run hint bar — shown until dismissed once. */
   hintsDismissed: boolean;
   dismissHints(): void;
+  /** True while the guided tour is walking — quieter chrome yields to it. */
+  tourActive: boolean;
+  setTourActive(v: boolean): void;
   /** Clone a bubble (offset, selected). Returns the new id, or null. */
   duplicateNode(id: string): string | null;
   /**
@@ -1222,6 +1225,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     mapName: DEFAULT_MAP_NAME,
     lastDeletion: null,
     hintsDismissed: true, // assume dismissed until load() learns otherwise
+    tourActive: false,
     currentMapId: ROOT_MAP_ID,
     mapPath: [{ id: ROOT_MAP_ID, label: DEFAULT_MAP_NAME }],
     childMapIds: new Set<string>(),
@@ -1649,6 +1653,10 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     dismissHints() {
       set({ hintsDismissed: true });
       if (!ephemeralMode) void repo.setMeta("hintsDismissed", true);
+    },
+
+    setTourActive(v) {
+      set({ tourActive: v });
     },
 
     duplicateNode(id) {

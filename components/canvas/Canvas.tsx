@@ -41,6 +41,7 @@ import CreatePicker from "./CreatePicker";
 import EmptyState from "./EmptyState";
 import FeedbackWidget from "./FeedbackWidget";
 import HintBar from "./HintBar";
+import GuidedTour from "./GuidedTour";
 import HelpOverlay from "./HelpOverlay";
 import ImportDialog from "./ImportDialog";
 import ShareCardDialog from "./ShareCardDialog";
@@ -734,6 +735,9 @@ function CanvasInner() {
       {/* One zoom level up: the shelves. Renders over the canvas, which stays
           mounted underneath so the camera can pull back into it. */}
       <Library />
+
+      {/* Guided tour — auto-runs once for new readers, replayable from ··· */}
+      {loaded && !loadError && <GuidedTour />}
 
       {/* v0 beta sign-up gate — first visit only */}
       <WelcomeGate />

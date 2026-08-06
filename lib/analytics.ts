@@ -32,7 +32,10 @@ export type AnalyticsEvent =
   | "library_opened"
   | "library_search"
   | "canvas_shelved"
-  | "canvas_archived";
+  | "canvas_archived"
+  | "tour_start"
+  | "tour_complete"
+  | "tour_skip";
 
 export function track(
   name: AnalyticsEvent,

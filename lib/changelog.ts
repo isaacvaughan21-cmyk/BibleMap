@@ -18,6 +18,17 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
+    version: "0.13.0",
+    date: "2026-08-06",
+    title: "A one-minute walk",
+    changes: [
+      "New here? Hodos now walks you through it — a short guided tour that has you build a real map as you go, rather than watching someone else’s.",
+      "It follows you: ask your first question, set a verse beside it, draw the line between them, dive into a bubble and rise back out — each step marks itself done the moment you do it, so nothing is explained twice.",
+      "Along the way it points out Ask Scripture and the ··· menu, then leaves you on your own map with everything you made still there.",
+      "You can leave at any point, and replay the whole walk whenever you like from ··· → “Replay the guided tour”.",
+    ],
+  },
+  {
     version: "0.12.0",
     date: "2026-08-03",
     title: "Your library",

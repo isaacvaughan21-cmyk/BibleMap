@@ -555,6 +555,44 @@
   }
 }
 
+/* Guided tour — the spotlight is a cutout: the veil is one huge box-shadow
+   around the hole, so the spotlit control stays live and the hole glides
+   between targets. The halo breathes over it; the check pops in when a
+   step's action lands. */
+.tour-spot {
+  box-shadow: 0 0 0 9999px color-mix(in srgb, var(--ink) 32%, transparent);
+  transition:
+    top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tour-halo {
+  animation: tour-halo 2.2s ease-in-out infinite;
+}
+@keyframes tour-halo {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--gold) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 9px color-mix(in srgb, var(--gold) 0%, transparent);
+  }
+}
+.tour-pop {
+  animation: tour-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes tour-pop {
+  from {
+    transform: scale(0.75);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 /* The Library is one zoom level ABOVE the root canvas, so it behaves like the
    dive: rising to it, the shelves come toward you out of the distance; leaving
    it, they rush past as the canvas opens up. Like the dive, this always plays —
