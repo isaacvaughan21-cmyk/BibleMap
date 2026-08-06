@@ -19,9 +19,18 @@ import {
   fetchGroupContent,
   joinGroupByCode,
   leaveGroup as leaveGroupRpc,
+  listGroupCanvases,
   openGroupChannel,
   pushGroupRows,
+  renameGroupCanvasRow,
+  renameGroupRpc,
+  shareCanvasRow,
+  subscribeGroupCanvases,
+  unshareCanvasRow,
+  unsubscribeGroupCanvases,
+  listMyGroups,
   type EditLock,
+  type GroupCanvasRow,
   type GroupMemberMeta,
   type GroupRow,
   type RemoteCursor,
@@ -208,8 +217,15 @@ export interface CanvasStore {
    * pull back into it and grow back out of it.
    */
   libraryOpen: boolean;
-  openLibrary(): void;
+  /** Open the Library, optionally landing on a group's shelf of shared studies. */
+  openLibrary(groupId?: string): void;
   closeLibrary(): void;
+  /**
+   * The group the Library should open on, if any — set when arriving from the
+   * group menu, cleared once the Library has read it.
+   */
+  libraryGroupFocus: string | null;
+  clearLibraryGroupFocus(): void;
   /** Rename any canvas, in view or not. */
   renameCanvas(id: string, name: string): void;
   /** Move a canvas onto a shelf, or off every shelf with null. */
@@ -261,10 +277,15 @@ export interface CanvasStore {
 
   /* ---- Group map sharing (live collaboration) ---- */
   /**
-   * The live group session, when the canvas on screen is a shared group canvas
-   * (its id IS the group id). Null in ordinary solo canvases.
+   * The live session, when the canvas on screen is one a group shares. Null in
+   * ordinary solo canvases.
    */
   groupSession: GroupSession | null;
+  /**
+   * Every group this reader belongs to — the "My groups" section of the
+   * Library. Cloud truth, refreshed by `refreshGroups`; empty when signed out.
+   */
+  myGroups: GroupRow[];
   /** Members currently connected to the active group channel (incl. self). */
   groupMembersOnline: GroupMemberMeta[];
   /** Other members' live cursors, keyed by user id (flow coordinates). */
@@ -274,15 +295,36 @@ export interface CanvasStore {
    * lock. While a lock is held, this client can't open that bubble's editor.
    */
   remoteLocks: Record<string, EditLock>;
-  /** Create a group, register its shared canvas locally, and slide to it. */
+  /** Create a named group with a first shared study, and show it. */
   createGroup(name: string): Promise<GroupRow | null>;
-  /** Join a group by invite code; registers + opens its shared canvas. */
+  /** Join a group by invite code; pulls its shared studies into the Library. */
   joinGroup(
     code: string,
   ): Promise<{ group: GroupRow | null; error: string | null }>;
-  /** Register (if needed) and slide to a group's shared canvas. */
-  openGroup(group: GroupRow): Promise<void>;
-  /** Leave a group — drop membership and remove the local shared canvas. */
+  /** Rename a group. Any member may. */
+  renameGroup(groupId: string, name: string): Promise<void>;
+  /**
+   * Re-read my groups and the studies they share, registering any study a
+   * member has added and pruning any that left. Safe to call often.
+   */
+  refreshGroups(): Promise<void>;
+  /** Start a NEW shared study in a group. Returns its canvas id. */
+  createGroupCanvas(groupId: string, name?: string): Promise<string | null>;
+  /**
+   * Share one of my own studies with a group — it stays mine (and stays on my
+   * shelves), and everyone in the group gets it live. Returns the canvas id,
+   * which may differ from the one passed if a legacy canvas had to be re-keyed.
+   */
+  shareCanvasWithGroup(
+    canvasId: string,
+    groupId: string,
+  ): Promise<string | null>;
+  /** Take a study back out of its group. My own copy survives; others' don't. */
+  unshareCanvas(canvasId: string): Promise<void>;
+  /**
+   * Leave a group — drop membership, remove the studies that belonged to the
+   * group, and keep the ones I brought in.
+   */
   leaveGroup(groupId: string): Promise<void>;
   /** Broadcast the local cursor to peers (throttle at the call site). */
   publishCursor(x: number, y: number): void;
@@ -294,21 +336,32 @@ export interface CanvasStore {
   refreshGroupSession(): Promise<void>;
 }
 
-/** A live shared-canvas session. */
+/** A live shared-canvas session — one group, one of its studies. */
 export type GroupSession = {
   groupId: string;
+  canvasId: string;
   inviteCode: string;
-  name: string;
+  /** The group's name — the room. */
+  groupName: string;
+  /** This study's name — the map on the table. */
+  canvasName: string;
   role: string;
 };
 
-/** Local record of a group whose shared canvas lives in the registry. */
+/**
+ * Local record of a shared canvas: which group it belongs to, and enough of
+ * that group to render the session badge before any network call returns.
+ */
 type GroupCanvasInfo = {
+  canvasId: string;
   groupId: string;
   inviteCode: string;
-  name: string;
+  groupName: string;
   role: string;
 };
+
+/** The shape persisted under meta["groups"], keyed by canvas id. */
+type StoredGroupCanvas = Omit<GroupCanvasInfo, "canvasId">;
 
 export { DEFAULT_MAP_NAME };
 
@@ -411,15 +464,18 @@ let activeMapId: string = ROOT_MAP_ID;
 let ephemeralMode = false;
 
 /**
- * The group whose shared canvas is currently on screen (its id === the group
- * id), or null in a solo canvas. Set on entering a group session; drives the
- * flush mirror. Kept at module scope so `flush()` can read it without a store
- * round-trip.
+ * The group whose shared canvas is currently on screen, or null in a solo
+ * canvas — plus which of that group's studies it is. Set on entering a group
+ * session; drives the flush mirror. Kept at module scope so `flush()` can read
+ * it without a store round-trip.
  */
 let activeGroupId: string | null = null;
+let activeGroupCanvasId: string | null = null;
 /** Presence identity for the active session (self), or null when solo. */
 let sessionMe: GroupMemberMeta | null = null;
-/** Registry of group-backed canvases (canvasId === groupId → its details). */
+/** True once the standing watch on every group's canvas list is running. */
+let watchingGroupCanvases = false;
+/** Registry of group-backed canvases, keyed by canvas id. */
 const groupByCanvasId = new Map<string, GroupCanvasInfo>();
 
 function buildSynthetic(nodeCount: number, edgeCount: number) {
@@ -623,11 +679,12 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       // Mirror the very same rows to the group tables when the canvas on
       // screen is a shared one. Aligning the echo clock (updatedAtById) to the
       // pushed rows' timestamps lets applyRemoteRows filter our own echoes.
-      if (activeGroupId) {
+      if (activeGroupId && activeGroupCanvasId) {
         for (const r of nodeRows) updatedAtById.set(r.id, r.updatedAt);
         for (const r of edgeRows) updatedAtById.set(r.id, r.updatedAt);
         void pushGroupRows(
           activeGroupId,
+          activeGroupCanvasId,
           nodeRows,
           edgeRows,
           delNodes,
@@ -769,6 +826,73 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       for (const e of edges) edgeIds.push(e.id);
     }
     return { nodeIds, edgeIds };
+  }
+
+  /**
+   * Every live row of a canvas — the root map and every map nested inside it.
+   * What a first share has to hand the group.
+   */
+  async function collectCanvasRows(
+    rootId: string,
+  ): Promise<{ nodes: DbNode[]; edges: DbEdge[] }> {
+    const seen = new Set<string>();
+    const queue = [rootId];
+    const nodes: DbNode[] = [];
+    const edges: DbEdge[] = [];
+    while (queue.length) {
+      const mapId = queue.shift() as string;
+      if (seen.has(mapId)) continue;
+      seen.add(mapId);
+      const live = await repo.loadLive(mapId);
+      for (const n of live.nodes) {
+        nodes.push(n);
+        queue.push(n.id);
+      }
+      edges.push(...live.edges);
+    }
+    return { nodes, edges };
+  }
+
+  /**
+   * Give a canvas a new id, rewriting the mapId of every bubble on its root
+   * map. Only ever needed for the very first canvas a reader is given, whose
+   * id is the literal `root` — a name every OTHER reader's first canvas also
+   * has, so sharing it as-is would collide on their machine. Bubble ids and
+   * nested maps are uuidv7 and already unique, so nothing else has to move.
+   */
+  async function rekeyCanvas(oldId: string, newId: string) {
+    await flushPending();
+    const now = Date.now();
+    const { nodes, edges } = await repo.loadLive(oldId);
+    if (nodes.length)
+      await repo.upsertNodes(
+        nodes.map((n) => ({ ...n, mapId: newId, updatedAt: now })),
+      );
+    if (edges.length)
+      await repo.upsertEdges(
+        edges.map((e) => ({ ...e, mapId: newId, updatedAt: now })),
+      );
+    for (const n of nodes) mapIdById.set(n.id, newId);
+    for (const e of edges) mapIdById.set(e.id, newId);
+
+    persistCanvases(
+      get().canvases.map((c) => (c.id === oldId ? { ...c, id: newId } : c)),
+    );
+
+    if (get().activeCanvasId === oldId) {
+      const atRoot = get().currentMapId === oldId;
+      if (atRoot) activeMapId = newId;
+      set({
+        activeCanvasId: newId,
+        ...(atRoot ? { currentMapId: newId } : {}),
+        // The root crumb is the canvas itself, however deep the reader is.
+        mapPath: get().mapPath.map((c, i) =>
+          i === 0 ? { ...c, id: newId } : c,
+        ),
+      });
+      await repo.setMeta("activeCanvas", newId);
+    }
+    await writeSnapshot();
   }
 
   /** Resolve the anchor (self-mirror) bubble of a map; null = none. */
@@ -1060,24 +1184,29 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       color: colorForUser(user.id),
     };
     activeGroupId = info.groupId;
+    activeGroupCanvasId = info.canvasId;
     sessionMe = me;
     set({
       groupSession: {
         groupId: info.groupId,
+        canvasId: info.canvasId,
         inviteCode: info.inviteCode,
-        name: info.name,
+        groupName: info.groupName,
+        canvasName:
+          get().canvases.find((c) => c.id === info.canvasId)?.name ??
+          DEFAULT_MAP_NAME,
         role: info.role,
       },
       groupMembersOnline: [me],
       remoteCursors: {},
     });
     try {
-      const { nodes, edges } = await fetchGroupContent(info.groupId);
+      const { nodes, edges } = await fetchGroupContent(info.canvasId);
       await applyRemoteRows(nodes, edges);
     } catch (err) {
       console.error("hodos: group seed failed", err);
     }
-    openGroupChannel(info.groupId, me, {
+    openGroupChannel(info.groupId, info.canvasId, me, {
       onRows: (n, e) => void applyRemoteRows(n, e),
       onPresence: (members) => {
         // Drop cursors + edit locks held by anyone who has left, so a peer
@@ -1107,6 +1236,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     if (get().editingNodeId) broadcastEditLock(get().editingNodeId!, false);
     closeGroupChannel();
     activeGroupId = null;
+    activeGroupCanvasId = null;
     sessionMe = null;
     set({
       groupSession: null,
@@ -1120,7 +1250,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
   async function syncGroupSessionForCanvas(canvasId: string) {
     const info = groupByCanvasId.get(canvasId);
     if (info) {
-      if (activeGroupId !== info.groupId) {
+      if (activeGroupCanvasId !== info.canvasId) {
         exitGroupSession();
         await enterGroupSession(info);
       }
@@ -1129,41 +1259,78 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     }
   }
 
-  /** Register a group's shared canvas in the local registry + meta. */
-  async function registerGroupCanvas(g: GroupRow) {
-    const info: GroupCanvasInfo = {
-      groupId: g.id,
-      inviteCode: g.invite_code,
-      name: g.name,
-      role: g.role ?? "member",
-    };
-    groupByCanvasId.set(g.id, info);
-    const stored =
-      (await repo.getMeta<Record<string, Omit<GroupCanvasInfo, "groupId">>>(
-        "groups",
-      )) ?? {};
-    stored[g.id] = {
-      inviteCode: info.inviteCode,
-      name: info.name,
-      role: info.role,
-    };
+  /** Write the whole group-canvas registry to IndexedDB. */
+  async function persistGroupRegistry() {
+    const stored: Record<string, StoredGroupCanvas> = {};
+    for (const [canvasId, info] of groupByCanvasId) {
+      stored[canvasId] = {
+        groupId: info.groupId,
+        inviteCode: info.inviteCode,
+        groupName: info.groupName,
+        role: info.role,
+      };
+    }
     await repo.setMeta("groups", stored);
+  }
 
-    if (!get().canvases.some((c) => c.id === g.id)) {
+  /**
+   * Register one of a group's shared studies locally: remember which group it
+   * belongs to, and put it in the canvas registry so it has a card, a name and
+   * a place in the Library.
+   */
+  async function registerGroupCanvas(
+    group: GroupRow,
+    canvasId: string,
+    canvasName: string,
+    opts: { sharedByMe?: boolean } = {},
+  ) {
+    const info: GroupCanvasInfo = {
+      canvasId,
+      groupId: group.id,
+      inviteCode: group.invite_code,
+      groupName: group.name,
+      role: group.role ?? "member",
+    };
+    groupByCanvasId.set(canvasId, info);
+    await persistGroupRegistry();
+
+    const existing = get().canvases.find((c) => c.id === canvasId);
+    if (existing) {
+      // A study created inside the group takes the group's name for it; one
+      // brought in from a personal library keeps the name its owner gave it.
+      const patch: Partial<CanvasEntry> = {};
+      if (existing.groupId !== group.id) patch.groupId = group.id;
+      if (opts.sharedByMe && !existing.sharedByMe) patch.sharedByMe = true;
+      if (!opts.sharedByMe && existing.name !== canvasName)
+        patch.name = canvasName;
+      // Registering is also how a refresh confirms what's already true —
+      // touching an unchanged row would churn the registry's sync clock.
+      if (Object.keys(patch).length) touchCanvas(canvasId, patch);
+    } else {
       const now = Date.now();
-      const next: CanvasEntry[] = [
+      persistCanvases([
         ...get().canvases,
         {
-          id: g.id,
-          name: g.name,
+          id: canvasId,
+          name: canvasName,
           createdAt: now,
           openedAt: now,
           updatedAt: now,
+          groupId: group.id,
+          ...(opts.sharedByMe ? { sharedByMe: true } : {}),
         },
-      ];
-      set({ canvases: next });
-      await repo.setMeta("canvases", next);
+      ]);
     }
+  }
+
+  /**
+   * Forget that a canvas is shared. The local study is untouched — this only
+   * severs the link, so it stops mirroring and falls back onto the shelves.
+   */
+  async function unregisterGroupCanvas(canvasId: string) {
+    groupByCanvasId.delete(canvasId);
+    await persistGroupRegistry();
+    if (activeGroupCanvasId === canvasId) exitGroupSession();
   }
 
   /** Write the registry to state and to IndexedDB in one move. */
@@ -1202,16 +1369,35 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     persistCanvases(canvases);
   }
 
-  /** Load persisted group-canvas records into the in-memory registry. */
+  /**
+   * Load persisted group-canvas records into the in-memory registry. Records
+   * written before a group could hold more than one study are keyed by group
+   * id and carry the group's name under `name` — back then the canvas id WAS
+   * the group id, so the key is both.
+   */
   async function loadGroupRegistry() {
     const stored =
-      (await repo.getMeta<Record<string, Omit<GroupCanvasInfo, "groupId">>>(
-        "groups",
-      )) ?? {};
+      (await repo.getMeta<
+        Record<string, StoredGroupCanvas & { name?: string }>
+      >("groups")) ?? {};
     groupByCanvasId.clear();
-    for (const [gid, meta] of Object.entries(stored)) {
-      groupByCanvasId.set(gid, { groupId: gid, ...meta });
+    let migrated = false;
+    for (const [canvasId, meta] of Object.entries(stored)) {
+      if (!meta) continue;
+      const legacy = !meta.groupId;
+      if (legacy) migrated = true;
+      groupByCanvasId.set(canvasId, {
+        canvasId,
+        groupId: meta.groupId ?? canvasId,
+        inviteCode: meta.inviteCode ?? "",
+        groupName: meta.groupName ?? meta.name ?? "Group",
+        role: meta.role ?? "member",
+      });
+      // The pre-multi-canvas registry never marked the canvas as a group one.
+      if (legacy && get().canvases.some((c) => c.id === canvasId))
+        touchCanvas(canvasId, { groupId: meta.groupId ?? canvasId });
     }
+    if (migrated) await persistGroupRegistry();
   }
 
   return {
@@ -1237,6 +1423,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     }),
     shelves: [],
     libraryOpen: false,
+    libraryGroupFocus: null,
     activeCanvasId: ROOT_MAP_ID,
     bibleVersion: DEFAULT_VERSION,
     colorTheme: DEFAULT_THEME,
@@ -1245,6 +1432,7 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
     streak: EMPTY_STREAK,
     streakCelebration: null,
     groupSession: null,
+    myGroups: [],
     groupMembersOnline: [],
     remoteCursors: {},
     remoteLocks: {},
@@ -1944,19 +2132,37 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
 
     /* ---------------- The Library ---------------- */
 
-    openLibrary() {
+    openLibrary(groupId) {
       if (ephemeralMode || get().pendingNav) return;
-      set({ libraryOpen: true, editingNodeId: null, versePickerNodeId: null });
+      set({
+        libraryOpen: true,
+        libraryGroupFocus: groupId ?? null,
+        editingNodeId: null,
+        versePickerNodeId: null,
+      });
       track("library_opened", { canvases: get().canvases.length });
+      void get().refreshGroups();
     },
 
     closeLibrary() {
-      set({ libraryOpen: false });
+      set({ libraryOpen: false, libraryGroupFocus: null });
+    },
+
+    clearLibraryGroupFocus() {
+      set({ libraryGroupFocus: null });
     },
 
     renameCanvas(id, name) {
       const trimmed = name.trim().slice(0, 120) || DEFAULT_MAP_NAME;
       touchCanvas(id, { name: trimmed });
+      // A shared study is named for everyone at once.
+      if (groupByCanvasId.has(id)) {
+        void renameGroupCanvasRow(id, trimmed);
+        if (get().groupSession?.canvasId === id)
+          set({
+            groupSession: { ...get().groupSession!, canvasName: trimmed },
+          });
+      }
       // Renaming the canvas in view also retitles the top bar and the root crumb.
       if (id === get().activeCanvasId) {
         set({
@@ -2162,8 +2368,11 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       if (!isCloudEnabled()) return null;
       const g = await createGroupRpc(name, await currentDisplayName());
       if (!g) return null;
-      await registerGroupCanvas(g);
-      if (!get().pendingNav) set({ pendingNav: { kind: "canvas", id: g.id } });
+      set({ myGroups: [g, ...get().myGroups.filter((x) => x.id !== g.id)] });
+      // A room with nothing on the table is a dead end — open with one study,
+      // named for the group, ready to be worked on together.
+      await get().createGroupCanvas(g.id, g.name);
+      set({ libraryOpen: true, libraryGroupFocus: g.id });
       track("group_created", {});
       return g;
     },
@@ -2176,29 +2385,188 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         await currentDisplayName(),
       );
       if (!group) return { group: null, error };
-      await registerGroupCanvas(group);
-      if (!get().pendingNav)
-        set({ pendingNav: { kind: "canvas", id: group.id } });
+      await get().refreshGroups();
+      set({ libraryOpen: true, libraryGroupFocus: group.id });
       track("group_joined", {});
       return { group, error: null };
     },
 
-    async openGroup(group) {
-      await registerGroupCanvas(group);
-      get().requestCanvas(group.id);
+    async renameGroup(groupId, name) {
+      const trimmed = name.trim().slice(0, 60);
+      if (!trimmed) return;
+      const ok = await renameGroupRpc(groupId, trimmed);
+      if (!ok) return;
+      set({
+        myGroups: get().myGroups.map((g) =>
+          g.id === groupId ? { ...g, name: trimmed } : g,
+        ),
+      });
+      for (const [canvasId, info] of groupByCanvasId) {
+        if (info.groupId === groupId)
+          groupByCanvasId.set(canvasId, { ...info, groupName: trimmed });
+      }
+      await persistGroupRegistry();
+      if (get().groupSession?.groupId === groupId)
+        set({ groupSession: { ...get().groupSession!, groupName: trimmed } });
+    },
+
+    async refreshGroups() {
+      if (ephemeralMode || !isCloudEnabled()) return;
+      const client = getBrowserClient();
+      const res = await client?.auth.getUser();
+      if (!res?.data.user) {
+        set({ myGroups: [] });
+        return;
+      }
+      const [groups, rows] = await Promise.all([
+        listMyGroups(),
+        listGroupCanvases(),
+      ]);
+      // A failed round trip says nothing about what is or isn't shared — keep
+      // what we have rather than reconciling against silence.
+      if (!groups || !rows) return;
+      set({ myGroups: groups });
+      const byId = new Map(groups.map((g) => [g.id, g]));
+
+      // Anything a member has shared since we last looked gets a local home,
+      // so it has a card in the Library and can be opened like any study.
+      const seen = new Set<string>();
+      for (const row of rows as GroupCanvasRow[]) {
+        const group = byId.get(row.group_id);
+        if (!group) continue;
+        seen.add(row.id);
+        const mine = get().canvases.find((c) => c.id === row.id);
+        await registerGroupCanvas(group, row.id, row.name, {
+          sharedByMe: mine?.sharedByMe,
+        });
+      }
+
+      // …and anything unshared, or belonging to a group we've left, stops
+      // being a group study. A study we brought in ourselves stays put; one
+      // that was the group's goes with it.
+      for (const canvasId of [...groupByCanvasId.keys()]) {
+        if (seen.has(canvasId)) continue;
+        await unregisterGroupCanvas(canvasId);
+        const entry = get().canvases.find((c) => c.id === canvasId);
+        if (!entry) continue;
+        if (entry.sharedByMe)
+          touchCanvas(canvasId, { groupId: undefined, sharedByMe: undefined });
+        else await get().deleteCanvas(canvasId);
+      }
+
+      // One standing subscription, so a study a member shares appears here
+      // without a reload. Set up on the first successful refresh only.
+      if (!watchingGroupCanvases) {
+        watchingGroupCanvases = true;
+        subscribeGroupCanvases(() => void get().refreshGroups());
+      }
+    },
+
+    async createGroupCanvas(groupId, name) {
+      if (!isCloudEnabled()) return null;
+      const group = get().myGroups.find((g) => g.id === groupId);
+      if (!group) return null;
+      const canvasId = uuidv7();
+      const title = (name ?? "").trim().slice(0, 120) || DEFAULT_MAP_NAME;
+      const row = await shareCanvasRow(groupId, canvasId, title);
+      if (!row) return null;
+      await registerGroupCanvas(group, canvasId, title);
+      set({
+        myGroups: get().myGroups.map((g) =>
+          g.id === groupId
+            ? { ...g, canvas_count: (g.canvas_count ?? 0) + 1 }
+            : g,
+        ),
+      });
+      return canvasId;
+    },
+
+    async shareCanvasWithGroup(canvasId, groupId) {
+      if (!isCloudEnabled()) return null;
+      const group = get().myGroups.find((g) => g.id === groupId);
+      if (!group) return null;
+      const entry = get().canvases.find((c) => c.id === canvasId);
+      if (!entry || entry.groupId) return null;
+
+      // Every reader's first canvas is called `root`. Sharing one under that
+      // name would land on top of the recipient's own — so it takes a real id
+      // before it goes anywhere.
+      let id = canvasId;
+      if (id === ROOT_MAP_ID) {
+        id = uuidv7();
+        await rekeyCanvas(canvasId, id);
+      }
+
+      const row = await shareCanvasRow(groupId, id, entry.name);
+      if (!row) return null;
+      await registerGroupCanvas(group, id, entry.name, { sharedByMe: true });
+
+      // Hand over what's already on the map — the whole tree, not just the
+      // root — in chunks, so a long study doesn't go up as one vast request.
+      await flushPending();
+      const { nodes, edges } = await collectCanvasRows(id);
+      const CHUNK = 150;
+      for (let i = 0; i < nodes.length || i < edges.length; i += CHUNK) {
+        await pushGroupRows(
+          groupId,
+          id,
+          nodes.slice(i, i + CHUNK),
+          edges.slice(i, i + CHUNK),
+          [],
+          [],
+        );
+      }
+      for (const n of nodes) updatedAtById.set(n.id, n.updatedAt);
+      for (const e of edges) updatedAtById.set(e.id, e.updatedAt);
+
+      set({
+        myGroups: get().myGroups.map((g) =>
+          g.id === groupId
+            ? { ...g, canvas_count: (g.canvas_count ?? 0) + 1 }
+            : g,
+        ),
+      });
+      // Standing in the study when it's shared? Then the session starts now.
+      if (get().activeCanvasId === id) await syncGroupSessionForCanvas(id);
+      track("canvas_shared", {});
+      return id;
+    },
+
+    async unshareCanvas(canvasId) {
+      const info = groupByCanvasId.get(canvasId);
+      if (!info) return;
+      const entry = get().canvases.find((c) => c.id === canvasId);
+      await unregisterGroupCanvas(canvasId);
+      await unshareCanvasRow(canvasId);
+      set({
+        myGroups: get().myGroups.map((g) =>
+          g.id === info.groupId
+            ? { ...g, canvas_count: Math.max(0, (g.canvas_count ?? 1) - 1) }
+            : g,
+        ),
+      });
+      // A study of my own comes back to my shelves; one that was the group's
+      // has nowhere left to be.
+      if (entry?.sharedByMe)
+        touchCanvas(canvasId, { groupId: undefined, sharedByMe: undefined });
+      else if (entry) await get().deleteCanvas(canvasId);
     },
 
     async leaveGroup(groupId) {
       if (activeGroupId === groupId) exitGroupSession();
       await leaveGroupRpc(groupId);
-      groupByCanvasId.delete(groupId);
-      const stored =
-        (await repo.getMeta<Record<string, unknown>>("groups")) ?? {};
-      delete stored[groupId];
-      await repo.setMeta("groups", stored);
-      // Drop the local shared canvas + its content (slides away if in view).
-      if (get().canvases.some((c) => c.id === groupId))
-        await get().deleteCanvas(groupId);
+      set({ myGroups: get().myGroups.filter((g) => g.id !== groupId) });
+
+      for (const [canvasId, info] of [...groupByCanvasId]) {
+        if (info.groupId !== groupId) continue;
+        await unregisterGroupCanvas(canvasId);
+        const entry = get().canvases.find((c) => c.id === canvasId);
+        if (!entry) continue;
+        // What I brought in is mine to keep; what the group made goes.
+        if (entry.sharedByMe)
+          touchCanvas(canvasId, { groupId: undefined, sharedByMe: undefined });
+        else await get().deleteCanvas(canvasId);
+      }
       track("group_left", {});
     },
 
@@ -2213,8 +2581,12 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
       const res = await client?.auth.getUser();
       if (!res?.data.user) {
         exitGroupSession();
+        unsubscribeGroupCanvases();
+        watchingGroupCanvases = false;
+        set({ myGroups: [] });
         return;
       }
+      await get().refreshGroups();
       await syncGroupSessionForCanvas(get().activeCanvasId);
     },
   };

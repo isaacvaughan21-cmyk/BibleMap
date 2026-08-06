@@ -23,6 +23,7 @@ import {
   DIVISIONS,
   shortBookName,
 } from "@/lib/library/canon";
+import type { GroupRow } from "@/lib/groups/realtime";
 import LibraryCard, { relativeTime } from "./LibraryCard";
 
 /**
@@ -38,8 +39,17 @@ import LibraryCard, { relativeTime } from "./LibraryCard";
  */
 
 type Sort = "opened" | "name" | "size" | "canon";
-/** A shelf selection: the three built-ins, or a shelf id. */
+/**
+ * A shelf selection: the three built-ins, a shelf id, or `group:<id>` for the
+ * studies one of your groups shares. Groups are a shelf like any other here —
+ * same cards, same sorting — because that's what they are to a reader: a place
+ * studies live, that happens to have other people in it.
+ */
 type ShelfKey = "all" | "pinned" | "archive" | (string & {});
+
+const GROUP_PREFIX = "group:";
+const groupIdOf = (key: ShelfKey): string | null =>
+  key.startsWith(GROUP_PREFIX) ? key.slice(GROUP_PREFIX.length) : null;
 
 const SORTS: { id: Sort; label: string }[] = [
   { id: "opened", label: "Recent" },
@@ -88,10 +98,16 @@ function LibraryScreen({
   const switchCanvas = useCanvasStore((s) => s.switchCanvas);
   const createCanvas = useCanvasStore((s) => s.createCanvas);
   const createShelf = useCanvasStore((s) => s.createShelf);
+  const shareCanvasWithGroup = useCanvasStore((s) => s.shareCanvasWithGroup);
   const setCanvasShelf = useCanvasStore((s) => s.setCanvasShelf);
   const setCanvasPinned = useCanvasStore((s) => s.setCanvasPinned);
   const renameCanvas = useCanvasStore((s) => s.renameCanvas);
-  const groupSessionId = useCanvasStore((s) => s.groupSession?.groupId);
+  const myGroups = useCanvasStore((s) => s.myGroups);
+  const libraryGroupFocus = useCanvasStore((s) => s.libraryGroupFocus);
+  const clearLibraryGroupFocus = useCanvasStore(
+    (s) => s.clearLibraryGroupFocus,
+  );
+  const createGroupCanvas = useCanvasStore((s) => s.createGroupCanvas);
   const reducedMotion = usePrefersReducedMotion();
   const theme = getTheme(colorTheme);
 
@@ -109,6 +125,37 @@ function LibraryScreen({
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropShelf, setDropShelf] = useState<ShelfKey | null>(null);
   const [newShelf, setNewShelf] = useState(false);
+  /** The group whose "share one of mine" picker is open. */
+  const [sharePicker, setSharePicker] = useState<string | null>(null);
+
+  const groupId = groupIdOf(shelfKey);
+  const group = myGroups.find((g) => g.id === groupId) ?? null;
+
+  // Arriving from the group menu lands straight on that group's studies.
+  useEffect(() => {
+    if (!libraryGroupFocus) return;
+    setShelfKey(`${GROUP_PREFIX}${libraryGroupFocus}`);
+    setView("shelves");
+    clearLibraryGroupFocus();
+  }, [libraryGroupFocus, clearLibraryGroupFocus]);
+
+  // A group that's been left (or that never existed) shouldn't leave the stage
+  // pointing at nothing.
+  useEffect(() => {
+    if (groupId && !myGroups.some((g) => g.id === groupId)) setShelfKey("all");
+  }, [groupId, myGroups]);
+
+  /**
+   * The study an open card menu belongs to. It can vanish underneath the menu
+   * — a member unshares a study and the refresh takes it away — so the menu
+   * follows the registry rather than assuming its row is still there.
+   */
+  const menuEntry = menuFor
+    ? (canvases.find((c) => c.id === menuFor.id) ?? null)
+    : null;
+  useEffect(() => {
+    if (menuFor && !menuEntry) setMenuFor(null);
+  }, [menuFor, menuEntry]);
 
   const rootRef = useRef<HTMLDivElement>(null);
   useFocusTrap(rootRef, !leaving);
@@ -188,13 +235,21 @@ function LibraryScreen({
     const rows = canvases.filter((c) => {
       if (shelfKey === "archive") return !!c.archivedAt;
       if (c.archivedAt) return false;
-      if (shelfKey === "pinned" && !c.pinned) return false;
-      if (
-        shelfKey !== "all" &&
-        shelfKey !== "pinned" &&
-        (c.shelfId ?? null) !== shelfKey
-      )
-        return false;
+      if (groupId) {
+        // A group's shelf is exactly what that group shares.
+        if (c.groupId !== groupId) return false;
+      } else {
+        // Elsewhere, a study belonging to a group stays under its group —
+        // unless it's one of your own that you shared, which is still yours.
+        if (c.groupId && !c.sharedByMe) return false;
+        if (shelfKey === "pinned" && !c.pinned) return false;
+        if (
+          shelfKey !== "all" &&
+          shelfKey !== "pinned" &&
+          (c.shelfId ?? null) !== shelfKey
+        )
+          return false;
+      }
       if (tag && !c.tags?.includes(tag)) return false;
       if (book && !factsFor(c.id).books.includes(book)) return false;
       if (q.length >= 2) {
@@ -234,6 +289,7 @@ function LibraryScreen({
     canvases,
     shelves,
     shelfKey,
+    groupId,
     tag,
     book,
     sort,
@@ -242,8 +298,10 @@ function LibraryScreen({
     factsFor,
   ]);
 
-  const liveCount = canvases.filter((c) => !c.archivedAt).length;
-  const pinnedCount = canvases.filter((c) => c.pinned && !c.archivedAt).length;
+  /** Studies on the personal shelves — a group's own studies aren't counted. */
+  const personal = canvases.filter((c) => !c.groupId || c.sharedByMe);
+  const liveCount = personal.filter((c) => !c.archivedAt).length;
+  const pinnedCount = personal.filter((c) => c.pinned && !c.archivedAt).length;
   const archivedCount = canvases.filter((c) => !!c.archivedAt).length;
 
   /**
@@ -257,8 +315,9 @@ function LibraryScreen({
     return [...used].sort();
   }, [canvases]);
 
-  const stageTitle =
-    shelfKey === "all"
+  const stageTitle = group
+    ? group.name
+    : shelfKey === "all"
       ? "Everything"
       : shelfKey === "pinned"
         ? "Currently studying"
@@ -268,7 +327,13 @@ function LibraryScreen({
 
   const dropOnShelf = (key: ShelfKey) => {
     if (!dragId) return;
-    if (key === "pinned") setCanvasPinned(dragId, true);
+    const toGroup = groupIdOf(key);
+    if (toGroup) {
+      // Dragging a study onto a group IS sharing it — the same gesture that
+      // puts a study on a shelf puts it on the table in front of everyone.
+      const entry = canvases.find((c) => c.id === dragId);
+      if (entry && !entry.groupId) void shareCanvasWithGroup(dragId, toGroup);
+    } else if (key === "pinned") setCanvasPinned(dragId, true);
     else if (key === "all") setCanvasShelf(dragId, null);
     else if (key !== "archive") {
       setCanvasShelf(dragId, key);
@@ -276,6 +341,22 @@ function LibraryScreen({
     }
     setDragId(null);
     setDropShelf(null);
+  };
+
+  /** Start a new study in the group on the stage, and open it. */
+  const newStudyHere = async () => {
+    if (groupId) {
+      const id = await createGroupCanvas(groupId);
+      if (id) dismiss(id);
+      return;
+    }
+    dismiss(
+      createCanvas(
+        shelfKey !== "all" && shelfKey !== "pinned" && shelfKey !== "archive"
+          ? shelfKey
+          : null,
+      ),
+    );
   };
 
   return (
@@ -468,6 +549,34 @@ function LibraryScreen({
             )}
           </div>
 
+          {myGroups.length > 0 && (
+            <div className="flex flex-col">
+              <p className="px-2 pb-1 font-sans text-2xs tracking-eyebrow text-ink-muted">
+                MY GROUPS
+              </p>
+              {myGroups.map((g) => (
+                <RailButton
+                  key={g.id}
+                  label={g.name}
+                  count={
+                    canvases.filter((c) => c.groupId === g.id && !c.archivedAt)
+                      .length
+                  }
+                  active={groupId === g.id}
+                  dropping={dropShelf === `${GROUP_PREFIX}${g.id}`}
+                  onClick={() => setShelfKey(`${GROUP_PREFIX}${g.id}`)}
+                  onDropCanvas={() => dropOnShelf(`${GROUP_PREFIX}${g.id}`)}
+                  onDragOver={() => setDropShelf(`${GROUP_PREFIX}${g.id}`)}
+                  onDragLeave={() => setDropShelf(null)}
+                  draggingId={dragId}
+                />
+              ))}
+              <p className="px-2 pt-1 font-sans text-[10px] leading-snug text-ink-muted/70">
+                Drag a study onto a group to share it.
+              </p>
+            </div>
+          )}
+
           {tagOptions.length > 0 && (
             <div className="flex flex-col">
               <p className="px-2 pb-1 font-sans text-2xs tracking-eyebrow text-ink-muted">
@@ -533,6 +642,22 @@ function LibraryScreen({
             </div>
           </div>
 
+          {group && (
+            <GroupBanner
+              group={group}
+              sharePickerOpen={sharePicker === group.id}
+              onToggleSharePicker={() =>
+                setSharePicker(sharePicker === group.id ? null : group.id)
+              }
+              shareable={personal.filter((c) => !c.groupId && !c.archivedAt)}
+              onShare={(id) => {
+                void shareCanvasWithGroup(id, group.id);
+                setSharePicker(null);
+              }}
+              onLeft={() => setShelfKey("all")}
+            />
+          )}
+
           {view === "canon" && (
             <CanonIndex
               index={index}
@@ -551,22 +676,14 @@ function LibraryScreen({
           ) : visible.length === 0 ? (
             <EmptyStage
               searching={query.trim().length >= 2}
+              inGroup={!!group}
               onClear={() => {
                 setQuery("");
                 setTag(null);
                 setBook(null);
                 setShelfKey("all");
               }}
-              onNew={() => {
-                const id = createCanvas(
-                  shelfKey !== "all" &&
-                    shelfKey !== "pinned" &&
-                    shelfKey !== "archive"
-                    ? shelfKey
-                    : null,
-                );
-                dismiss(id);
-              }}
+              onNew={() => void newStudyHere()}
             />
           ) : (
             <div className="grid grid-cols-[repeat(auto-fill,minmax(12.5rem,1fr))] gap-3">
@@ -578,7 +695,7 @@ function LibraryScreen({
                   theme={theme}
                   shelf={shelves.find((s) => s.id === c.shelfId) ?? null}
                   isActive={c.id === activeCanvasId}
-                  isGroup={c.id === groupSessionId}
+                  isGroup={!!c.groupId}
                   searchExcerpt={
                     searchHits?.get(c.id)
                       ? {
@@ -605,31 +722,24 @@ function LibraryScreen({
               ))}
               <button
                 type="button"
-                onClick={() => {
-                  const id = createCanvas(
-                    shelfKey !== "all" &&
-                      shelfKey !== "pinned" &&
-                      shelfKey !== "archive"
-                      ? shelfKey
-                      : null,
-                  );
-                  dismiss(id);
-                }}
+                onClick={() => void newStudyHere()}
                 className="flex min-h-[10rem] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-rule text-ink-muted transition-colors hover:border-gold hover:text-gold"
               >
                 <span aria-hidden="true" className="text-lg leading-none">
                   +
                 </span>
-                <span className="font-sans text-2xs">New study</span>
+                <span className="font-sans text-2xs">
+                  {group ? "New shared study" : "New study"}
+                </span>
               </button>
             </div>
           )}
         </div>
       </div>
 
-      {menuFor && (
+      {menuEntry && menuFor && (
         <CardMenu
-          entry={canvases.find((c) => c.id === menuFor.id)!}
+          entry={menuEntry}
           rect={menuFor.rect}
           onRename={() => setRenameId(menuFor.id)}
           onClose={() => setMenuFor(null)}
@@ -767,17 +877,23 @@ function CanonIndex({
 
 function EmptyStage({
   searching,
+  inGroup,
   onClear,
   onNew,
 }: {
   searching: boolean;
+  inGroup?: boolean;
   onClear: () => void;
   onNew: () => void;
 }) {
   return (
     <div className="flex flex-col items-center gap-3 py-16 text-center">
       <p className="font-serif text-md italic text-ink-muted">
-        {searching ? "Nothing here matches that." : "This shelf is empty."}
+        {searching
+          ? "Nothing here matches that."
+          : inGroup
+            ? "Nothing shared with this group yet."
+            : "This shelf is empty."}
       </p>
       <div className="flex gap-3 font-sans text-2xs tracking-eyebrow">
         {searching && (
@@ -794,9 +910,189 @@ function EmptyStage({
           onClick={onNew}
           className="text-gold transition-colors hover:text-ink"
         >
-          START A STUDY
+          {inGroup ? "START A SHARED STUDY" : "START A STUDY"}
         </button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * The head of a group's shelf: who's in the room, how to let someone else in,
+ * and the two ways a study gets onto the table — start a fresh one together,
+ * or bring one of your own in.
+ */
+function GroupBanner({
+  group,
+  shareable,
+  sharePickerOpen,
+  onToggleSharePicker,
+  onShare,
+  onLeft,
+}: {
+  group: GroupRow;
+  shareable: CanvasEntry[];
+  sharePickerOpen: boolean;
+  onToggleSharePicker: () => void;
+  onShare: (canvasId: string) => void;
+  onLeft: () => void;
+}) {
+  const renameGroup = useCanvasStore((s) => s.renameGroup);
+  const leaveGroup = useCanvasStore((s) => s.leaveGroup);
+  const createGroupCanvas = useCanvasStore((s) => s.createGroupCanvas);
+  const [renaming, setRenaming] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+
+  const link =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/app?join=${group.invite_code}`
+      : `/app?join=${group.invite_code}`;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      /* clipboard blocked — the code is on screen to read out */
+    }
+  };
+
+  return (
+    <div className="mb-4 rounded-xl border border-rule bg-parchment-2/50 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        {renaming ? (
+          <input
+            autoFocus
+            defaultValue={group.name}
+            maxLength={60}
+            onBlur={(e) => {
+              void renameGroup(group.id, e.target.value);
+              setRenaming(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                void renameGroup(
+                  group.id,
+                  (e.target as HTMLInputElement).value,
+                );
+                setRenaming(false);
+              } else if (e.key === "Escape") setRenaming(false);
+            }}
+            className="rounded-md border border-gold bg-parchment px-2 py-1 font-serif text-sm text-ink outline-none"
+          />
+        ) : (
+          <span className="flex items-center gap-2 font-sans text-2xs tracking-eyebrow text-ink-muted">
+            {(group.member_count ?? 1) === 1
+              ? "JUST YOU SO FAR"
+              : `${group.member_count} MEMBERS`}
+            <button
+              type="button"
+              onClick={() => setRenaming(true)}
+              className="text-gold transition-colors hover:text-ink"
+            >
+              RENAME
+            </button>
+          </span>
+        )}
+
+        <span className="flex items-center gap-2">
+          <code className="rounded bg-ink/5 px-1.5 py-0.5 font-mono text-2xs tracking-widest text-ink-soft">
+            {group.invite_code}
+          </code>
+          <button
+            type="button"
+            onClick={() => void copy()}
+            className="font-sans text-2xs text-gold transition-colors hover:text-ink"
+          >
+            {copied ? "Invite link copied!" : "Copy invite link"}
+          </button>
+        </span>
+
+        <span className="ml-auto flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => void createGroupCanvas(group.id)}
+            className="rounded-full border border-rule px-3 py-1 font-sans text-2xs text-ink-soft transition-colors hover:border-gold hover:text-gold"
+          >
+            + New shared study
+          </button>
+          <button
+            type="button"
+            onClick={onToggleSharePicker}
+            aria-expanded={sharePickerOpen}
+            className="rounded-full border border-rule px-3 py-1 font-sans text-2xs text-ink-soft transition-colors hover:border-gold hover:text-gold"
+          >
+            Share one of mine…
+          </button>
+          {confirmLeave ? (
+            <span className="flex items-center gap-2 font-sans text-2xs">
+              <button
+                type="button"
+                onClick={() => {
+                  void leaveGroup(group.id);
+                  setConfirmLeave(false);
+                  onLeft();
+                }}
+                className="font-medium text-danger transition-colors hover:text-ink"
+              >
+                Leave for good
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmLeave(false)}
+                className="text-ink-muted transition-colors hover:text-ink"
+              >
+                Cancel
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setConfirmLeave(true)}
+              className="font-sans text-2xs text-ink-muted transition-colors hover:text-danger"
+            >
+              Leave group
+            </button>
+          )}
+        </span>
+      </div>
+
+      {confirmLeave && (
+        <p className="mt-2 font-sans text-[11px] text-ink-muted">
+          Studies you brought in stay in your library. Ones the group made go
+          with it.
+        </p>
+      )}
+
+      {sharePickerOpen && (
+        <div className="mt-3 border-t border-rule pt-3">
+          {shareable.length === 0 ? (
+            <p className="font-sans text-2xs text-ink-muted">
+              Every study in your library is already shared somewhere.
+            </p>
+          ) : (
+            <>
+              <p className="pb-1.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
+                BRING A STUDY IN — IT STAYS YOURS
+              </p>
+              <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto">
+                {shareable.map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => onShare(c.id)}
+                    className="max-w-full truncate rounded-full border border-rule px-2.5 py-1 font-sans text-[11px] text-ink-soft transition-colors hover:border-gold hover:text-ink"
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -822,9 +1118,17 @@ function CardMenu({
   const toggleCanvasTag = useCanvasStore((s) => s.toggleCanvasTag);
   const setCanvasArchived = useCanvasStore((s) => s.setCanvasArchived);
   const deleteCanvas = useCanvasStore((s) => s.deleteCanvas);
+  const unshareCanvas = useCanvasStore((s) => s.unshareCanvas);
+  const myGroups = useCanvasStore((s) => s.myGroups);
   const ref = useRef<HTMLDivElement>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [newTag, setNewTag] = useState(false);
+
+  const group = entry.groupId
+    ? (myGroups.find((g) => g.id === entry.groupId) ?? null)
+    : null;
+  // Withdrawing a study is the sharer's call — or the group owner's.
+  const canUnshare = !!group && (entry.sharedByMe || group.role === "owner");
 
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
@@ -975,7 +1279,19 @@ function CardMenu({
       >
         {entry.archivedAt ? "Restore from archive" : "Archive this study"}
       </MenuRow>
-      {confirmDelete ? (
+      {group ? (
+        canUnshare ? (
+          <MenuRow
+            danger
+            onClick={() => {
+              void unshareCanvas(entry.id);
+              onClose();
+            }}
+          >
+            Stop sharing with {group.name}
+          </MenuRow>
+        ) : null
+      ) : confirmDelete ? (
         <div className="flex items-center justify-between gap-2 px-3 py-1.5">
           <span className="font-sans text-2xs text-ink-muted">
             Delete for good?
@@ -1006,7 +1322,12 @@ function CardMenu({
         </MenuRow>
       )}
       <p className="px-3 pb-1 pt-1 font-sans text-[10px] leading-snug text-ink-muted/70">
-        Archiving keeps everything. Opened {relativeTime(entry.openedAt)}.
+        {group
+          ? entry.sharedByMe
+            ? `Yours, shared with ${group.name}. Stop sharing and you keep it.`
+            : `Shared with ${group.name} — edits here reach everyone.`
+          : "Archiving keeps everything."}{" "}
+        Opened {relativeTime(entry.openedAt)}.
       </p>
     </div>
   );

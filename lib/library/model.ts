@@ -33,6 +33,17 @@ export type CanvasEntry = {
   archivedAt?: number;
   /** Position within a sequential shelf (a book walked chapter by chapter). */
   seriesIndex?: number;
+  /**
+   * Set when this study is shared with a group — it then lives under that
+   * group in the Library rather than on the personal shelves.
+   */
+  groupId?: string;
+  /**
+   * True when the study started life in this reader's own library and was
+   * shared INTO the group. It stays on their shelves as well as the group's,
+   * and leaving the group leaves them holding their own copy.
+   */
+  sharedByMe?: boolean;
 };
 
 export type Shelf = {
@@ -90,6 +101,10 @@ export function normalizeEntry(
     ...(typeof raw.seriesIndex === "number"
       ? { seriesIndex: raw.seriesIndex }
       : {}),
+    ...(typeof raw.groupId === "string" && raw.groupId
+      ? { groupId: raw.groupId }
+      : {}),
+    ...(raw.sharedByMe ? { sharedByMe: true } : {}),
   };
 }
 

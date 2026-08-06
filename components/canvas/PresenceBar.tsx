@@ -17,8 +17,11 @@ export default function PresenceBar() {
   return (
     <div className="pointer-events-none absolute left-1/2 top-16 z-30 flex -translate-x-1/2 items-center gap-2">
       <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-rule bg-parchment/80 px-2.5 py-1 shadow-sm shadow-ink/5 backdrop-blur-md">
-        <span className="font-sans text-2xs tracking-eyebrow text-ink-muted">
-          {session.name}
+        <span
+          title={`${session.canvasName} · shared with ${session.groupName}`}
+          className="max-w-[12rem] truncate font-sans text-2xs tracking-eyebrow text-ink-muted"
+        >
+          {session.groupName}
         </span>
         <span aria-hidden="true" className="h-3 w-px bg-rule" />
         <div className="flex -space-x-1.5">

@@ -1,21 +1,22 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useCanvasStore } from "@/lib/store/canvas-store";
-import { listMyGroups, type GroupRow } from "@/lib/groups/realtime";
 import { isCloudEnabled } from "@/lib/supabase-browser";
 import { useAuthUser } from "@/lib/use-auth";
 
 /**
- * Group map sharing — create or join a group whose canvas everyone edits live.
- * Sits in the canvas top bar. Hidden entirely when cloud isn't configured;
+ * Groups — the quick way in and out of shared study, from the canvas top bar.
+ *
+ * A group is a room of people, and the studies it shares are a shelf in the
+ * Library: this menu creates and joins rooms, then hands off to "My groups"
+ * there for everything else. Hidden entirely when cloud isn't configured;
  * prompts sign-in (collaboration needs a stable identity) when signed out.
  */
 export default function GroupsMenu() {
   const { user } = useAuthUser();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<"menu" | "create" | "join">("menu");
-  const [groups, setGroups] = useState<GroupRow[]>([]);
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -24,24 +25,19 @@ export default function GroupsMenu() {
 
   const session = useCanvasStore((s) => s.groupSession);
   const online = useCanvasStore((s) => s.groupMembersOnline);
+  const groups = useCanvasStore((s) => s.myGroups);
   const createGroup = useCanvasStore((s) => s.createGroup);
   const joinGroup = useCanvasStore((s) => s.joinGroup);
-  const leaveGroup = useCanvasStore((s) => s.leaveGroup);
-  const openGroup = useCanvasStore((s) => s.openGroup);
-  const activeCanvasId = useCanvasStore((s) => s.activeCanvasId);
-
-  const refresh = useCallback(() => {
-    if (!user) return;
-    void listMyGroups().then(setGroups);
-  }, [user]);
+  const refreshGroups = useCanvasStore((s) => s.refreshGroups);
+  const openLibrary = useCanvasStore((s) => s.openLibrary);
 
   useEffect(() => {
     if (open && user) {
-      refresh();
+      void refreshGroups();
       setMode("menu");
       setError(null);
     }
-  }, [open, user, refresh]);
+  }, [open, user, refreshGroups]);
 
   useEffect(() => {
     if (!open) return;
@@ -73,7 +69,7 @@ export default function GroupsMenu() {
   const doCreate = async () => {
     setBusy(true);
     setError(null);
-    const g = await createGroup(name.trim() || "Shared map");
+    const g = await createGroup(name.trim() || "Study group");
     setBusy(false);
     if (!g) {
       setError("Couldn't create the group. Try again.");
@@ -96,14 +92,19 @@ export default function GroupsMenu() {
     setOpen(false);
   };
 
+  const showGroup = (groupId: string) => {
+    openLibrary(groupId);
+    setOpen(false);
+  };
+
   return (
     <div className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        aria-label="Group sharing"
-        title="Share this map with a group"
+        aria-label="Groups"
+        title="Your groups"
         className={`flex h-8 items-center gap-1.5 rounded-full border px-2.5 transition-colors ${
           session
             ? "border-gold bg-gold/10 text-gold"
@@ -133,11 +134,11 @@ export default function GroupsMenu() {
           />
           <div
             role="menu"
-            aria-label="Group sharing"
+            aria-label="Groups"
             className="absolute right-0 top-10 z-50 w-72 animate-fade-up overflow-hidden rounded-xl border border-rule bg-parchment py-1.5 shadow-xl shadow-ink/10"
           >
             <p className="px-4 pb-1 pt-1.5 font-sans text-2xs tracking-eyebrow text-ink-muted">
-              GROUP MAPS
+              MY GROUPS
             </p>
 
             {!user ? (
@@ -146,8 +147,8 @@ export default function GroupsMenu() {
                   Study together, live.
                 </p>
                 <p className="mt-1 font-sans text-xs text-ink-muted">
-                  Sign in to create or join a group and edit one map with others
-                  in real time.
+                  Sign in to start a group, share studies with it, and map
+                  alongside each other in real time.
                 </p>
                 <button
                   type="button"
@@ -176,6 +177,10 @@ export default function GroupsMenu() {
                   maxLength={60}
                   className="mt-1 w-full rounded-lg border border-rule bg-parchment-2 px-3 py-2 font-sans text-sm text-ink focus:border-gold focus:outline-none"
                 />
+                <p className="mt-1.5 font-sans text-2xs text-ink-muted">
+                  You can rename it later, and share as many studies with it as
+                  you like.
+                </p>
                 {error && <ErrorLine text={error} />}
                 <div className="mt-2 flex items-center gap-2">
                   <button
@@ -232,68 +237,74 @@ export default function GroupsMenu() {
               </div>
             ) : (
               <>
+                {session && (
+                  <div className="mx-1.5 mb-1 rounded-lg bg-gold/10 px-2.5 py-2">
+                    <p className="font-sans text-2xs text-ink-muted">
+                      In session
+                    </p>
+                    <p className="truncate font-serif text-sm text-ink">
+                      {session.canvasName}
+                    </p>
+                    <p className="truncate font-sans text-2xs text-ink-muted">
+                      shared with {session.groupName} · {online.length} here now
+                    </p>
+                  </div>
+                )}
+
                 {groups.length > 0 && (
                   <div className="max-h-56 overflow-y-auto px-1.5 py-0.5">
-                    {groups.map((g) => {
-                      const isActive = g.id === activeCanvasId;
-                      return (
-                        <div
-                          key={g.id}
-                          className="rounded-lg px-2.5 py-2 transition-colors hover:bg-parchment-2"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span
-                              aria-hidden="true"
-                              className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                                isActive ? "bg-gold" : "bg-rule"
-                              }`}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                void openGroup(g);
-                                setOpen(false);
-                              }}
-                              className="min-w-0 flex-1 truncate text-left font-sans text-sm text-ink-soft transition-colors hover:text-ink"
-                            >
-                              {g.name}
-                            </button>
-                            <span className="shrink-0 font-sans text-2xs text-ink-muted">
-                              {g.member_count ?? 1}
-                            </span>
-                          </div>
-                          <div className="mt-1.5 flex items-center gap-2 pl-3.5">
-                            <code className="rounded bg-ink/5 px-1.5 py-0.5 font-mono text-2xs tracking-widest text-ink-soft">
-                              {g.invite_code}
-                            </code>
-                            <button
-                              type="button"
-                              onClick={() => void copy(g.invite_code)}
-                              className="font-sans text-2xs text-gold transition-colors hover:text-ink"
-                            >
-                              {copied === g.invite_code
-                                ? "Copied!"
-                                : "Copy link"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                await leaveGroup(g.id);
-                                refresh();
-                              }}
-                              className="ml-auto font-sans text-2xs text-ink-muted transition-colors hover:text-danger"
-                            >
-                              Leave
-                            </button>
-                          </div>
+                    {groups.map((g) => (
+                      <div
+                        key={g.id}
+                        className="rounded-lg px-2.5 py-2 transition-colors hover:bg-parchment-2"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                              g.id === session?.groupId ? "bg-gold" : "bg-rule"
+                            }`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => showGroup(g.id)}
+                            className="min-w-0 flex-1 truncate text-left font-sans text-sm text-ink-soft transition-colors hover:text-ink"
+                          >
+                            {g.name}
+                          </button>
+                          <span
+                            title={`${g.member_count ?? 1} members · ${g.canvas_count ?? 0} studies`}
+                            className="shrink-0 font-sans text-2xs tabular-nums text-ink-muted"
+                          >
+                            {g.member_count ?? 1}·{g.canvas_count ?? 0}
+                          </span>
                         </div>
-                      );
-                    })}
+                        <div className="mt-1.5 flex items-center gap-2 pl-3.5">
+                          <code className="rounded bg-ink/5 px-1.5 py-0.5 font-mono text-2xs tracking-widest text-ink-soft">
+                            {g.invite_code}
+                          </code>
+                          <button
+                            type="button"
+                            onClick={() => void copy(g.invite_code)}
+                            className="font-sans text-2xs text-gold transition-colors hover:text-ink"
+                          >
+                            {copied === g.invite_code ? "Copied!" : "Copy link"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => showGroup(g.id)}
+                            className="ml-auto font-sans text-2xs text-ink-muted transition-colors hover:text-ink"
+                          >
+                            Studies →
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
                 {groups.length === 0 && (
                   <p className="px-4 py-2 font-sans text-xs text-ink-muted">
-                    You&rsquo;re not in any groups yet. Create one, or join with
+                    You&rsquo;re not in any groups yet. Start one, or join with
                     an invite code.
                   </p>
                 )}

@@ -29,6 +29,7 @@ export type AnalyticsEvent =
   | "group_created"
   | "group_joined"
   | "group_left"
+  | "canvas_shared"
   | "library_opened"
   | "library_search"
   | "canvas_shelved"

@@ -4,8 +4,9 @@ import type { DbEdge, DbNode } from "@/lib/db/schema";
 
 /**
  * Live group session over Supabase Realtime — the transport for a shared,
- * collaboratively-edited canvas. Three channels of information ride one
- * Supabase channel per group:
+ * collaboratively-edited canvas. A group shares MANY canvases; the live
+ * session is per-canvas (you're only ever standing in one study at a time),
+ * so one Supabase channel per group+canvas carries three kinds of traffic:
  *
  *   1. postgres_changes on group_nodes / group_edges — the DURABLE path. Every
  *      member's flush upserts rows here; everyone else receives them and
@@ -25,6 +26,17 @@ export type GroupRow = {
   role?: string;
   owner?: string;
   member_count?: number;
+  canvas_count?: number;
+};
+
+/** One study a group shares. `id` is the canvas id, identical on every member. */
+export type GroupCanvasRow = {
+  id: string;
+  group_id: string;
+  name: string;
+  created_by: string;
+  created_at?: string;
+  updated_at?: string;
 };
 
 export type GroupMemberMeta = {
@@ -62,6 +74,8 @@ type Handlers = {
 
 let channel: RealtimeChannel | null = null;
 let currentGroupId: string | null = null;
+/** Standing subscription to the canvas LISTS of every group I'm in. */
+let listChannel: RealtimeChannel | null = null;
 
 /** A stable, pleasant colour for a member, derived from their user id. */
 export function colorForUser(userId: string): string {
@@ -127,9 +141,14 @@ function rowToEdge(row: {
   };
 }
 
-/** Open (or re-open) the realtime channel for a group. Returns false if off. */
+/**
+ * Open (or re-open) the realtime channel for ONE shared canvas of a group.
+ * Presence is per-canvas too: the roster answers "who else is in this study",
+ * not "who is in this group". Returns false if the cloud isn't configured.
+ */
 export function openGroupChannel(
   groupId: string,
+  canvasId: string,
   me: GroupMemberMeta,
   handlers: Handlers,
 ): boolean {
@@ -138,7 +157,7 @@ export function openGroupChannel(
   closeGroupChannel();
   currentGroupId = groupId;
 
-  const ch = client.channel(`group:${groupId}`, {
+  const ch = client.channel(`group:${groupId}:canvas:${canvasId}`, {
     config: { presence: { key: me.userId }, broadcast: { self: false } },
   });
 
@@ -148,7 +167,7 @@ export function openGroupChannel(
       event: "*",
       schema: "public",
       table: "group_nodes",
-      filter: `group_id=eq.${groupId}`,
+      filter: `canvas_id=eq.${canvasId}`,
     },
     (payload) => {
       const row = payload.new as Parameters<typeof rowToNode>[0];
@@ -161,7 +180,7 @@ export function openGroupChannel(
       event: "*",
       schema: "public",
       table: "group_edges",
-      filter: `group_id=eq.${groupId}`,
+      filter: `canvas_id=eq.${canvasId}`,
     },
     (payload) => {
       const row = payload.new as Parameters<typeof rowToEdge>[0];
@@ -232,6 +251,7 @@ export function broadcastLock(payload: EditLock & { editing: boolean }): void {
  */
 export async function pushGroupRows(
   groupId: string,
+  canvasId: string,
   nodeRows: DbNode[],
   edgeRows: DbEdge[],
   delNodeIds: string[],
@@ -245,6 +265,7 @@ export async function pushGroupRows(
     ...nodeRows.map((n) => ({
       id: n.id,
       group_id: groupId,
+      canvas_id: canvasId,
       map_id: n.mapId,
       data: n,
       updated_at: new Date(n.updatedAt).toISOString(),
@@ -253,10 +274,11 @@ export async function pushGroupRows(
     ...delNodeIds.map((id) => ({
       id,
       group_id: groupId,
-      map_id: groupId,
+      canvas_id: canvasId,
+      map_id: canvasId,
       data: {
         id,
-        mapId: groupId,
+        mapId: canvasId,
         deletedAt: Date.now(),
         updatedAt: Date.now(),
       },
@@ -268,6 +290,7 @@ export async function pushGroupRows(
     ...edgeRows.map((e) => ({
       id: e.id,
       group_id: groupId,
+      canvas_id: canvasId,
       map_id: e.mapId,
       data: e,
       updated_at: new Date(e.updatedAt).toISOString(),
@@ -276,10 +299,11 @@ export async function pushGroupRows(
     ...delEdgeIds.map((id) => ({
       id,
       group_id: groupId,
-      map_id: groupId,
+      canvas_id: canvasId,
+      map_id: canvasId,
       data: {
         id,
-        mapId: groupId,
+        mapId: canvasId,
         deletedAt: Date.now(),
         updatedAt: Date.now(),
       },
@@ -302,15 +326,15 @@ export async function pushGroupRows(
   }
 }
 
-/** Seed a fresh client with the whole current group canvas. */
+/** Seed a fresh client with one whole shared canvas. */
 export async function fetchGroupContent(
-  groupId: string,
+  canvasId: string,
 ): Promise<{ nodes: DbNode[]; edges: DbEdge[] }> {
   const client = getBrowserClient();
   if (!client) return { nodes: [], edges: [] };
   const [nodesRes, edgesRes] = await Promise.all([
-    client.from("group_nodes").select("*").eq("group_id", groupId),
-    client.from("group_edges").select("*").eq("group_id", groupId),
+    client.from("group_nodes").select("*").eq("canvas_id", canvasId),
+    client.from("group_edges").select("*").eq("canvas_id", canvasId),
   ]);
   const nodes = (nodesRes.data ?? []).map((r) =>
     rowToNode(r as Parameters<typeof rowToNode>[0]),
@@ -319,6 +343,126 @@ export async function fetchGroupContent(
     rowToEdge(r as Parameters<typeof rowToEdge>[0]),
   );
   return { nodes, edges };
+}
+
+/* ── The canvases a group shares ─────────────────────────────────────────── */
+
+/**
+ * Every shared study across every group I'm in — RLS does the filtering, so
+ * one round trip fills the whole "My groups" section of the Library.
+ *
+ * Returns null (not an empty list) when the fetch fails: callers reconcile
+ * their local registry against this, and "we couldn't ask" must never be
+ * mistaken for "everything has been unshared".
+ */
+export async function listGroupCanvases(): Promise<GroupCanvasRow[] | null> {
+  const client = getBrowserClient();
+  if (!client) return null;
+  const { data, error } = await client
+    .from("group_canvases")
+    .select("*")
+    .order("created_at", { ascending: true });
+  if (error) {
+    console.error("hodos: group_canvases list failed", error);
+    return null;
+  }
+  return (data ?? []) as GroupCanvasRow[];
+}
+
+/**
+ * Put a canvas on a group's shelf. Idempotent on the canvas id, so re-sharing
+ * a study already in the group is a no-op rather than an error.
+ */
+export async function shareCanvasRow(
+  groupId: string,
+  canvasId: string,
+  name: string,
+): Promise<GroupCanvasRow | null> {
+  const client = getBrowserClient();
+  if (!client) return null;
+  const { data: userData } = await client.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return null;
+  const { data, error } = await client
+    .from("group_canvases")
+    .upsert(
+      {
+        id: canvasId,
+        group_id: groupId,
+        name,
+        created_by: uid,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" },
+    )
+    .select()
+    .single();
+  if (error) {
+    console.error("hodos: share canvas failed", error);
+    return null;
+  }
+  return data as GroupCanvasRow;
+}
+
+/** Keep a shared study's name in step with the local rename. */
+export async function renameGroupCanvasRow(
+  canvasId: string,
+  name: string,
+): Promise<void> {
+  const client = getBrowserClient();
+  if (!client) return;
+  await client
+    .from("group_canvases")
+    .update({ name, updated_at: new Date().toISOString() })
+    .eq("id", canvasId);
+}
+
+/**
+ * Take a study back out of a group — the listing AND its mirrored content, so
+ * nothing lingers server-side for members who hadn't opened it yet.
+ */
+export async function unshareCanvasRow(canvasId: string): Promise<void> {
+  const client = getBrowserClient();
+  if (!client) return;
+  const { error } = await client
+    .from("group_canvases")
+    .delete()
+    .eq("id", canvasId);
+  if (error) {
+    console.error("hodos: unshare failed", error);
+    return;
+  }
+  await Promise.all([
+    client.from("group_nodes").delete().eq("canvas_id", canvasId),
+    client.from("group_edges").delete().eq("canvas_id", canvasId),
+  ]);
+}
+
+/**
+ * Watch the shared-study lists of every group I'm in, so a study a member
+ * shares appears in my Library without a reload. Separate from the per-canvas
+ * session channel: this one stands for as long as the app is open.
+ */
+export function subscribeGroupCanvases(onChange: () => void): void {
+  const client = getBrowserClient();
+  if (!client) return;
+  unsubscribeGroupCanvases();
+  const ch = client.channel("group-canvases");
+  ch.on(
+    "postgres_changes",
+    { event: "*", schema: "public", table: "group_canvases" },
+    () => onChange(),
+  );
+  ch.subscribe();
+  listChannel = ch;
+}
+
+export function unsubscribeGroupCanvases(): void {
+  if (listChannel) {
+    const client = getBrowserClient();
+    void client?.removeChannel(listChannel);
+  }
+  listChannel = null;
 }
 
 /* ── Membership RPCs ─────────────────────────────────────────────────────── */
@@ -354,15 +498,34 @@ export async function joinGroupByCode(
   return { group: data as GroupRow, error: null };
 }
 
-export async function listMyGroups(): Promise<GroupRow[]> {
+/** Null on failure — see `listGroupCanvases` for why that matters. */
+export async function listMyGroups(): Promise<GroupRow[] | null> {
   const client = getBrowserClient();
-  if (!client) return [];
+  if (!client) return null;
   const { data, error } = await client.rpc("my_groups");
   if (error) {
     console.error("hodos: my_groups failed", error);
-    return [];
+    return null;
   }
   return (data ?? []) as GroupRow[];
+}
+
+/** Rename a group. Any member may — the name is the room's, not the founder's. */
+export async function renameGroupRpc(
+  groupId: string,
+  name: string,
+): Promise<boolean> {
+  const client = getBrowserClient();
+  if (!client) return false;
+  const { error } = await client.rpc("rename_group", {
+    p_group_id: groupId,
+    p_name: name,
+  });
+  if (error) {
+    console.error("hodos: rename_group failed", error);
+    return false;
+  }
+  return true;
 }
 
 export async function leaveGroup(groupId: string): Promise<void> {
