@@ -2422,10 +2422,13 @@ export const useCanvasStore = create<CanvasStore>()((set, get) => {
         listMyGroups(),
         listGroupCanvases(),
       ]);
-      // A failed round trip says nothing about what is or isn't shared — keep
-      // what we have rather than reconciling against silence.
+      // Knowing the rooms is worth having even if the shelves inside them
+      // didn't come back — the Library can list your groups either way.
+      if (groups) set({ myGroups: groups });
+      // Reconciling, though, needs both halves. A failed round trip says
+      // nothing about what is or isn't shared, and must never be read as
+      // "everything was unshared" — that path deletes local studies.
       if (!groups || !rows) return;
-      set({ myGroups: groups });
       const byId = new Map(groups.map((g) => [g.id, g]));
 
       // Anything a member has shared since we last looked gets a local home,

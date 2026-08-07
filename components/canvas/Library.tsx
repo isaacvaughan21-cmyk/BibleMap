@@ -24,6 +24,8 @@ import {
   shortBookName,
 } from "@/lib/library/canon";
 import type { GroupRow } from "@/lib/groups/realtime";
+import { isCloudEnabled } from "@/lib/supabase-browser";
+import { useAuthUser } from "@/lib/use-auth";
 import LibraryCard, { relativeTime } from "./LibraryCard";
 
 /**
@@ -108,6 +110,11 @@ function LibraryScreen({
     (s) => s.clearLibraryGroupFocus,
   );
   const createGroupCanvas = useCanvasStore((s) => s.createGroupCanvas);
+  const refreshGroups = useCanvasStore((s) => s.refreshGroups);
+  const createGroup = useCanvasStore((s) => s.createGroup);
+  const joinGroup = useCanvasStore((s) => s.joinGroup);
+  const { user } = useAuthUser();
+  const cloudOn = isCloudEnabled();
   const reducedMotion = usePrefersReducedMotion();
   const theme = getTheme(colorTheme);
 
@@ -125,6 +132,8 @@ function LibraryScreen({
   const [dragId, setDragId] = useState<string | null>(null);
   const [dropShelf, setDropShelf] = useState<ShelfKey | null>(null);
   const [newShelf, setNewShelf] = useState(false);
+  const [newGroup, setNewGroup] = useState(false);
+  const [joining, setJoining] = useState(false);
   /** The group whose "share one of mine" picker is open. */
   const [sharePicker, setSharePicker] = useState<string | null>(null);
 
@@ -172,6 +181,13 @@ function LibraryScreen({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Ask the cloud what groups exist whenever the Library comes up — the shelf
+  // has to be right the moment it's looked at, not only when whoever opened
+  // the screen happened to route through an action that refreshed it.
+  useEffect(() => {
+    void refreshGroups();
+  }, [refreshGroups]);
 
   /** Play the exit, then hand the screen back to the canvas. */
   const dismiss = useCallback(
@@ -549,7 +565,9 @@ function LibraryScreen({
             )}
           </div>
 
-          {myGroups.length > 0 && (
+          {/* Always present once the cloud is configured — a section that only
+              exists after you already have a group is a section nobody finds. */}
+          {cloudOn && (
             <div className="flex flex-col">
               <p className="px-2 pb-1 font-sans text-2xs tracking-eyebrow text-ink-muted">
                 MY GROUPS
@@ -571,9 +589,75 @@ function LibraryScreen({
                   draggingId={dragId}
                 />
               ))}
-              <p className="px-2 pt-1 font-sans text-[10px] leading-snug text-ink-muted/70">
-                Drag a study onto a group to share it.
-              </p>
+              {!user ? (
+                <p className="px-2 pt-1 font-sans text-[10px] leading-snug text-ink-muted/70">
+                  Sign in to study with a group.
+                </p>
+              ) : (
+                <>
+                  {newGroup ? (
+                    <input
+                      autoFocus
+                      placeholder="Group name"
+                      maxLength={60}
+                      onBlur={(e) => {
+                        if (e.target.value.trim())
+                          void createGroup(e.target.value);
+                        setNewGroup(false);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const v = (e.target as HTMLInputElement).value;
+                          if (v.trim()) void createGroup(v);
+                          setNewGroup(false);
+                        } else if (e.key === "Escape") setNewGroup(false);
+                      }}
+                      className="mx-2 mt-1 rounded-md border border-gold bg-parchment px-2 py-1 font-sans text-xs text-ink outline-none"
+                    />
+                  ) : joining ? (
+                    <input
+                      autoFocus
+                      placeholder="Invite code"
+                      maxLength={8}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const v = (e.target as HTMLInputElement).value.trim();
+                          if (v.length >= 4) void joinGroup(v);
+                          setJoining(false);
+                        } else if (e.key === "Escape") setJoining(false);
+                      }}
+                      onChange={(e) => {
+                        e.target.value = e.target.value.toUpperCase();
+                      }}
+                      onBlur={() => setJoining(false)}
+                      className="mx-2 mt-1 rounded-md border border-gold bg-parchment px-2 py-1 text-center font-mono text-xs tracking-widest text-ink outline-none"
+                    />
+                  ) : (
+                    <div className="mx-2 mt-1 flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setNewGroup(true)}
+                        className="flex-1 rounded-md border border-dashed border-rule px-2 py-1 text-left font-sans text-2xs text-ink-muted transition-colors hover:border-gold hover:text-gold"
+                      >
+                        + New group
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setJoining(true)}
+                        title="Join a group with an invite code"
+                        className="rounded-md border border-dashed border-rule px-2 py-1 font-sans text-2xs text-ink-muted transition-colors hover:border-gold hover:text-gold"
+                      >
+                        Join
+                      </button>
+                    </div>
+                  )}
+                  <p className="px-2 pt-1 font-sans text-[10px] leading-snug text-ink-muted/70">
+                    {myGroups.length
+                      ? "Drag a study onto a group to share it."
+                      : "A group is a shelf you share — start one, or join with a code."}
+                  </p>
+                </>
+              )}
             </div>
           )}
 

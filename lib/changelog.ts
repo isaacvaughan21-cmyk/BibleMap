@@ -18,11 +18,12 @@ export type Release = {
 
 export const CHANGELOG: Release[] = [
   {
-    version: "0.14.0",
+    version: "0.14.1",
     date: "2026-08-06",
     title: "A shelf your group shares",
     changes: [
       "A group is no longer one map. Your library now has a “My groups” section, and each group keeps a whole shelf of studies — start a new one for this week without losing last week’s.",
+      "You can start a group or join one with a code from the library itself, without going back to the canvas.",
       "Bring your own work in: drag any study onto a group, or pick “Share one of mine…”. It stays yours — still on your shelves — and everyone in the group can now study it with you, live.",
       "Name the group whatever you actually call it, and rename it later; anyone in it can.",
       "Take a study back out whenever you like. Leave a group and the studies you brought stay in your library — only the group’s own maps go with it.",
