@@ -1,0 +1,102 @@
+{
+  "id": "2026-09-19-you-will-be-my-witnesses",
+  "date": "2026-09-19",
+  "title": "You Will Be My Witnesses",
+  "question": "What are the disciples given before they are sent, and what are they sent to say?",
+  "anchorRef": "Acts 1:8",
+  "blurb": "Power first, then going. Trace what the witnesses were actually witnesses of.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "What are the disciples given before they are sent, and what are they sent to say?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Acts 1:8",
+      "verseText": "But you will receive power when the Holy Spirit comes upon you, and you will be My witnesses in Jerusalem, and in all Judea and Samaria, and to the ends of the earth.”"
+    },
+    {
+      "id": "b1",
+      "type": "verse",
+      "position": {
+        "x": 418,
+        "y": 49
+      },
+      "verseRef": "Luke 24:48–49",
+      "verseText": "You are witnesses of these things. And behold, I am sending the promise of My Father upon you. But remain in the city until you have been clothed with power from on high.”"
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 189,
+        "y": 347
+      },
+      "verseRef": "Acts 2:4",
+      "verseText": "And they were all filled with the Holy Spirit and began to speak in other tongues as the Spirit enabled them."
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": -191,
+        "y": 351
+      },
+      "verseRef": "John 15:26–27",
+      "verseText": "When the Advocate comes, whom I will send to you from the Father—the Spirit of truth who proceeds from the Father—He will testify about Me. And you also must testify, because you have been with Me from the beginning."
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -419,
+        "y": 49
+      },
+      "verseRef": "Romans 1:16",
+      "verseText": "I am not ashamed of the gospel, because it is the power of God for salvation to everyone who believes, first to the Jew, then to the Greek."
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
+      "kind": "manual"
+    }
+  ]
+}

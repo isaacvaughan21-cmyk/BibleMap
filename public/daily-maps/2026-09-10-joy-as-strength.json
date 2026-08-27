@@ -1,0 +1,102 @@
+{
+  "id": "2026-09-10-joy-as-strength",
+  "date": "2026-09-10",
+  "title": "Joy as Strength",
+  "question": "How can joy be a source of strength rather than a result of it?",
+  "anchorRef": "Nehemiah 8:10",
+  "blurb": "Said to a weeping crowd. Four more verses that put joy and strength together.",
+  "version": "BSB",
+  "nodes": [
+    {
+      "id": "q",
+      "type": "question",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "content": "How can joy be a source of strength rather than a result of it?"
+    },
+    {
+      "id": "anchor",
+      "type": "verse",
+      "position": {
+        "x": 0,
+        "y": -240
+      },
+      "verseRef": "Nehemiah 8:10",
+      "verseText": "Then Nehemiah told them, “Go and eat what is rich, drink what is sweet, and send out portions to those who have nothing prepared, since today is holy to our Lord. Do not grieve, for the joy of the LORD is your strength.”"
+    },
+    {
+      "id": "b1",
+      "type": "verse",
+      "position": {
+        "x": 418,
+        "y": 49
+      },
+      "verseRef": "Psalm 28:7",
+      "verseText": "The LORD is my strength and my shield; my heart trusts in Him, and I am helped. Therefore my heart rejoices, and I give thanks to Him with my song."
+    },
+    {
+      "id": "b2",
+      "type": "verse",
+      "position": {
+        "x": 189,
+        "y": 347
+      },
+      "verseRef": "Habakkuk 3:18",
+      "verseText": "yet I will exult in the LORD; I will rejoice in the God of my salvation!"
+    },
+    {
+      "id": "b3",
+      "type": "verse",
+      "position": {
+        "x": -191,
+        "y": 351
+      },
+      "verseRef": "Philippians 4:4",
+      "verseText": "Rejoice in the Lord always. I will say it again: Rejoice!"
+    },
+    {
+      "id": "b4",
+      "type": "verse",
+      "position": {
+        "x": -419,
+        "y": 49
+      },
+      "verseRef": "Isaiah 12:3",
+      "verseText": "With joy you will draw water from the springs of salvation,"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-q-anchor",
+      "source": "q",
+      "target": "anchor",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b1",
+      "source": "q",
+      "target": "b1",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b2",
+      "source": "q",
+      "target": "b2",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b3",
+      "source": "q",
+      "target": "b3",
+      "kind": "manual"
+    },
+    {
+      "id": "e-q-b4",
+      "source": "q",
+      "target": "b4",
+      "kind": "manual"
+    }
+  ]
+}
